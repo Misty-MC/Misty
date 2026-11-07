@@ -2,11 +2,11 @@
 
 use super::{account, http};
 use image::{imageops, Rgba, RgbaImage};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const API: &str = "https://api.minecraftservices.com/minecraft/profile";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Cape {
     pub id: String,
     pub nom: String,
@@ -14,7 +14,7 @@ pub struct Cape {
     pub active: bool,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Profil {
     pub skin_url: String,
     pub fin: bool,
@@ -55,10 +55,32 @@ async fn jeton() -> anyhow::Result<String> {
     Ok(account::connecter().await?.jeton)
 }
 
+/// Mojang refuse les demandes (HTTP 429). `attente` : secondes demandées par Mojang (0 = non précisé).
+#[derive(Debug)]
+pub struct Limite {
+    pub attente: u64,
+}
+
+impl std::fmt::Display for Limite {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "HTTP 429 (trop de requêtes)")
+    }
+}
+
+impl std::error::Error for Limite {}
+
 /// Skin et capes actuels du compte.
 pub async fn profil() -> anyhow::Result<Profil> {
-    let reponse = http::client().get(API).bearer_auth(jeton().await?).send().await?.error_for_status()?;
-    let p: ProfilJson = reponse.json().await?;
+    // Outil de développement : MISTY_FAKE_429=1 simule la limite de requêtes de Mojang (version debug seulement)
+    if cfg!(debug_assertions) && std::env::var_os("MISTY_FAKE_429").is_some() {
+        return Err(Limite { attente: 4 }.into());
+    }
+    let r = http::client().get(API).bearer_auth(jeton().await?).send().await?;
+    if r.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        let attente = r.headers().get("retry-after").and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
+        return Err(Limite { attente }.into());
+    }
+    let p: ProfilJson = r.error_for_status()?.json().await?;
     let skin = p.skins.iter().find(|s| s.state == "ACTIVE").or(p.skins.first());
     Ok(Profil {
         skin_url: skin.map(|s| s.url.clone()).unwrap_or_default(),
@@ -79,8 +101,60 @@ fn majuscule(alias: &str) -> String {
     }
 }
 
+/// Dossier où sont gardés les skins et capes déjà téléchargés.
+fn dossier_cache() -> std::path::PathBuf {
+    super::paths::data_dir().join("cache").join("skins")
+}
+
+/// Télécharge une texture Mojang, ou la relit sur le disque si on l'a déjà eue.
+/// L'adresse d'une texture contient son empreinte : le contenu d'une même adresse ne change jamais.
 pub async fn telecharger(url: &str) -> anyhow::Result<Vec<u8>> {
-    Ok(http::client().get(url).send().await?.error_for_status()?.bytes().await?.to_vec())
+    let fichier = dossier_cache().join(format!("{:x}.png", md5::compute(url)));
+    if let Ok(octets) = std::fs::read(&fichier) {
+        if !octets.is_empty() {
+            return Ok(octets);
+        }
+    }
+    if url.starts_with("local:") {
+        anyhow::bail!("skin local introuvable"); // pas une vraie adresse : seulement sur le disque
+    }
+    let octets = http::client().get(url).send().await?.error_for_status()?.bytes().await?.to_vec();
+    let _ = std::fs::create_dir_all(dossier_cache());
+    let _ = std::fs::write(&fichier, &octets);
+    Ok(octets)
+}
+
+/// Dernier profil connu d'un compte (relu quand Mojang ne répond pas).
+pub fn profil_en_cache(uuid: &str) -> Option<Profil> {
+    if uuid.is_empty() {
+        return None;
+    }
+    serde_json::from_str(&std::fs::read_to_string(dossier_cache().join(format!("profil-{uuid}.json"))).ok()?).ok()
+}
+
+pub fn enregistrer_profil(uuid: &str, profil: &Profil) {
+    if uuid.is_empty() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(dossier_cache());
+    let _ = std::fs::write(dossier_cache().join(format!("profil-{uuid}.json")), serde_json::to_string(profil).unwrap_or_default());
+}
+
+/// Après l'envoi d'un skin : on le garde sur le disque, pour l'afficher même si Mojang ne répond pas ensuite.
+pub fn memoriser_skin_envoye(uuid: &str, png: &[u8], fin: bool) {
+    let adresse = format!("local:{uuid}");
+    let _ = std::fs::create_dir_all(dossier_cache());
+    let _ = std::fs::write(dossier_cache().join(format!("{:x}.png", md5::compute(&adresse))), png);
+    let mut profil = profil_en_cache(uuid).unwrap_or_default();
+    profil.skin_url = adresse;
+    profil.fin = fin;
+    enregistrer_profil(uuid, &profil);
+}
+
+/// Steve en entier : toujours le même, calculé une seule fois puis gardé en mémoire.
+pub fn steve_tour() -> Option<&'static Vec<RgbaImage>> {
+    static STEVE: std::sync::OnceLock<Option<Vec<RgbaImage>>> = std::sync::OnceLock::new();
+    STEVE.get_or_init(|| rendre_tour(include_bytes!("../../assets/steve.png"), false, None)).as_ref()
 }
 
 /// Envoie un nouveau skin (PNG 64×64 ou 64×32).
@@ -265,6 +339,12 @@ fn axe_largeur(axe: usize) -> usize {
 /// The character turning on itself: `IMAGES_TOUR` views, the first one seen from the front.
 /// The cape (texture bytes of the whole cape) is only visible from behind.
 pub fn rendre_tour(png: &[u8], fin: bool, cape: Option<&[u8]>) -> Option<Vec<RgbaImage>> {
+    let toutes: Vec<usize> = (0..IMAGES_TOUR).collect();
+    rendre_vues(png, fin, cape, &toutes)
+}
+
+/// Seulement certaines vues du tour (ex. [0] : la face, pour afficher le personnage tout de suite).
+pub fn rendre_vues(png: &[u8], fin: bool, cape: Option<&[u8]>, indices: &[usize]) -> Option<Vec<RgbaImage>> {
     let skin = image::load_from_memory(png).ok()?.to_rgba8();
     if skin.width() != 64 || skin.height() < 32 {
         return None;
@@ -302,8 +382,7 @@ pub fn rendre_tour(png: &[u8], fin: bool, cape: Option<&[u8]>) -> Option<Vec<Rgb
         boites.push(boite_cape(facteur));
     }
 
-    let mut vues = Vec::with_capacity(IMAGES_TOUR);
-    for k in 0..IMAGES_TOUR {
+    let rendre = |k: usize| -> RgbaImage {
         let a = k as f32 * std::f32::consts::TAU / IMAGES_TOUR as f32;
         let (s, c) = a.sin_cos();
         // the viewer is at (sin, 0, cos) and looks at the character; screen right is (cos, 0, -sin)
@@ -333,11 +412,26 @@ pub fn rendre_tour(png: &[u8], fin: bool, cape: Option<&[u8]>) -> Option<Vec<Rgb
                 }
             }
         }
-        vues.push(vue);
-    }
-    Some(vues)
-}
+        vue
+    };
 
+    // Les vues sont indépendantes : on les calcule en parallèle sur tous les cœurs
+    let fils = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).clamp(1, indices.len().max(1));
+    let mut resultats: Vec<(usize, RgbaImage)> = Vec::with_capacity(indices.len());
+    std::thread::scope(|sc| {
+        let rendre = &rendre;
+        let poignees: Vec<_> = (0..fils)
+            .map(|t| sc.spawn(move || indices.iter().skip(t).step_by(fils).map(|&k| (k, rendre(k))).collect::<Vec<_>>()))
+            .collect();
+        for p in poignees {
+            if let Ok(v) = p.join() {
+                resultats.extend(v);
+            }
+        }
+    });
+    resultats.sort_by_key(|(k, _)| indices.iter().position(|i| i == k));
+    Some(resultats.into_iter().map(|(_, v)| v).collect())
+}
 /// Tête du skin avec le chapeau, agrandie à 64×64 sans lissage.
 pub fn rendre_tete(png: &[u8]) -> Option<RgbaImage> {
     let skin = image::load_from_memory(png).ok()?.to_rgba8();

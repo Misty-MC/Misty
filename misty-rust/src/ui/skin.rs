@@ -6,6 +6,13 @@ use crate::services::{account, loc};
 use crate::{CapeItem, HomeState, SkinState};
 use slint::{ComponentHandle, Image};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// Incrémenté à chaque changement de session : les chargements en cours deviennent obsolètes.
+static EPOQUE: AtomicU64 = AtomicU64::new(0);
+
+/// UUID du compte dont le skin est chargé (ou en cours de chargement).
+static DERNIER_COMPTE: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
 
 /// Nombre de capes par ligne (doit correspondre à la largeur du panneau).
 const COLONNES: usize = 4;
@@ -22,6 +29,16 @@ pub struct Etat {
     fichier: Option<Vec<u8>>,
     /// Incremented at each 3D preview request, to drop outdated results
     generation: u64,
+    /// Chargement du profil déjà lancé (évite de le faire deux fois)
+    charge: bool,
+    /// Cape confirmée par Mojang (id vide = aucune) et cape demandée par l'utilisateur
+    cape_confirmee: String,
+    cape_voulue: String,
+    envoi_cape: bool,
+    /// La limite de requêtes de Mojang est atteinte (remis à zéro dès qu'une réponse arrive)
+    limite_signalee: bool,
+    /// Le message d'information n'a pas encore été montré à l'utilisateur
+    limite_a_montrer: bool,
 }
 
 fn s(app: &App) -> SkinState<'_> {
@@ -35,10 +52,11 @@ pub fn installer(app: &Rc<App>) {
     st.on_open(move || {
         // Premier affichage (ou compte changé) : on va chercher le skin et les capes
         if account::session().is_some() && a.skin.borrow().profil.is_none() {
-            charger(&a);
+            charger(&a); // no-op si le chargement est déjà en cours (préchargé)
         } else if account::session().is_none() {
-            afficher_steve(&a);
+            afficher_steve(&a, false);
         }
+        montrer_limite(&a); // limite atteinte pendant le préchargement : on prévient maintenant
     });
 
     let a = app.clone();
@@ -66,6 +84,16 @@ pub fn installer(app: &Rc<App>) {
 
 /// Connexion / déconnexion : on repart de zéro.
 pub fn session_changee(app: &Rc<App>) {
+    // Même compte et déjà chargé (ou en cours) : on ne redemande pas tout à Mojang
+    let uuid = account::session().map(|s| s.uuid).unwrap_or_default();
+    {
+        let mut dernier = DERNIER_COMPTE.lock().unwrap();
+        if !uuid.is_empty() && *dernier == uuid && app.skin.borrow().charge {
+            return;
+        }
+        *dernier = uuid;
+    }
+    EPOQUE.fetch_add(1, Ordering::SeqCst);
     *app.skin.borrow_mut() = Etat::default();
     let st = s(app);
     st.set_has_figure(false);
@@ -74,15 +102,17 @@ pub fn session_changee(app: &Rc<App>) {
     st.set_has_file(false);
     st.set_file_name("".into());
     st.set_info("".into());
-    if account::session().is_some() && st.get_tab() == 1 {
-        charger(app);
+    st.set_loading(false);
+    if account::session().is_some() {
+        charger(app); // préchargé : l'onglet Skin s'ouvre déjà prêt
     } else if account::session().is_none() {
-        afficher_steve(app);
+        afficher_steve(app, false);
     }
 }
 
 /// Pas de compte connecté : on montre Steve en entier (skin par défaut de Minecraft).
-fn afficher_steve(app: &Rc<App>) {
+/// orce : même avec un compte connecté (secours quand rien d'autre n'est disponible).
+fn afficher_steve(app: &Rc<App>, force: bool) {
     let generation = {
         let mut e = app.skin.borrow_mut();
         e.generation += 1;
@@ -90,8 +120,8 @@ fn afficher_steve(app: &Rc<App>) {
     };
     let a = app.clone();
     lancer(async move {
-        let vues = a.bloquant(|| skins::rendre_tour(include_bytes!("../../assets/steve.png"), false, None)).await;
-        if a.skin.borrow().generation != generation || account::session().is_some() {
+        let vues = a.bloquant(|| skins::steve_tour().cloned()).await;
+        if a.skin.borrow().generation != generation || (!force && account::session().is_some()) {
             return;
         }
         let st = s(&a);
@@ -107,47 +137,202 @@ pub fn langue_changee(app: &Rc<App>) {
 
 // ───────────────────────── Chargement ─────────────────────────
 
+/// Ce qu'il faut pour afficher le personnage : le profil, le skin et la cape portée.
 struct Charge {
     profil: Profil,
     skin: Vec<u8>,
-    capes: Vec<Option<Vec<u8>>>,
+    cape_active: Option<(usize, Vec<u8>)>,
 }
 
+/// Skin et cape portée d'un profil connu (relus sur le disque si on les a déjà eus).
+async fn rassembler(profil: Profil) -> Charge {
+    let skin = async {
+        if profil.skin_url.is_empty() {
+            Vec::new()
+        } else {
+            skins::telecharger(&profil.skin_url).await.unwrap_or_default()
+        }
+    };
+    let cape = async {
+        let i = profil.capes.iter().position(|c| c.active)?;
+        skins::telecharger(&profil.capes[i].url).await.ok().map(|o| (i, o))
+    };
+    let (skin, cape_active) = futures::join!(skin, cape);
+    Charge { profil, skin, cape_active }
+}
+
+/// Profil actuel demandé à Mojang.
 async fn recuperer() -> anyhow::Result<Charge> {
-    let profil = skins::profil().await?;
-    let skin = if profil.skin_url.is_empty() { Vec::new() } else { skins::telecharger(&profil.skin_url).await.unwrap_or_default() };
-    let telechargements = profil.capes.iter().map(|c| async move {
-        skins::telecharger(&c.url).await.ok()
-    });
-    let capes = futures::future::join_all(telechargements).await;
-    Ok(Charge { profil, skin, capes })
+    Ok(rassembler(skins::profil().await?).await)
 }
 
+/// Les autres capes (vignettes), sans bloquer l'affichage du personnage.
+async fn recuperer_autres_capes(profil: Profil) -> Vec<Option<Vec<u8>>> {
+    let telechargements = profil.capes.iter().map(|c| async move {
+        if c.active {
+            None
+        } else {
+            skins::telecharger(&c.url).await.ok()
+        }
+    });
+    futures::future::join_all(telechargements).await
+}
+
+/// Affiche un profil (dernier connu ou réponse de Mojang). Renvoie false si le compte a changé entre-temps.
+async fn afficher_charge(app: &Rc<App>, c: Charge, epoque: u64) -> bool {
+    if EPOQUE.load(Ordering::SeqCst) != epoque {
+        return false;
+    }
+    // Une cape vient d'être choisie et part chez Mojang : on ne l'écrase pas
+    if app.skin.borrow().envoi_cape {
+        return true;
+    }
+    let st = s(app);
+    let profil = c.profil.clone();
+    if let Some(tete) = skins::rendre_tete(&c.skin) {
+        let home = app.ui.global::<HomeState>();
+        home.set_has_avatar(true);
+        home.set_avatar(Image::from_rgba8(images::tampon(&tete)));
+    }
+    {
+        let mut e = app.skin.borrow_mut();
+        if e.fichier.is_none() {
+            st.set_slim(c.profil.fin);
+        }
+        e.skin_actuel = c.skin;
+        e.capes_img = vec![None; profil.capes.len()];
+        if let Some((i, octets)) = c.cape_active {
+            e.capes_img[i] = Some(octets);
+        }
+        e.cape_confirmee = profil.capes.iter().find(|x| x.active).map(|x| x.id.clone()).unwrap_or_default();
+        e.cape_voulue = e.cape_confirmee.clone();
+        e.profil = Some(c.profil);
+    }
+    afficher_personnage(app);
+    afficher_capes(app);
+    st.set_loading(false);
+
+    // Les vignettes des autres capes arrivent après
+    let autres = app.bg(recuperer_autres_capes(profil)).await;
+    if EPOQUE.load(Ordering::SeqCst) != epoque {
+        return false;
+    }
+    {
+        let mut e = app.skin.borrow_mut();
+        for (i, octets) in autres.into_iter().enumerate() {
+            if octets.is_some() && i < e.capes_img.len() {
+                e.capes_img[i] = octets;
+            }
+        }
+    }
+    afficher_capes(app);
+    true
+}
+
+/// Mojang limite les demandes : on le dit à l'utilisateur (une fois par épisode).
+fn signaler_limite(app: &Rc<App>) {
+    {
+        let mut e = app.skin.borrow_mut();
+        if e.limite_signalee {
+            return;
+        }
+        e.limite_signalee = true;
+        e.limite_a_montrer = true;
+    }
+    montrer_limite(app);
+}
+
+/// Montre le message si l'utilisateur regarde l'onglet Skin (sinon il attend qu'il l'ouvre).
+fn montrer_limite(app: &Rc<App>) {
+    let regarde = s(app).get_tab() == 1 && app.ui.global::<crate::AppState>().get_page() == 0;
+    if !regarde || !std::mem::take(&mut app.skin.borrow_mut().limite_a_montrer) {
+        return;
+    }
+    let a = app.clone();
+    lancer(async move { dialogs::info(&a, &loc::t("Skin_Limite_Titre"), &loc::t("Skin_Limite_Popup")).await });
+}
+
+/// Charge le skin et les capes : d'abord le dernier profil connu (disque), puis Mojang.
+/// Si Mojang refuse (limite de requêtes) ou ne répond pas, on garde l'affichage et on réessaie
+/// tout seul, en patientant de plus en plus longtemps, jusqu'à confirmer la configuration.
 fn charger(app: &Rc<App>) {
+    {
+        let mut e = app.skin.borrow_mut();
+        if e.charge {
+            return;
+        }
+        e.charge = true;
+    }
+    let epoque = EPOQUE.load(Ordering::SeqCst);
     let a = app.clone();
     lancer(async move {
         let st = s(&a);
         st.set_loading(true);
         st.set_info("".into());
-        match a.bg(recuperer()).await {
-            Ok(c) => {
-                st.set_slim(c.profil.fin);
-                {
-                    let mut e = a.skin.borrow_mut();
-                    e.skin_actuel = c.skin;
-                    e.capes_img = c.capes;
-                    e.profil = Some(c.profil);
-                }
-                afficher_personnage(&a);
-                afficher_capes(&a);
+        let uuid = account::session().map(|s| s.uuid).unwrap_or_default();
+
+        // 1. Dernier skin connu : affiché tout de suite, sans aucune demande à Mojang
+        let mut affiche = false;
+        if let Some(p) = skins::profil_en_cache(&uuid) {
+            let c = a.bg(rassembler(p)).await;
+            affiche = afficher_charge(&a, c, epoque).await;
+            if EPOQUE.load(Ordering::SeqCst) != epoque {
+                return;
             }
-            Err(e) => st.set_info(loc::tf("Skin_ErreurChargement", &[&e]).into()),
         }
-        st.set_loading(false);
+
+        // 2. Profil réel chez Mojang
+        let mut essai = 0usize;
+        loop {
+            let resultat = a.bg(recuperer()).await;
+            if EPOQUE.load(Ordering::SeqCst) != epoque {
+                return; // le compte a changé entre-temps
+            }
+            match resultat {
+                Ok(c) => {
+                    skins::enregistrer_profil(&uuid, &c.profil);
+                    {
+                        let mut e = a.skin.borrow_mut();
+                        e.limite_signalee = false;
+                        e.limite_a_montrer = false;
+                    }
+                    st.set_info("".into());
+                    afficher_charge(&a, c, epoque).await; // confirme (ou corrige) ce qui était affiché
+                    return;
+                }
+                Err(e) => {
+                    let limite = e.downcast_ref::<skins::Limite>().map(|l| l.attente);
+                    if limite.is_some() {
+                        signaler_limite(&a);
+                    }
+                    let message = if limite.is_some() { loc::t("Skin_Limite") } else { loc::tf("Skin_ErreurChargement", &[&e]) };
+                    st.set_info(message.into());
+                    if !affiche {
+                        st.set_loading(false);
+                        afficher_steve(&a, true); // rien en mémoire : Steve en attendant
+                    }
+                    essai += 1;
+                    if essai > 8 {
+                        a.skin.borrow_mut().charge = false; // on réessaiera à la prochaine ouverture
+                        return;
+                    }
+                    let attente = limite.filter(|&n| n > 0).unwrap_or(match essai {
+                        1 => 5,
+                        2 => 10,
+                        3 => 20,
+                        4 => 40,
+                        _ => 60,
+                    });
+                    let attente = attente.clamp(2, 120);
+                    a.bg(async move { tokio::time::sleep(std::time::Duration::from_secs(attente)).await }).await;
+                    if EPOQUE.load(Ordering::SeqCst) != epoque {
+                        return;
+                    }
+                }
+            }
+        }
     });
 }
-
-
 /// Preview in 3D: the chosen skin if any, otherwise the current skin, with the equipped cape.
 fn afficher_personnage(app: &Rc<App>) {
     let fin = s(app).get_slim();
@@ -160,14 +345,36 @@ fn afficher_personnage(app: &Rc<App>) {
     };
     let a = app.clone();
     lancer(async move {
+        // 1. La face seule, affichée tout de suite (le personnage ne tourne pas encore)
+        let st = s(&a);
+        // Déjà un personnage affiché (changement de cape...) : on le garde jusqu'à la fin du calcul
+        if !st.get_has_figure() {
+            let (png2, cape2) = (png.clone(), cape.clone());
+            let face = a.bloquant(move || skins::rendre_vues(&png2, fin, cape2.as_deref(), &[0])).await;
+            if a.skin.borrow().generation != generation {
+                return; // a newer preview was requested meanwhile
+            }
+            match face.and_then(|mut v| v.pop()) {
+                Some(v) => {
+                    let image = Image::from_rgba8(images::tampon(&v));
+                    st.set_has_figure(true);
+                    st.set_frames(modele(vec![image; skins::IMAGES_TOUR]));
+                }
+                None => {
+                    st.set_has_figure(false);
+                    return;
+                }
+            }
+        }
+        // 2. Le tour complet (calculé sur tous les cœurs)
         let vues = a.bloquant(move || skins::rendre_tour(&png, fin, cape.as_deref())).await;
         if a.skin.borrow().generation != generation {
-            return; // a newer preview was requested meanwhile
+            return;
         }
-        let st = s(&a);
-        st.set_has_figure(vues.is_some());
-        let images: Vec<Image> = vues.unwrap_or_default().iter().map(|v| Image::from_rgba8(images::tampon(v))).collect();
-        st.set_frames(modele(images));
+        if let Some(vues) = vues {
+            let images: Vec<Image> = vues.iter().map(|v| Image::from_rgba8(images::tampon(v))).collect();
+            st.set_frames(modele(images));
+        }
     });
 }
 
@@ -245,6 +452,9 @@ async fn appliquer(app: &Rc<App>) {
             }
             st.set_has_file(false);
             st.set_file_name("".into());
+            if let Some(s) = account::session() {
+                skins::memoriser_skin_envoye(&s.uuid, &png, fin);
+            }
             st.set_info(loc::t("Skin_Applique").into());
             afficher_personnage(app);
             // La pastille de l'accueil montre la nouvelle tête tout de suite
@@ -259,26 +469,66 @@ async fn appliquer(app: &Rc<App>) {
     st.set_busy(false);
 }
 
+/// Applique une cape dans l'interface (sans attendre le serveur).
+fn cape_localement(app: &Rc<App>, id: &str) {
+    if let Some(p) = app.skin.borrow_mut().profil.as_mut() {
+        for c in p.capes.iter_mut() {
+            c.active = c.id == id;
+        }
+    }
+    afficher_capes(app);
+    afficher_personnage(app);
+}
+
+/// La cape change tout de suite à l'écran ; la demande part ensuite à Mojang.
+/// Si l'utilisateur change encore d'avis pendant l'envoi, seule la dernière demande compte.
 async fn changer_cape(app: &Rc<App>, id: String) {
     let st = s(app);
-    st.set_busy(true);
-    st.set_info("".into());
-    let envoi = id.clone();
-    let resultat = app
-        .bg(async move { skins::activer_cape(if envoi.is_empty() { None } else { Some(envoi.as_str()) }).await })
-        .await;
-    match resultat {
-        Ok(()) => {
-            if let Some(p) = app.skin.borrow_mut().profil.as_mut() {
-                for c in p.capes.iter_mut() {
-                    c.active = c.id == id;
-                }
-            }
-            afficher_capes(app);
-            afficher_personnage(app);
-            st.set_info(loc::t("Skin_CapeChangee").into());
+    {
+        let mut e = app.skin.borrow_mut();
+        if e.cape_voulue == id {
+            return;
         }
-        Err(e) => dialogs::erreur(app, &loc::t("Skin_ErreurCape"), &e.to_string()).await,
+        e.cape_voulue = id.clone();
     }
-    st.set_busy(false);
+    st.set_info("".into());
+    cape_localement(app, &id);
+
+    if std::mem::replace(&mut app.skin.borrow_mut().envoi_cape, true) {
+        return; // un envoi est déjà en cours : il enverra aussi cette dernière demande
+    }
+    loop {
+        let voulue = app.skin.borrow().cape_voulue.clone();
+        let envoi = voulue.clone();
+        let resultat = app
+            .bg(async move { skins::activer_cape(if envoi.is_empty() { None } else { Some(envoi.as_str()) }).await })
+            .await;
+        match resultat {
+            Ok(()) => {
+                let mut e = app.skin.borrow_mut();
+                e.cape_confirmee = voulue.clone();
+                if let (Some(p), Some(s)) = (e.profil.as_ref(), account::session()) {
+                    skins::enregistrer_profil(&s.uuid, p); // dernier état connu
+                }
+                if e.cape_voulue == voulue {
+                    e.envoi_cape = false;
+                    drop(e);
+                    st.set_info(loc::t("Skin_CapeChangee").into());
+                    return;
+                }
+                // une autre cape a été demandée entre-temps : on l'envoie
+            }
+            Err(e) => {
+                let confirmee = {
+                    let mut etat = app.skin.borrow_mut();
+                    etat.envoi_cape = false;
+                    etat.cape_voulue = etat.cape_confirmee.clone();
+                    etat.cape_confirmee.clone()
+                };
+                cape_localement(app, &confirmee); // on revient à la cape réellement portée
+                dialogs::erreur(app, &loc::t("Skin_ErreurCape"), &e.to_string()).await;
+                return;
+            }
+        }
+    }
 }

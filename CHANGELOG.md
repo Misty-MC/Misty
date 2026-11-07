@@ -3,6 +3,10 @@
 - "Check for updates": only the two arrows now spin while Misty is searching, the button keeps its size so nothing moves around it anymore
 - Removed the white vertical line between the account and the profile on the home page
 - The default offline account created at the first launch is now called Misty
+- Skin tab: the skin and the capes are loaded in the background at startup and kept on your disk, so the tab opens instantly and switching capes is immediate (the cape change is shown right away and sent to Mojang afterwards)
+- Skin tab: the character preview is computed on all CPU cores, and a full 3D Steve is shown when you are not signed in
+- When Mojang limits the number of requests, Misty keeps showing your last known skin and capes, tells you with a message, and checks your setup again by itself as soon as the limit is lifted
+- The head of your account on the home page now comes from your saved skin instead of an external website
 
 ## 0.3.3
 - Misty now uses the new GitHub repository (Misty-MC/Misty) to look for updates: this version keeps your updates going without reinstalling

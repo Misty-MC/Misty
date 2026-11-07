@@ -378,5 +378,8 @@
   "Maj_Verification": "Buscando…",
   "Maj_AJour": "Misty está actualizado",
   "Maj_AJour_Texte": "Ya tienes la última versión ({0}).",
-  "Maj_VerifImpossible": "No se pudo buscar actualizaciones"
+  "Maj_VerifImpossible": "No se pudo buscar actualizaciones",
+  "Skin_Limite": "Mojang está limitando las solicitudes ahora mismo. Se muestra tu último skin conocido y Misty reintentará solo.",
+  "Skin_Limite_Titre": "Límite de solicitudes alcanzado",
+  "Skin_Limite_Popup": "Mojang limita temporalmente el número de solicitudes. Misty muestra tu último skin y tus últimas capas conocidos, y volverá a comprobar tu configuración automáticamente en cuanto se levante el límite. No tienes que hacer nada."
 }

@@ -226,11 +226,13 @@ fn maj_avatar(app: &Rc<App>) {
     let a = app.clone();
     let premium = account::session().is_some();
     lancer(async move {
-        // Compte Microsoft : tête tirée du vrai skin (Mojang), pas du cache de mc-heads qui renvoie Steve
+        // Compte Microsoft : tête tirée du dernier skin connu (disque), sans interroger Mojang.
+        // L'onglet Skin la met à jour dès qu'il a reçu le vrai skin ; mc-heads renverrait Steve.
         if premium {
+            let uuid = account::session().map(|s| s.uuid).unwrap_or_default();
             let tete = a
-                .bg(async {
-                    let p = crate::services::skins::profil().await.ok()?;
+                .bg(async move {
+                    let p = crate::services::skins::profil_en_cache(&uuid)?;
                     if p.skin_url.is_empty() {
                         return None;
                     }
@@ -244,8 +246,8 @@ fn maj_avatar(app: &Rc<App>) {
             if let Some(tete) = tete {
                 h(&a).set_has_avatar(true);
                 h(&a).set_avatar(slint::Image::from_rgba8(images::tampon(&tete)));
-                return;
             }
+            return;
         }
         let url = format!("https://mc-heads.net/avatar/{}/64", urlencoding::encode(&pseudo));
         let image = images::depuis_url(&a, &url).await;

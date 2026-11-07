@@ -378,5 +378,8 @@
   "Maj_Verification": "Recherche…",
   "Maj_AJour": "Misty est à jour",
   "Maj_AJour_Texte": "Tu utilises déjà la dernière version ({0}).",
-  "Maj_VerifImpossible": "Recherche impossible"
+  "Maj_VerifImpossible": "Recherche impossible",
+  "Skin_Limite": "Mojang limite les demandes pour le moment. Ton dernier skin connu est affiché, Misty réessaie tout seul.",
+  "Skin_Limite_Titre": "Limite de requêtes atteinte",
+  "Skin_Limite_Popup": "Mojang limite temporairement le nombre de demandes. Misty affiche ton dernier skin et tes dernières capes connus, et revérifiera automatiquement ta configuration dès que la limite sera levée. Tu n'as rien à faire."
 }
