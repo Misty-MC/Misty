@@ -39,6 +39,8 @@ pub struct Etat {
     limite_signalee: bool,
     /// Le message d'information n'a pas encore été montré à l'utilisateur
     limite_a_montrer: bool,
+    /// Le message de limite concerne l'envoi d'une cape (et non le chargement du profil)
+    limite_cape: bool,
 }
 
 fn s(app: &App) -> SkinState<'_> {
@@ -249,7 +251,8 @@ fn montrer_limite(app: &Rc<App>) {
         return;
     }
     let a = app.clone();
-    lancer(async move { dialogs::info(&a, &loc::t("Skin_Limite_Titre"), &loc::t("Skin_Limite_Popup")).await });
+    let texte = if std::mem::take(&mut app.skin.borrow_mut().limite_cape) { loc::t("Skin_LimiteCape_Popup") } else { loc::t("Skin_Limite_Popup") };
+    lancer(async move { dialogs::info(&a, &loc::t("Skin_Limite_Titre"), &texte).await });
 }
 
 /// Charge le skin et les capes : d'abord le dernier profil connu (disque), puis Mojang.
@@ -464,7 +467,10 @@ async fn appliquer(app: &Rc<App>) {
                 home.set_avatar(Image::from_rgba8(images::tampon(&tete)));
             }
         }
-        Err(e) => dialogs::erreur(app, &loc::t("Skin_Erreur"), &e.to_string()).await,
+        Err(e) => {
+            let message = if e.downcast_ref::<skins::Limite>().is_some() { loc::t("Skin_LimiteEchec") } else { e.to_string() };
+            dialogs::erreur(app, &loc::t("Skin_Erreur"), &message).await
+        }
     }
     st.set_busy(false);
 }
@@ -497,8 +503,15 @@ async fn changer_cape(app: &Rc<App>, id: String) {
     if std::mem::replace(&mut app.skin.borrow_mut().envoi_cape, true) {
         return; // un envoi est déjà en cours : il enverra aussi cette dernière demande
     }
+    let mut essai = 0usize;
     loop {
+        // Courte pause : si l'utilisateur clique encore sur d'autres capes, une seule demande partira
+        app.bg(async { tokio::time::sleep(std::time::Duration::from_millis(500)).await }).await;
         let voulue = app.skin.borrow().cape_voulue.clone();
+        if voulue == app.skin.borrow().cape_confirmee {
+            app.skin.borrow_mut().envoi_cape = false;
+            return; // revenu à la cape déjà portée : rien à envoyer
+        }
         let envoi = voulue.clone();
         let resultat = app
             .bg(async move { skins::activer_cape(if envoi.is_empty() { None } else { Some(envoi.as_str()) }).await })
@@ -512,6 +525,7 @@ async fn changer_cape(app: &Rc<App>, id: String) {
                 }
                 if e.cape_voulue == voulue {
                     e.envoi_cape = false;
+                    e.limite_signalee = false;
                     drop(e);
                     st.set_info(loc::t("Skin_CapeChangee").into());
                     return;
@@ -519,14 +533,26 @@ async fn changer_cape(app: &Rc<App>, id: String) {
                 // une autre cape a été demandée entre-temps : on l'envoie
             }
             Err(e) => {
-                let confirmee = {
+                // Mojang limite les demandes : la cape reste affichée, on réessaie en patientant
+                if let Some(limite) = e.downcast_ref::<skins::Limite>() {
+                    essai += 1;
+                    if essai <= 4 {
+                        app.skin.borrow_mut().limite_cape = true;
+                        signaler_limite(app);
+                        let attente = (if limite.attente > 0 { limite.attente } else { 5u64 << (essai - 1).min(3) }).clamp(2, 120);
+                        app.bg(async move { tokio::time::sleep(std::time::Duration::from_secs(attente)).await }).await;
+                        continue;
+                    }
+                }
+                let (confirmee, message) = {
                     let mut etat = app.skin.borrow_mut();
                     etat.envoi_cape = false;
                     etat.cape_voulue = etat.cape_confirmee.clone();
-                    etat.cape_confirmee.clone()
+                    let message = if e.downcast_ref::<skins::Limite>().is_some() { loc::t("Skin_LimiteEchec") } else { e.to_string() };
+                    (etat.cape_confirmee.clone(), message)
                 };
                 cape_localement(app, &confirmee); // on revient à la cape réellement portée
-                dialogs::erreur(app, &loc::t("Skin_ErreurCape"), &e.to_string()).await;
+                dialogs::erreur(app, &loc::t("Skin_ErreurCape"), &message).await;
                 return;
             }
         }

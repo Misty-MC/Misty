@@ -7,6 +7,7 @@
 - Skin tab: the character preview is computed on all CPU cores, and a full 3D Steve is shown when you are not signed in
 - When Mojang limits the number of requests, Misty keeps showing your last known skin and capes, tells you with a message, and checks your setup again by itself as soon as the limit is lifted
 - The head of your account on the home page now comes from your saved skin instead of an external website
+- Changing capes quickly no longer triggers Mojang's request limit: only the last chosen cape is sent, Misty retries by itself if Mojang asks to wait, and a clear message replaces the raw error
 
 ## 0.3.3
 - Misty now uses the new GitHub repository (Misty-MC/Misty) to look for updates: this version keeps your updates going without reinstalling

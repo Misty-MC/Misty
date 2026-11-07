@@ -381,5 +381,7 @@
   "Maj_VerifImpossible": "Impossibile cercare aggiornamenti",
   "Skin_Limite": "Mojang sta limitando le richieste al momento. Viene mostrata la tua ultima skin nota e Misty riproverà da solo.",
   "Skin_Limite_Titre": "Limite di richieste raggiunto",
-  "Skin_Limite_Popup": "Mojang limita temporaneamente il numero di richieste. Misty mostra la tua ultima skin e gli ultimi mantelli noti e ricontrollerà automaticamente la tua configurazione appena il limite sarà rimosso. Non devi fare nulla."
+  "Skin_Limite_Popup": "Mojang limita temporaneamente il numero di richieste. Misty mostra la tua ultima skin e gli ultimi mantelli noti e ricontrollerà automaticamente la tua configurazione appena il limite sarà rimosso. Non devi fare nulla.",
+  "Skin_LimiteCape_Popup": "Mojang limita temporaneamente le richieste. Il tuo mantello è mostrato in Misty e sarà applicato al tuo account appena il limite sarà rimosso: Misty riprova da sola.",
+  "Skin_LimiteEchec": "Mojang sta limitando le richieste: la modifica non ha potuto essere inviata. Riprova tra un minuto."
 }

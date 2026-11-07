@@ -381,5 +381,7 @@
   "Maj_VerifImpossible": "Could not check for updates",
   "Skin_Limite": "Mojang is rate limiting requests right now. Your last known skin is shown and Misty will retry by itself.",
   "Skin_Limite_Titre": "Request limit reached",
-  "Skin_Limite_Popup": "Mojang is temporarily limiting the number of requests. Misty shows your last known skin and capes, and will automatically check your setup again as soon as the limit is lifted. You do not have to do anything."
+  "Skin_Limite_Popup": "Mojang is temporarily limiting the number of requests. Misty shows your last known skin and capes, and will automatically check your setup again as soon as the limit is lifted. You do not have to do anything.",
+  "Skin_LimiteCape_Popup": "Mojang is temporarily limiting requests. Your cape is shown in Misty and will be applied to your account as soon as the limit is lifted: Misty retries by itself.",
+  "Skin_LimiteEchec": "Mojang is limiting requests: the change could not be sent. Try again in a minute."
 }

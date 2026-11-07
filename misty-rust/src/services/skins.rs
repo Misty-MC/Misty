@@ -182,6 +182,9 @@ pub async fn changer_skin(png: Vec<u8>, fin: bool) -> anyhow::Result<()> {
 
 /// Active une cape (`None` = ne plus en porter).
 pub async fn activer_cape(id: Option<&str>) -> anyhow::Result<()> {
+    if cfg!(debug_assertions) && std::env::var_os("MISTY_FAKE_429").is_some() {
+        return Err(Limite { attente: 2 }.into()); // simulation (voir profil)
+    }
     let jeton = jeton().await?;
     let url = format!("{API}/capes/active");
     let r = match id {
@@ -194,6 +197,10 @@ pub async fn activer_cape(id: Option<&str>) -> anyhow::Result<()> {
 async fn verifier(r: reqwest::Response) -> anyhow::Result<()> {
     if r.status().is_success() {
         return Ok(());
+    }
+    if r.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        let attente = r.headers().get("retry-after").and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
+        return Err(Limite { attente }.into());
     }
     let statut = r.status();
     let texte = r.text().await.unwrap_or_default();
