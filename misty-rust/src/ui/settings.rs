@@ -177,6 +177,9 @@ pub fn installer(app: &Rc<App>) {
 
     let a = app.clone();
     st.on_check_update(move || {
+        if s(&a).get_checking_update() {
+            return; // recherche déjà en cours
+        }
         let a = a.clone();
         lancer(async move { super::verifier_mise_a_jour(&a, true).await });
     });

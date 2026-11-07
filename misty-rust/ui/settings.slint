@@ -373,8 +373,8 @@ export component SettingsPage inherits Rectangle {
                                 alignment: center;
                                 MButton {
                                     icon: "\u{E895}";
-                                    text: SettingsState.checking-update ? Tr.t("Maj_Verification") : Tr.t("Maj_Rechercher");
-                                    enabled: !SettingsState.checking-update;
+                                    text: Tr.t("Maj_Rechercher");
+                                    icon-spin: SettingsState.checking-update;
                                     clicked => { SettingsState.check-update(); }
                                 }
                             }

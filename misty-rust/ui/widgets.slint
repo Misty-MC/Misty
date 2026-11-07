@@ -150,6 +150,8 @@ export component MButton inherits Rectangle {
     in property <string> icon;
     in property <int> kind: 0;
     in property <bool> enabled: true;
+    /// L'icône tourne (recherche en cours) sans changer la taille du bouton
+    in property <bool> icon-spin: false;
     callback clicked;
 
     height: 40px;
@@ -173,6 +175,7 @@ export component MButton inherits Rectangle {
             text: root.icon;
             font-size: 12px;
             color: root.encre;
+            transform-rotation: root.icon-spin ? (animation-tick() / 900ms) * 360deg : 0deg;
         }
         Text {
             text: root.text;

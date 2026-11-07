@@ -1,4 +1,9 @@
 # Changelog
+## 0.3.4
+- "Check for updates": only the two arrows now spin while Misty is searching, the button keeps its size so nothing moves around it anymore
+- Removed the white vertical line between the account and the profile on the home page
+- The default offline account created at the first launch is now called Misty
+
 ## 0.3.3
 - Misty now uses the new GitHub repository (Misty-MC/Misty) to look for updates: this version keeps your updates going without reinstalling
 - New "Check for updates" button in the settings (About card)

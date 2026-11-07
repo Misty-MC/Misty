@@ -85,7 +85,7 @@ pub fn initialiser() {
 
     if !paths::data_file().exists() {
         let mut valeurs = HashMap::new();
-        valeurs.insert(LAST_PSEUDO.to_string(), "PseudoTest".to_string());
+        valeurs.insert(LAST_PSEUDO.to_string(), "Misty".to_string());
         ecrire(valeurs);
         return;
     }

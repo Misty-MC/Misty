@@ -8,7 +8,7 @@ const CLE: &str = "listpseudo=";
 pub fn initialiser() {
     let _ = fs::create_dir_all(paths::data_dir());
     if !paths::profiles_file().exists() {
-        let _ = fs::write(paths::profiles_file(), format!("{CLE}PseudoTest\r\n"));
+        let _ = fs::write(paths::profiles_file(), format!("{CLE}Misty\r\n"));
     }
 }
 
