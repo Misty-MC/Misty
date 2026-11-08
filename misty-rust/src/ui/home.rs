@@ -954,11 +954,9 @@ fn horizon_ouvrir_panneau(app: &App) {
 /// Lance le build choisi. La première fois : Minecraft (la version qu'Horizon prépare) et son Java
 /// sont installés par Misty, le server.jar est téléchargé, puis horizon-prepare prépare le build.
 async fn horizon_jouer(app: &Rc<App>) {
-    // Horizon n'accepte qu'un compte Microsoft qui possède le jeu
-    let Some(compte) = account::session() else {
-        horizon_ouvrir_panneau(app);
-        return;
-    };
+    // compte Microsoft : session en ligne ; sinon hors ligne, sous le pseudo choisi
+    let compte = account::session();
+    let pseudo = compte.as_ref().map(|c| c.pseudo.clone()).unwrap_or_else(|| pseudo_actuel(app));
     let tag = h(app).get_horizon_build().to_string();
     let Some(build) = horizon::dossier_build(&tag) else {
         horizon_ouvrir_panneau(app);
@@ -1003,12 +1001,13 @@ async fn horizon_jouer(app: &Rc<App>) {
         }
         // la partie
         afficher_progression(app, 100.0, &loc::t("Hz_Lancement"));
-        discord::definir(discord::Statut::EnJeu { version: exigences.minecraft.clone(), mode: format!("Horizon {tag}"), pseudo: compte.pseudo.clone() });
+        discord::definir(discord::Statut::EnJeu { version: exigences.minecraft.clone(), mode: format!("Horizon {tag}"), pseudo: pseudo.clone() });
         app.home.borrow_mut().jeu_en_cours = true;
-        let session = horizon::Session { pseudo: compte.pseudo.clone(), uuid: compte.uuid.clone(), jeton: compte.jeton.clone(), xuid: compte.xuid.clone() };
+        let session = compte.as_ref().map(|c| horizon::Session { pseudo: c.pseudo.clone(), uuid: c.uuid.clone(), jeton: c.jeton.clone(), xuid: c.xuid.clone() });
         let b = build.clone();
         let ex = exigences.clone();
-        let fin = app.bloquant(move || horizon::jouer(&b, &ex, &session)).await;
+        let p = pseudo.clone();
+        let fin = app.bloquant(move || horizon::jouer(&b, &ex, session.as_ref(), &p)).await;
         app.home.borrow_mut().jeu_en_cours = false;
         super::maj_discord(app, true);
         fin

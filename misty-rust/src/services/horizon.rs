@@ -346,36 +346,55 @@ pub struct Session {
     pub xuid: String,
 }
 
-/// Lance horizon-client et attend la fin de la partie. Erreur : la dernière ligne de sa sortie
-/// d'erreur (qui nomme le rapport de plantage).
-pub fn jouer(build: &Path, ex: &Exigences, session: &Session) -> anyhow::Result<()> {
+/// Lance horizon-client et attend la fin de la partie. Avec une session Microsoft, le joueur est
+/// connecté (serveurs en ligne) ; sans, il joue hors ligne sous `pseudo`. Erreur : la dernière ligne
+/// de sa sortie d'erreur (qui nomme le rapport de plantage).
+pub fn jouer(build: &Path, ex: &Exigences, session: Option<&Session>, pseudo: &str) -> anyhow::Result<()> {
     let jeu = dossier_jeu();
     std::fs::create_dir_all(&jeu)?;
-    let json = serde_json::json!({
-        "name": session.pseudo,
-        "uuid": session.uuid,
-        "access_token": session.jeton,
-        "user_type": "msa",
-        "xuid": session.xuid,
-    })
-    .to_string();
     let mut c = Command::new(build.join(CLIENT));
     c.arg("--resources").arg(ressources(build, ex)).current_dir(&jeu).env("HORIZON_HOME", &jeu).stderr(Stdio::piped());
-    // ancien build : la session passe par un fichier que le jeu supprime dès qu'il l'a lu
-    let mut fichier_session = None;
     if ex.api {
-        c.arg("--game-dir").arg(&jeu).arg("--home").arg(&jeu).arg("--session-stdin").stdin(Stdio::piped());
-    } else {
-        let dossier = jeu.join("sessions");
-        std::fs::create_dir_all(&dossier)?;
-        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
-        let f = dossier.join(format!("session-{nanos:x}.json"));
-        std::fs::write(&f, &json)?;
-        c.arg("--session-file").arg(&f);
-        fichier_session = Some(f);
+        c.arg("--game-dir").arg(&jeu).arg("--home").arg(&jeu);
+    }
+    let mut json = None;
+    let mut fichier_session = None;
+    match session {
+        Some(session) => {
+            let texte = serde_json::json!({
+                "name": session.pseudo,
+                "uuid": session.uuid,
+                "access_token": session.jeton,
+                "user_type": "msa",
+                "xuid": session.xuid,
+            })
+            .to_string();
+            if ex.api {
+                c.arg("--session-stdin").stdin(Stdio::piped());
+                json = Some(texte);
+            } else {
+                // ancien build : la session passe par un fichier que le jeu supprime dès qu'il l'a lu
+                let dossier = jeu.join("sessions");
+                std::fs::create_dir_all(&dossier)?;
+                let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+                let f = dossier.join(format!("session-{nanos:x}.json"));
+                std::fs::write(&f, &texte)?;
+                c.arg("--session-file").arg(&f);
+                fichier_session = Some(f);
+            }
+        }
+        None => {
+            // hors ligne : le pseudo du compte choisi dans Misty (variable lue par les builds récents,
+            // fichier gardé par le jeu, et --name pour les anciens builds)
+            c.env("HORIZON_PLAYER_NAME", pseudo);
+            let _ = std::fs::write(jeu.join("horizon-player.txt"), format!("name:{pseudo}\n"));
+            if !ex.api {
+                c.arg("--name").arg(pseudo);
+            }
+        }
     }
     let mut enfant = c.spawn()?;
-    if let Some(mut entree) = enfant.stdin.take() {
+    if let (Some(mut entree), Some(json)) = (enfant.stdin.take(), json) {
         entree.write_all(json.as_bytes())?;
     } // l'entrée est fermée ici, comme l'attend Horizon
     let mut erreur = String::new();

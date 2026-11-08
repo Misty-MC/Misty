@@ -44,6 +44,23 @@ try {
     Pop-Location
 }
 
+# ── Signature : certificat de signature de code « CN=ENDERR.WIN » du magasin de l'utilisateur ──
+# (auto-signé : Windows affiche l'éditeur sur les PC qui font confiance au certificat ; ailleurs,
+# SmartScreen reste prudent tant que l'exe n'est pas signé par une autorité reconnue)
+$certificat = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert -ErrorAction SilentlyContinue |
+    Where-Object { $_.Subject -eq "CN=ENDERR.WIN" -and $_.NotAfter -gt (Get-Date) } |
+    Sort-Object NotAfter -Descending | Select-Object -First 1
+function Signer([string]$Fichier) {
+    if (-not $certificat) { Write-Host "Pas de certificat CN=ENDERR.WIN : $Fichier n'est pas signé" -ForegroundColor Yellow; return }
+    $null = Set-AuthenticodeSignature -FilePath $Fichier -Certificate $certificat -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com"
+    # un certificat auto-signé donne le statut « UnknownError » (racine non approuvée) : on vérifie
+    # seulement que la signature est bien posée par ce certificat
+    $v = Get-AuthenticodeSignature -FilePath $Fichier
+    if ($v.SignerCertificate.Thumbprint -ne $certificat.Thumbprint) { throw "Signature de $Fichier impossible : $($v.StatusMessage)" }
+    Write-Host "Signé : $Fichier (horodaté : $([bool]$v.TimeStamperCertificate))" -ForegroundColor Green
+}
+Signer (Join-Path $projet "target\release\Misty.exe")
+
 # ── Dossier de l'application : tout est intégré à l'exe (polices, traductions, images) ──
 if (Test-Path $dossier) { Remove-Item $dossier -Recurse -Force }
 New-Item -ItemType Directory -Force $dossier | Out-Null
@@ -75,4 +92,5 @@ if (-not $Iscc) {
 & $Iscc "/DVersion=$version" "/DSource=$dossier" "/DSortie=$publish" (Join-Path $PSScriptRoot "Misty.iss")
 if ($LASTEXITCODE -ne 0) { throw "ISCC a échoué" }
 
+Signer (Join-Path $publish "Misty-Setup-$version.exe")
 Write-Host "Installateur : $(Join-Path $publish "Misty-Setup-$version.exe")" -ForegroundColor Green

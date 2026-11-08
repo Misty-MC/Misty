@@ -176,7 +176,7 @@ export component MButton inherits Rectangle {
         opacity: root.kind == 0 ? 0.55 : 1;
     }
     face := Rectangle {
-        y: root.appui ? 3px : root.survol ? -1px : 0px;
+        y: root.appui ? 3px : 0px;
         height: parent.height - 4px;
         border-radius: 12px;
         border-width: 1px;

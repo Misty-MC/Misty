@@ -555,21 +555,13 @@ export component HomePage inherits Rectangle {
                                         }
                                     }
                                 }
-                                // profil : gérer son contenu ; jeu rapide : recharger les versions
+                                // profil : gérer son contenu
                                 if !HomeState.quick: IconButton {
                                     width: 44px;
                                     height: 44px;
                                     icon: "\u{E70F}";
                                     tooltip: Tr.t("Home_Gerer");
                                     clicked => { HomeState.manage(); }
-                                }
-                                if HomeState.quick: IconButton {
-                                    width: 44px;
-                                    height: 44px;
-                                    icon: "\u{E72C}";
-                                    tooltip: Tr.t("Home_Recharger");
-                                    enabled: HomeState.reload-enabled;
-                                    clicked => { HomeState.reload(); }
                                 }
                             }
                         }

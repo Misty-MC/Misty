@@ -579,7 +579,6 @@
   "Hz_Installe": "Installed",
   "Hz_Supprimer": "Delete this build",
   "Hz_Telecharger": "Download this build",
-  "Hz_CompteRequis": "Horizon needs a Microsoft account that owns Minecraft: Java Edition.",
   "Hz_ChoisisBuild": "Download a build first",
   "Hz_TelechargementBuild": "Downloading {0}…",
   "Hz_InstallationMinecraft": "Installing Minecraft {0} for Horizon…",

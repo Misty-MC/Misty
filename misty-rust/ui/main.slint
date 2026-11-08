@@ -38,9 +38,7 @@ component NavButton inherits Rectangle {
         font-size: 18px;
         color: root.checked ? (Theme.dark ? Theme.on-fill : #1C2335) : white;
         opacity: root.checked || touch.has-hover ? 1 : 0.82;
-        transform-scale: touch.pressed ? 0.86 : touch.has-hover ? 1.08 : 1;
         animate color, opacity { duration: Theme.normal; }
-        animate transform-scale { duration: 160ms; easing: ease-out; }
     }
     touch := TouchArea {
         mouse-cursor: pointer;

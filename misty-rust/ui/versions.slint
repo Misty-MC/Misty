@@ -517,23 +517,7 @@ component PanneauHorizon inherits VerticalLayout {
     // en bas : compte requis, build choisi, actions (comme la ligne des mod loaders)
     HorizontalLayout {
         spacing: 10px;
-        if !HomeState.premium: VerticalLayout {
-            alignment: center;
-            Text {
-                text: Tr.t("Hz_CompteRequis");
-                font-size: 13px;
-                color: #FFBE5A;
-                overflow: elide;
-            }
-        }
-        if !HomeState.premium: VerticalLayout {
-            alignment: center;
-            MButton {
-                text: Tr.t("Compte_SeConnecter");
-                clicked => { HomeState.ms-clicked(); }
-            }
-        }
-        if HomeState.premium && HomeState.horizon-build != "": VerticalLayout {
+        if HomeState.horizon-build != "": VerticalLayout {
             alignment: center;
             PixelLabel {
                 text: HomeState.horizon-build;
@@ -541,7 +525,7 @@ component PanneauHorizon inherits VerticalLayout {
                 color: #F0795A;
             }
         }
-        if HomeState.premium && HomeState.horizon-build != "": VerticalLayout {
+        if HomeState.horizon-build != "": VerticalLayout {
             alignment: center;
             IconButton {
                 width: 36px;
@@ -572,7 +556,7 @@ component PanneauHorizon inherits VerticalLayout {
                 kind: 1;
                 icon: "\u{E768}";
                 text: HomeState.horizon-build != "" ? Tr.t("Hz_Jouer") : Tr.t("Hz_ChoisisBuild");
-                enabled: HomeState.horizon-build != "" && HomeState.premium && !HomeState.horizon-busy;
+                enabled: HomeState.horizon-build != "" && !HomeState.horizon-busy;
                 clicked => { HomeState.horizon-play(); }
             }
         }
@@ -701,19 +685,6 @@ export component VersionPicker inherits Rectangle {
                         if (i == 1) { HomeState.picker-snapshot = !HomeState.picker-snapshot; }
                         if (i == 2) { HomeState.picker-beta = !HomeState.picker-beta; }
                         if (i == 3) { HomeState.picker-alpha = !HomeState.picker-alpha; }
-                        HomeState.picker-changed();
-                    }
-                }
-                Rectangle {
-                    width: 1px;
-                    background: Theme.line;
-                }
-                for l[i] in [Tr.t("Ver_TousLoaders"), "Fabric", "Forge", "NeoForge", "OptiFine", "LiteLoader"]: Puce {
-                    text: l;
-                    point: Couleurs.loaders[i];
-                    checked: HomeState.picker-loader == i;
-                    clicked => {
-                        HomeState.picker-loader = i;
                         HomeState.picker-changed();
                     }
                 }
