@@ -135,9 +135,9 @@ fn saison(mois: u32, jour: u32) -> i32 {
     }
 }
 
-/// Flou du paysage en fond, de 0 (net) à 10.
+/// Flou du paysage en fond, de 0 (net) à 10 (2 par défaut : un léger voile de brume).
 pub fn fond_flou() -> u32 {
-    get(FOND_FLOU).trim().parse::<u32>().unwrap_or(0).min(10)
+    get(FOND_FLOU).trim().parse::<u32>().unwrap_or(2).min(10)
 }
 
 /// Thème choisi (0 brume, 1 nuit, 2 comme Windows).

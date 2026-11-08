@@ -3,7 +3,7 @@
 // skin, capes Mojang et cosmétiques Misty « bientôt disponibles », dont la cape et les élytres à essayer).
 
 import { Theme, Tr, Assets } from "theme.slint";
-import { HomeState } from "state.slint";
+import { HomeState, AppState, SettingsState } from "state.slint";
 import { Icon, PixelLabel, BodyText, MButton, Spinner } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
@@ -32,6 +32,12 @@ export global SkinState {
     callback elytra-toggled();
     callback walk-toggled();
     callback look-changed();
+    /// Animation du studio : 0 repos · 1 marche · 2 course · 3 vol · 4 salut · 5 accroupi
+    in-out property <int> anim: 0;
+    /// Image du rendu en direct (fil du studio)
+    in property <image> live;
+    in property <bool> live-ready;
+    callback render-frame(float, float, int);
     in property <bool> has-figure;
     in property <[CapeItem]> capes;
     in property <int> cape-rows: 1;
@@ -71,7 +77,7 @@ component Seg inherits Rectangle {
         spacing: 2px;
         for t[i] in root.items: Rectangle {
             property <bool> actif: i == root.current;
-            width: lib.preferred-width + 22px;
+            width: lib.preferred-width + 18px;
             border-radius: 9px;
             background: self.actif ? Theme.fill : zone.has-hover ? Theme.glass-hover : transparent;
             drop-shadow-offset-y: self.actif ? 3px : 0px;
@@ -121,15 +127,15 @@ component Bascule inherits Rectangle {
         animate y { duration: 120ms; easing: ease-out; }
         animate background, border-color { duration: Theme.normal; }
         contenu := HorizontalLayout {
-            padding-left: 12px;
-            padding-right: 12px;
+            padding-left: root.text == "" ? 11px : 12px;
+            padding-right: root.text == "" ? 11px : 12px;
             spacing: 7px;
             Icon {
                 text: root.icon;
                 font-size: 13px;
                 color: Theme.accent;
             }
-            Text {
+            if root.text != "": Text {
                 text: root.text;
                 font-size: 13px;
                 font-weight: 600;
@@ -150,18 +156,41 @@ component Bascule inherits Rectangle {
 /// Le personnage sur un socle lumineux : halo de lune derrière, anneau pointillé qui tourne, lucioles.
 component Scene3D inherits Rectangle {
     property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
-    property <angle> rot: 0deg;
+
+    // Caméra (en degrés) : autour du personnage (yaw) et de haut ou de bas (pitch)
+    property <float> yaw: 0;
+    property <float> pitch: 8;
+    /// élan après un lancer à la souris (degrés par image), qui s'amortit
+    property <float> elan: 0;
+    property <float> elan-pitch: 0;
+    /// vue demandée (Face, Côté, Dos) : la caméra y glisse en douceur
+    property <float> cible: 0;
+    property <bool> vise: false;
     property <bool> glisse: false;
     property <bool> tourne: true;
-    property <image> vide;
     property <length> dernier-x: 0px;
-    animate rot { duration: root.glisse ? 0ms : root.tourne ? 70ms : 320ms; easing: ease-out; }
+    property <length> dernier-y: 0px;
+    property <image> vide;
 
-    // rotation automatique (comme sur le site), coupée dès qu'on prend le personnage en main
+    // Une image par rafraîchissement d'écran, seulement quand le studio est à l'écran
     Timer {
-        interval: 70ms;
-        running: root.tourne && !root.glisse && SkinState.has-figure;
-        triggered => { root.rot += 2.4deg; }
+        interval: 16ms;
+        running: SkinState.tab == 1 && AppState.page == 0 && !SettingsState.open;
+        triggered => {
+            if (root.vise) {
+                root.yaw += (root.cible - root.yaw) * 0.16;
+                if (abs(root.cible - root.yaw) < 0.2) {
+                    root.yaw = root.cible;
+                    root.vise = false;
+                }
+            } else if (!root.glisse) {
+                root.yaw += root.elan + (root.tourne ? 0.45 : 0);
+                root.pitch = clamp(root.pitch + root.elan-pitch, -20, 45);
+                root.elan *= 0.92;
+                root.elan-pitch *= 0.88;
+            }
+            SkinState.render-frame(root.yaw, root.pitch, SkinState.anim);
+        }
     }
 
     border-radius: 22px;
@@ -250,19 +279,29 @@ component Scene3D inherits Rectangle {
         background: #00000059;
     }
 
-    // personnage
-    property <length> hauteur-perso: min(330px, root.height - 200px);
-    if SkinState.has-figure: Image {
-        width: root.hauteur-perso * 0.7;
-        height: root.hauteur-perso;
+    // personnage : rendu en direct (sinon, en attendant, les vues pré-calculées)
+    property <length> cote: min(400px, root.height - 130px, root.width - 20px);
+    if SkinState.live-ready: Image {
+        width: root.cote;
+        height: root.cote;
         x: (parent.width - self.width) / 2;
-        y: socle.y + socle.height / 2 - self.height + 10px + 6px * root.onde;
-        source: SkinState.walk && SkinState.walk-frames.length >= 144 ? SkinState.walk-frames[Math.mod(Math.floor(animation-tick() / 90ms), 12) * 12 + Math.mod(Math.mod(Math.round(root.rot / 30deg), 12) + 12, 12)] : SkinState.frames.length > 0 ? SkinState.frames[Math.mod(Math.mod(Math.round(root.rot / 10deg), 36) + 36, 36)] : root.vide;
+        // le bas du carré (les pieds, quand on regarde de face) se pose au centre du socle
+        y: socle.y + socle.height / 2 - self.height * (0.5 + 16 * 9 / 320) + 4px + 4px * root.onde;
+        source: SkinState.live;
         image-fit: contain;
         image-rendering: pixelated;
     }
-    if !SkinState.has-figure && SkinState.loading: Spinner { }
-    if !SkinState.has-figure && !SkinState.loading: Image {
+    if !SkinState.live-ready && SkinState.has-figure: Image {
+        width: root.cote * 0.7;
+        height: root.cote;
+        x: (parent.width - self.width) / 2;
+        y: socle.y + socle.height / 2 - self.height + 10px;
+        source: SkinState.frames.length > 0 ? SkinState.frames[Math.mod(Math.mod(Math.round(root.yaw / 10), 36) + 36, 36)] : root.vide;
+        image-fit: contain;
+        image-rendering: pixelated;
+    }
+    if !SkinState.has-figure && !SkinState.live-ready && SkinState.loading: Spinner { }
+    if !SkinState.has-figure && !SkinState.live-ready && !SkinState.loading: Image {
         x: (parent.width - 110px) / 2;
         y: parent.height * 0.3 + 6px * root.onde;
         width: 110px;
@@ -272,51 +311,74 @@ component Scene3D inherits Rectangle {
         image-rendering: pixelated;
     }
 
-    // prendre le personnage pour le faire tourner
+    // prendre le personnage : de gauche à droite pour tourner, de haut en bas pour l'incliner
     TouchArea {
-        enabled: SkinState.has-figure;
-        mouse-cursor: grab;
+        mouse-cursor: self.pressed ? MouseCursor.grabbing : MouseCursor.grab;
         pointer-event(e) => {
             if (e.kind == PointerEventKind.down) {
                 root.glisse = true;
                 root.tourne = false;
+                root.vise = false;
+                root.elan = 0;
+                root.elan-pitch = 0;
                 root.dernier-x = self.mouse-x;
+                root.dernier-y = self.mouse-y;
             } else if (e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel) {
                 root.glisse = false;
             }
         }
         moved => {
             if (root.glisse) {
-                root.rot -= (self.mouse-x - root.dernier-x) / 1px * 1.4deg;
+                let dx = (self.mouse-x - root.dernier-x) / 1px;
+                let dy = (self.mouse-y - root.dernier-y) / 1px;
+                root.yaw -= dx * 0.55;
+                root.pitch = clamp(root.pitch + dy * 0.35, -20, 45);
+                // élan gardé au lâcher (inertie)
+                root.elan = -dx * 0.55 * 0.6;
+                root.elan-pitch = dy * 0.35 * 0.4;
                 root.dernier-x = self.mouse-x;
+                root.dernier-y = self.mouse-y;
             }
+        }
+        double-clicked => {
+            // double-clic : retour à la vue de face, à hauteur normale
+            root.tourne = false;
+            root.cible = round(root.yaw / 360) * 360;
+            root.vise = true;
+            root.pitch = 8;
         }
     }
 
     // ── en haut : vues et rotation ──
-    property <int> k: Math.mod(Math.mod(Math.round(root.rot / 90deg), 4) + 4, 4);
-    if SkinState.has-figure: Seg {
+    property <float> angle-vu: Math.mod(Math.mod(root.yaw, 360) + 360, 360);
+    if SkinState.has-figure || SkinState.live-ready: Seg {
         x: 14px;
         y: 14px;
         items: [Tr.t("Skin_Vue_Face"), Tr.t("Skin_Vue_Cote"), Tr.t("Skin_Vue_Dos")];
-        current: root.tourne ? -1 : root.k == 0 ? 0 : root.k == 2 ? 2 : 1;
+        current: root.tourne ? -1 : root.angle-vu < 45 || root.angle-vu > 315 ? 0 : root.angle-vu > 135 && root.angle-vu < 225 ? 2 : 1;
         choisi(i) => {
             root.tourne = false;
-            let cible = i == 1 ? 270deg : i * 90deg;
-            root.rot = root.rot + (Math.mod(Math.mod((cible - root.rot) / 1deg + 180, 360) + 360, 360) - 180) * 1deg;
+            root.elan = 0;
+            let vise = i == 0 ? 0 : i == 1 ? 90 : 180;
+            // le plus court chemin vers la vue demandée
+            root.cible = root.yaw + Math.mod(Math.mod(vise - root.yaw + 180, 360) + 360, 360) - 180;
+            root.vise = true;
         }
     }
-    if SkinState.has-figure: Bascule {
+    if SkinState.has-figure || SkinState.live-ready: Bascule {
         x: parent.width - self.width - 14px;
         y: 14px;
         icon: "\u{E895}";
         text: Tr.t("Skin_Rotation");
         active: root.tourne;
-        clicked => { root.tourne = !root.tourne; }
+        clicked => {
+            root.tourne = !root.tourne;
+            root.vise = false;
+        }
     }
 
-    // ── en bas : animation, cape, élytres ──
-    if SkinState.has-figure: Text {
+    // ── en bas : animations, cape, élytres ──
+    if SkinState.has-figure || SkinState.live-ready: Text {
         y: parent.height - 78px;
         width: parent.width;
         text: Tr.t("Skin_Glisser");
@@ -324,26 +386,28 @@ component Scene3D inherits Rectangle {
         color: Theme.text-dim;
         horizontal-alignment: center;
     }
-    if SkinState.has-figure: Seg {
+    if SkinState.has-figure || SkinState.live-ready: Seg {
         x: 14px;
         y: parent.height - self.height - 14px;
-        items: [Tr.t("Skin_Repos"), Tr.t("Skin_Vue_Marche")];
-        current: SkinState.walk ? 1 : 0;
+        items: [Tr.t("Skin_Repos"), Tr.t("Skin_Vue_Marche"), Tr.t("Skin_Course"), Tr.t("Skin_Vol"), Tr.t("Skin_Salut"), Tr.t("Skin_Accroupi")];
+        current: SkinState.anim;
         choisi(i) => {
-            if ((i == 1) != SkinState.walk) {
-                SkinState.walk = i == 1;
-                SkinState.walk-toggled();
+            SkinState.anim = i;
+            // en vol, on sort les élytres
+            if (i == 3 && !SkinState.elytra && SkinState.misty-equip != 2) {
+                SkinState.elytra = true;
+                SkinState.elytra-toggled();
             }
         }
     }
-    if SkinState.has-figure: HorizontalLayout {
+    if SkinState.has-figure || SkinState.live-ready: HorizontalLayout {
         x: parent.width - self.preferred-width - 14px;
         y: parent.height - 38px - 14px;
         height: 38px;
         spacing: 6px;
         Bascule {
             icon: "\u{E7C1}";
-            text: Tr.t("Skin_TaCape");
+            text: "";
             active: SkinState.show-cape && SkinState.misty-equip == 0;
             enabled: HomeState.premium;
             clicked => {
@@ -354,7 +418,7 @@ component Scene3D inherits Rectangle {
         }
         Bascule {
             icon: "\u{E709}";
-            text: Tr.t("Skin_Elytres");
+            text: "";
             active: SkinState.elytra || SkinState.misty-equip == 2;
             clicked => {
                 if (SkinState.misty-equip == 2) {

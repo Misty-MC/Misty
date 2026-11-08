@@ -494,7 +494,7 @@
   "Param_FondFlou_Max": "Blurry",
   "Param_FondFlou_Off": "Off",
   "Skin_Rotation": "Rotate",
-  "Skin_Glisser": "Drag to rotate",
+  "Skin_Glisser": "Drag to rotate, up or down to tilt",
   "Skin_Repos": "Idle",
   "Skin_TaCape": "Your cape",
   "Skin_NameMC": "NameMC profile",
@@ -522,5 +522,9 @@
   "Cos_Packs_T": "Several cosmetics together, for less.",
   "Cos_CapeMisty": "Misty Cape",
   "Cos_ElytresMisty": "Misty Elytra",
-  "Cos_PasEnJeu": "Not in game yet: you can preview it here, but other players won't see it yet."
+  "Cos_PasEnJeu": "Not in game yet: you can preview it here, but other players won't see it yet.",
+  "Skin_Course": "Run",
+  "Skin_Vol": "Fly",
+  "Skin_Salut": "Wave",
+  "Skin_Accroupi": "Crouch"
 }

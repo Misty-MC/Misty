@@ -160,6 +160,7 @@ pub fn session_changee(app: &Rc<App>) {
 /// Pas de compte connecté : on montre Steve en entier (skin par défaut de Minecraft).
 /// orce : même avec un compte connecté (secours quand rien d'autre n'est disponible).
 fn afficher_steve(app: &Rc<App>, force: bool) {
+    super::studio::definir(include_bytes!("../../assets/steve.png"), false, None, false);
     let generation = {
         let mut e = app.skin.borrow_mut();
         e.generation += 1;
@@ -421,6 +422,8 @@ fn afficher_personnage(app: &Rc<App>) {
         }
         (png, e.generation)
     };
+    // studio en direct : il dessine tout de suite le nouveau personnage
+    super::studio::definir(&png, fin, cape.as_deref(), elytres);
     let a = app.clone();
     lancer(async move {
         // 1. La face seule, affichée tout de suite (le personnage ne tourne pas encore)

@@ -494,7 +494,7 @@
   "Param_FondFlou_Max": "Flou",
   "Param_FondFlou_Off": "Off",
   "Skin_Rotation": "Rotation",
-  "Skin_Glisser": "Fais glisser pour tourner",
+  "Skin_Glisser": "Fais glisser pour tourner, vers le haut ou le bas pour incliner",
   "Skin_Repos": "Repos",
   "Skin_TaCape": "Ta cape",
   "Skin_NameMC": "Profil NameMC",
@@ -522,5 +522,9 @@
   "Cos_Packs_T": "Plusieurs cosmétiques réunis, à prix doux.",
   "Cos_CapeMisty": "Cape Misty",
   "Cos_ElytresMisty": "Élytres Misty",
-  "Cos_PasEnJeu": "Pas encore en jeu : tu le vois ici en aperçu, mais les autres joueurs ne le verront pas encore."
+  "Cos_PasEnJeu": "Pas encore en jeu : tu le vois ici en aperçu, mais les autres joueurs ne le verront pas encore.",
+  "Skin_Course": "Course",
+  "Skin_Vol": "Vol",
+  "Skin_Salut": "Salut",
+  "Skin_Accroupi": "Accroupi"
 }

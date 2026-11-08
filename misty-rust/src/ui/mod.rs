@@ -19,6 +19,7 @@ pub mod profiles;
 pub mod scene;
 pub mod settings;
 pub mod skin;
+pub mod studio;
 
 use crate::services::{discord, loc, paths, system_info, Progress};
 use crate::*;
@@ -195,6 +196,7 @@ pub fn installer(app: &Rc<App>) {
     packs::installer(app);
     editor::installer(app);
     skin::installer(app);
+    studio::installer(app);
     news::installer(app);
 }
 

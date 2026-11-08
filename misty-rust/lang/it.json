@@ -494,7 +494,7 @@
   "Param_FondFlou_Max": "Sfocato",
   "Param_FondFlou_Off": "No",
   "Skin_Rotation": "Rotazione",
-  "Skin_Glisser": "Trascina per ruotare",
+  "Skin_Glisser": "Trascina per ruotare, su o giù per inclinare",
   "Skin_Repos": "Riposo",
   "Skin_TaCape": "Il tuo mantello",
   "Skin_NameMC": "Profilo NameMC",
@@ -522,5 +522,9 @@
   "Cos_Packs_T": "Più cosmetici insieme, a prezzo ridotto.",
   "Cos_CapeMisty": "Mantello Misty",
   "Cos_ElytresMisty": "Elitre Misty",
-  "Cos_PasEnJeu": "Non ancora in gioco: lo vedi qui in anteprima, ma gli altri giocatori non lo vedranno ancora."
+  "Cos_PasEnJeu": "Non ancora in gioco: lo vedi qui in anteprima, ma gli altri giocatori non lo vedranno ancora.",
+  "Skin_Course": "Corsa",
+  "Skin_Vol": "Volo",
+  "Skin_Salut": "Saluto",
+  "Skin_Accroupi": "Accovacciato"
 }

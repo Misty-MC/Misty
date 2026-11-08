@@ -101,6 +101,19 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         app.ui.global::<SkinState>().invoke_look_changed();
         attendre(3000).await;
         photo(&app, "0c-skin-misty", &dossier);
+        // Studio en direct : vol (élytres) et salut
+        for (anim, nom) in [(3, "0d-skin-vol"), (4, "0e-skin-salut"), (5, "0f-skin-accroupi")] {
+            app.ui.global::<SkinState>().set_anim(anim);
+            if anim == 3 {
+                app.ui.global::<SkinState>().set_elytra(true);
+                app.ui.global::<SkinState>().invoke_elytra_toggled();
+            }
+            attendre(2500).await;
+            photo(&app, nom, &dossier);
+        }
+        app.ui.global::<SkinState>().set_anim(0);
+        app.ui.global::<SkinState>().set_elytra(false);
+        app.ui.global::<SkinState>().invoke_elytra_toggled();
         app.ui.global::<SkinState>().set_misty_equip(0);
         app.ui.global::<SkinState>().invoke_look_changed();
         app.ui.global::<SkinState>().set_tab(0);

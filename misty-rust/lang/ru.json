@@ -494,7 +494,7 @@
   "Param_FondFlou_Max": "Размыто",
   "Param_FondFlou_Off": "Выкл",
   "Skin_Rotation": "Вращение",
-  "Skin_Glisser": "Потяни, чтобы повернуть",
+  "Skin_Glisser": "Тяни, чтобы вращать, вверх или вниз — чтобы наклонить",
   "Skin_Repos": "Покой",
   "Skin_TaCape": "Твой плащ",
   "Skin_NameMC": "Профиль NameMC",
@@ -522,5 +522,9 @@
   "Cos_Packs_T": "Несколько косметик вместе, дешевле.",
   "Cos_CapeMisty": "Плащ Misty",
   "Cos_ElytresMisty": "Элитры Misty",
-  "Cos_PasEnJeu": "Пока не в игре: здесь можно посмотреть, но другие игроки его ещё не увидят."
+  "Cos_PasEnJeu": "Пока не в игре: здесь можно посмотреть, но другие игроки его ещё не увидят.",
+  "Skin_Course": "Бег",
+  "Skin_Vol": "Полёт",
+  "Skin_Salut": "Привет",
+  "Skin_Accroupi": "Присесть"
 }
