@@ -127,6 +127,13 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         accueil.set_picker_tab(1);
         attendre(900).await;
         photo(&app, "0h-profils", &dossier);
+        // Horizon : son panneau (état lu sur le PC, sans rien lancer)
+        accueil.set_picker_tab(0);
+        accueil.set_picker_horizon(true);
+        accueil.invoke_horizon_refresh();
+        attendre(4000).await;
+        photo(&app, "0i-horizon", &dossier);
+        accueil.set_picker_horizon(false);
         accueil.set_picker_open(false);
         app.ui.global::<SkinState>().set_anim(0);
         app.ui.global::<SkinState>().set_elytra(false);

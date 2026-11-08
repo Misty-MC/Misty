@@ -8,6 +8,7 @@ pub mod content;
 pub mod curseforge;
 pub mod discord;
 pub mod download;
+pub mod horizon;
 pub mod http;
 pub mod instances;
 pub mod loc;

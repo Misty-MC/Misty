@@ -295,6 +295,257 @@ component CarteProfil inherits Rectangle {
     }
 }
 
+/// Entrée Horizon, épinglée en haut de la colonne des mises à jour.
+component LigneHorizon inherits Rectangle {
+    in property <bool> checked;
+    callback clicked;
+    height: 74px;
+    border-radius: 14px;
+    background: root.checked ? #F0795A2E : zone.has-hover ? Theme.glass-hover : #F0795A12;
+    border-width: 1px;
+    border-color: root.checked ? #F0795A : #F0795A59;
+    animate background, border-color { duration: Theme.normal; }
+    HorizontalLayout {
+        padding: 8px;
+        spacing: 12px;
+        Rectangle {
+            width: 100px;
+            border-radius: 10px;
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: HomeState.horizon-art;
+                image-fit: cover;
+                image-rendering: pixelated;
+                transform-scale: zone.has-hover || root.checked ? 1.12 : 1;
+                animate transform-scale { duration: 360ms; easing: ease-out; }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text {
+                text: "HORIZON";
+                font-family: Theme.pixel-font;
+                font-size: 15px;
+                color: #F0795A;
+            }
+            Text {
+                text: Tr.t("Hz_Sous_Titre");
+                font-size: 12.5px;
+                font-weight: 600;
+                color: Theme.navy2;
+                overflow: elide;
+            }
+            Text {
+                text: "26.3 · Rust · MIT";
+                font-size: 11.5px;
+                color: Theme.text-dim;
+            }
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Ligne d'état d'Horizon (launcher, jeu, compte).
+component EtatHorizon inherits HorizontalLayout {
+    in property <string> titre;
+    in property <string> valeur;
+    in property <bool> ok;
+    spacing: 10px;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 9px;
+            height: 9px;
+            border-radius: 2px;
+            background: root.ok ? #1DE062 : #FFBE5A;
+        }
+    }
+    Text {
+        width: 150px;
+        text: root.titre;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: Theme.navy;
+        vertical-alignment: center;
+    }
+    Text {
+        horizontal-stretch: 1;
+        text: root.valeur;
+        font-size: 13.5px;
+        color: Theme.text-muted;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+/// Panneau d'Horizon : présentation, état, installation, connexion, jouer.
+component PanneauHorizon inherits VerticalLayout {
+    spacing: 14px;
+    // bannière
+    Rectangle {
+        height: 200px;
+        border-radius: 20px;
+        clip: true;
+        border-width: 1px;
+        border-color: #F0795A66;
+        property <float> derive: 0.5 + 0.5 * sin((animation-tick() / 24000ms) * 360deg);
+        Image {
+            width: parent.width * 1.08;
+            height: parent.height * 1.08;
+            x: -parent.width * 0.08 * parent.derive;
+            y: -parent.height * 0.04;
+            source: HomeState.horizon-art;
+            image-fit: cover;
+            image-rendering: pixelated;
+        }
+        Rectangle {
+            background: @linear-gradient(90deg, #120A1CE6 0%, #120A1C8C 45%, #120A1C00 75%);
+        }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 6px;
+            alignment: end;
+            PixelLabel {
+                text: Tr.t("Hz_Etiquette");
+                font-size: 10.5px;
+                color: #FFC2A8;
+            }
+            HorizontalLayout {
+                alignment: start;
+                OutlinedText {
+                    text: "HORIZON";
+                    font-size: 44px;
+                    thickness: 4px;
+                    depth: 5px;
+                    stroke-color: #7A2E14;
+                    shadow: #3A1408;
+                }
+            }
+            Text {
+                text: Tr.t("Hz_Titre");
+                font-size: 17px;
+                font-weight: 800;
+                color: white;
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: start;
+                for t in [Tr.t("Hz_Puce_Officiel"), "Open source · MIT", Tr.t("Hz_Puce_Java")]: Rectangle {
+                    height: 24px;
+                    width: tt.preferred-width + 18px;
+                    border-radius: 7px;
+                    background: #FFFFFF1F;
+                    border-width: 1px;
+                    border-color: #FFFFFF33;
+                    tt := Text {
+                        text: t;
+                        font-size: 11.5px;
+                        font-weight: 600;
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+    BodyText { text: Tr.t("Hz_Texte"); }
+    // état
+    Rectangle {
+        border-radius: 16px;
+        background: Theme.glass;
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        min-height: etats.preferred-height;
+        etats := VerticalLayout {
+            padding: 16px;
+            spacing: 10px;
+            if !HomeState.horizon-checked: Text {
+                text: Tr.t("Hz_Verification");
+                font-size: 13.5px;
+                color: Theme.text-muted;
+            }
+            if HomeState.horizon-checked: EtatHorizon {
+                titre: Tr.t("Hz_Launcher");
+                valeur: HomeState.horizon-installed ? "horizon-launcher " + HomeState.horizon-launcher-version : Tr.t("Hz_PasInstalle");
+                ok: HomeState.horizon-installed;
+            }
+            if HomeState.horizon-checked: EtatHorizon {
+                titre: Tr.t("Hz_Jeu");
+                valeur: HomeState.horizon-game != "" ? HomeState.horizon-game : Tr.t("Hz_PasInstalle");
+                ok: HomeState.horizon-game != "";
+            }
+            if HomeState.horizon-checked: EtatHorizon {
+                titre: Tr.t("Hz_Compte");
+                valeur: HomeState.horizon-account != "" ? HomeState.horizon-account + (HomeState.horizon-account-ready ? " · " + Tr.t("Hz_Pret") : "") : Tr.t("Hz_PasConnecte");
+                ok: HomeState.horizon-account != "";
+            }
+        }
+    }
+    if HomeState.horizon-message != "": Text {
+        text: HomeState.horizon-message;
+        font-size: 13px;
+        color: Theme.navy2;
+        wrap: word-wrap;
+    }
+    Rectangle { vertical-stretch: 1; }
+    // actions
+    HorizontalLayout {
+        spacing: 10px;
+        for l[i] in [Tr.t("Hz_Site"), "GitHub"]: VerticalLayout {
+            alignment: center;
+            MButton {
+                text: l;
+                icon: "\u{E8A7}";
+                clicked => { HomeState.horizon-link(i); }
+            }
+        }
+        Rectangle { horizontal-stretch: 1; }
+        if HomeState.horizon-busy: VerticalLayout {
+            alignment: center;
+            Icon {
+                text: "\u{E895}";
+                font-size: 16px;
+                color: #F0795A;
+                transform-rotation: (animation-tick() / 1000ms) * 360deg;
+            }
+        }
+        if HomeState.horizon-checked && (!HomeState.horizon-installed || HomeState.horizon-game == ""): MButton {
+            kind: 1;
+            icon: "\u{E896}";
+            text: Tr.t("Hz_Installer");
+            enabled: !HomeState.horizon-busy;
+            clicked => { HomeState.horizon-install(); }
+        }
+        if HomeState.horizon-checked && HomeState.horizon-installed && HomeState.horizon-game != "" && HomeState.horizon-account == "": MButton {
+            kind: 1;
+            icon: "\u{E77B}";
+            text: Tr.t("Hz_Connecter");
+            enabled: !HomeState.horizon-busy;
+            clicked => { HomeState.horizon-sign-in(); }
+        }
+        if HomeState.horizon-checked && HomeState.horizon-installed && HomeState.horizon-game != "" && HomeState.horizon-account != "": MButton {
+            icon: "\u{E73E}";
+            text: Tr.t("Hz_Choisir");
+            enabled: !HomeState.horizon-busy;
+            clicked => { HomeState.horizon-choose(); }
+        }
+        if HomeState.horizon-checked && HomeState.horizon-installed && HomeState.horizon-game != "" && HomeState.horizon-account != "": MButton {
+            kind: 1;
+            icon: "\u{E768}";
+            text: Tr.t("Hz_Jouer");
+            enabled: !HomeState.horizon-busy;
+            clicked => { HomeState.horizon-play(); }
+        }
+    }
+}
+
 export component VersionPicker inherits Rectangle {
     property <bool> ouvert: HomeState.picker-open;
     property <bool> a-groupe: HomeState.picker-group >= 0 && HomeState.picker-group < HomeState.picker-groups.length;
@@ -441,14 +692,27 @@ export component VersionPicker inherits Rectangle {
                         width: parent.width - 16px;
                         height: parent.height - 16px;
                         content-width: self.visible-width;
-                        content-height: HomeState.picker-groups.length * 78px;
+                        content-height: (HomeState.picker-groups.length + 1) * 78px + 10px;
+                        LigneHorizon {
+                            x: 0;
+                            y: 0;
+                            width: parent.width - 4px;
+                            checked: HomeState.picker-horizon;
+                            clicked => {
+                                HomeState.picker-horizon = true;
+                                HomeState.horizon-refresh();
+                            }
+                        }
                         for g[i] in HomeState.picker-groups: LigneGroupe {
                             x: 0;
-                            y: i * 78px;
+                            y: 88px + i * 78px;
                             width: parent.width - 4px;
                             g: g;
-                            checked: i == HomeState.picker-group;
-                            clicked => { HomeState.picker-group-selected(i); }
+                            checked: !HomeState.picker-horizon && i == HomeState.picker-group;
+                            clicked => {
+                                HomeState.picker-horizon = false;
+                                HomeState.picker-group-selected(i);
+                            }
                         }
                     }
                     if HomeState.picker-groups.length == 0: Text {
@@ -462,8 +726,13 @@ export component VersionPicker inherits Rectangle {
                     }
                 }
 
+                // Horizon
+                if HomeState.picker-horizon: PanneauHorizon {
+                    horizontal-stretch: 1;
+                }
+
                 // détail de la mise à jour choisie
-                if root.a-groupe: VerticalLayout {
+                if !HomeState.picker-horizon && root.a-groupe: VerticalLayout {
                     horizontal-stretch: 1;
                     spacing: 14px;
 
@@ -538,7 +807,7 @@ export component VersionPicker inherits Rectangle {
                             y: 4px + floor(i / grille.colonnes) * 50px;
                             width: grille.largeur;
                             v: v;
-                            checked: HomeState.quick && v.id == HomeState.card-version;
+                            checked: HomeState.quick && !HomeState.horizon-selected && v.id == HomeState.card-version;
                             clicked => { HomeState.version-picked(v.id); }
                         }
                     }

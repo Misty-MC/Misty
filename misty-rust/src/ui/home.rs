@@ -2,6 +2,7 @@
 
 use super::{dialogs, images, lancer, modele, modele_textes, App};
 use crate::minecraft::{install, launch, loaders, FileProgress, McDirs};
+use crate::services::horizon;
 use crate::services::instances::{self, Instance};
 use crate::services::{account, content, discord, loc, pseudos, settings};
 use crate::{AppState, HomeState};
@@ -72,11 +73,40 @@ pub fn installer(app: &Rc<App>) {
     });
     let a = app.clone();
     s.on_profile_selected(move |i| {
+        h(&a).set_horizon_selected(false);
         let profil = a.home.borrow().profils.get(i as usize).cloned().flatten();
         settings::set(settings::DERNIER_PROFIL, profil.as_ref().map(|p| p.id.as_str()).unwrap_or(""));
         a.home.borrow_mut().profil = profil;
         maj_mode_profil(&a);
     });
+    // Horizon (Minecraft en Rust, piloté par son launcher)
+    s.set_horizon_art(super::picker::illustration("horizon"));
+    let a = app.clone();
+    s.on_horizon_refresh(move || horizon_rafraichir(&a));
+    let a = app.clone();
+    s.on_horizon_install(move || {
+        let a = a.clone();
+        lancer(async move { horizon_installer(&a).await });
+    });
+    let a = app.clone();
+    s.on_horizon_sign_in(move || {
+        let a = a.clone();
+        lancer(async move { horizon_connecter(&a).await });
+    });
+    let a = app.clone();
+    s.on_horizon_choose(move || {
+        horizon_choisir(&a);
+        h(&a).set_picker_open(false);
+    });
+    let a = app.clone();
+    s.on_horizon_play(move || {
+        horizon_choisir(&a);
+        h(&a).set_picker_open(false);
+        let a = a.clone();
+        lancer(async move { horizon_jouer(&a).await });
+    });
+    s.on_horizon_link(|i| crate::services::system_info::ouvrir(if i == 0 { horizon::SITE } else { horizon::GITHUB }));
+
     // Fenêtre de choix de version
     let a = app.clone();
     s.on_picker_changed(move || filtrer_versions(&a));
@@ -121,6 +151,11 @@ pub fn installer(app: &Rc<App>) {
     });
     let a = app.clone();
     s.on_play(move || {
+        if h(&a).get_horizon_selected() {
+            let a = a.clone();
+            lancer(async move { horizon_jouer(&a).await });
+            return;
+        }
         let a = a.clone();
         lancer(async move { jouer(&a).await });
     });
@@ -510,6 +545,7 @@ fn filtrer_versions(app: &App) {
 /// Une version choisie dans la grande fenêtre : on passe en jeu rapide sur cette version (même si
 /// son type est masqué dans les options).
 async fn version_choisie_par_id(app: &Rc<App>, id: String) {
+    h(app).set_horizon_selected(false);
     app.home.borrow_mut().loader_voulu = super::picker::nom_loader(h(app).get_picker_loader()).map(str::to_string);
     if app.home.borrow().profil.is_some() {
         settings::set(settings::DERNIER_PROFIL, "");
@@ -759,4 +795,121 @@ fn afficher_progression(app: &App, pourcentage: f32, texte: &str) {
     if app.home.borrow().installation_en_cours {
         s.set_play_text(format!("{pourcentage:.0}%").into());
     }
+}
+
+// ───────────────────────── Horizon ─────────────────────────
+
+/// Relit l'état d'Horizon (launcher, jeu, compte) en arrière-plan.
+fn horizon_rafraichir(app: &Rc<App>) {
+    let a = app.clone();
+    lancer(async move {
+        let etat = a.bloquant(horizon::etat).await;
+        horizon_afficher(&a, &etat);
+    });
+}
+
+fn horizon_afficher(app: &App, etat: &horizon::Etat) {
+    let s = h(app);
+    s.set_horizon_checked(true);
+    s.set_horizon_installed(etat.launcher.is_some());
+    s.set_horizon_launcher_version(etat.version_launcher.clone().into());
+    s.set_horizon_game(etat.jeu.clone().into());
+    s.set_horizon_account(etat.compte.clone().into());
+    s.set_horizon_account_ready(etat.compte_pret);
+}
+
+/// Installe ce qui manque : le launcher Horizon (dans le dossier de Misty), puis le jeu.
+async fn horizon_installer(app: &Rc<App>) {
+    let s = h(app);
+    s.set_horizon_busy(true);
+    let mut etat = app.bloquant(horizon::etat).await;
+    let mut erreur = None;
+    if etat.launcher.is_none() {
+        s.set_horizon_message(loc::t("Hz_TelechargementLauncher").into());
+        match app.bg(horizon::installer_launcher()).await {
+            Ok(_) => etat = app.bloquant(horizon::etat).await,
+            Err(e) => erreur = Some(e.to_string()),
+        }
+    }
+    if erreur.is_none() && etat.jeu.is_empty() {
+        if let Some(launcher) = etat.launcher.clone() {
+            s.set_horizon_message(loc::t("Hz_InstallationJeu").into());
+            match app.bloquant(move || horizon::installer_jeu(&launcher)).await {
+                Ok(()) => etat = app.bloquant(horizon::etat).await,
+                Err(e) => erreur = Some(e.to_string()),
+            }
+        }
+    }
+    horizon_afficher(app, &etat);
+    s.set_horizon_message(erreur.clone().unwrap_or_default().into());
+    s.set_horizon_busy(false);
+}
+
+/// Connexion Microsoft dans Horizon : sa fenêtre affiche le code ; on vérifie toutes les 3 s
+/// (pendant 5 minutes au plus) que le compte est arrivé.
+async fn horizon_connecter(app: &Rc<App>) {
+    let Some(launcher) = app.bloquant(horizon::trouver_launcher).await else { return };
+    let s = h(app);
+    if let Err(e) = horizon::connecter(&launcher) {
+        s.set_horizon_message(e.to_string().into());
+        return;
+    }
+    s.set_horizon_busy(true);
+    s.set_horizon_message(loc::t("Hz_ConnexionEnCours").into());
+    for _ in 0..100 {
+        attendre_ms(3000).await;
+        let etat = app.bloquant(horizon::etat).await;
+        if !etat.compte.is_empty() {
+            horizon_afficher(app, &etat);
+            s.set_horizon_message("".into());
+            break;
+        }
+    }
+    s.set_horizon_busy(false);
+}
+
+/// Horizon devient le jeu lancé par JOUER (barre du bas et carte de l'accueil).
+fn horizon_choisir(app: &App) {
+    let s = h(app);
+    s.set_horizon_selected(true);
+    s.set_card_label(loc::t("Hz_Etiquette").into());
+    s.set_card_version("26.3".into());
+    s.set_card_loader("HORIZON".into());
+}
+
+/// Lance Horizon par son launcher (il prépare ses fichiers la première fois).
+async fn horizon_jouer(app: &Rc<App>) {
+    let etat = app.bloquant(horizon::etat).await;
+    horizon_afficher(app, &etat);
+    let Some(launcher) = etat.launcher.clone().filter(|_| etat.pret()) else {
+        // il manque quelque chose : on ouvre le panneau d'Horizon pour le montrer
+        let s = h(app);
+        s.set_picker_tab(0);
+        s.set_picker_horizon(true);
+        s.set_picker_open(true);
+        return;
+    };
+    statut(app, &loc::t("Hz_Lancement"));
+    discord::definir(discord::Statut::EnJeu { version: "26.3".into(), mode: "Horizon".into(), pseudo: etat.compte.clone() });
+    app.home.borrow_mut().jeu_en_cours = true;
+    h(app).set_play_enabled(false);
+    let resultat = app.bloquant(move || horizon::jouer(&launcher)).await;
+    app.home.borrow_mut().jeu_en_cours = false;
+    h(app).set_play_enabled(true);
+    super::maj_discord(app, true);
+    match resultat {
+        Ok(()) => statut(app, &loc::t("Hz_Ferme")),
+        Err(e) => {
+            statut(app, &loc::t("Hz_Erreur"));
+            dialogs::erreur(app, &loc::t("Hz_Erreur"), &e.to_string()).await;
+        }
+    }
+}
+
+async fn attendre_ms(ms: u64) {
+    let (tx, rx) = futures::channel::oneshot::channel::<()>();
+    slint::Timer::single_shot(std::time::Duration::from_millis(ms), move || {
+        let _ = tx.send(());
+    });
+    let _ = rx.await;
 }

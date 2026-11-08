@@ -27,3 +27,9 @@ pub async fn get_text(url: &str) -> anyhow::Result<String> {
     let reponse = client().get(url).send().await?.error_for_status()?;
     Ok(reponse.text().await?)
 }
+
+/// Télécharge un fichier en mémoire (archives modestes : le launcher Horizon…).
+pub async fn get_bytes(url: &str) -> anyhow::Result<Vec<u8>> {
+    let reponse = client().get(url).send().await?.error_for_status()?;
+    Ok(reponse.bytes().await?.to_vec())
+}
