@@ -7,6 +7,12 @@ use std::sync::OnceLock;
 pub fn data_dir() -> PathBuf {
     static DIR: OnceLock<PathBuf> = OnceLock::new();
     DIR.get_or_init(|| {
+        // Développement : MISTY_DATA_DIR=<dossier> lance le launcher sur un dossier à part
+        // (profils et packs de démonstration pour les captures du site, sans toucher aux vraies données)
+        #[cfg(debug_assertions)]
+        if let Some(d) = std::env::var_os("MISTY_DATA_DIR") {
+            return PathBuf::from(d);
+        }
         dirs::data_local_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("Misty")

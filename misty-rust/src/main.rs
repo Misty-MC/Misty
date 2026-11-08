@@ -135,7 +135,9 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             attendre(5000).await;
             photo(&app, "6-decouvrir", &dossier);
         }
-        if let Some(p) = services::packs::lister().into_iter().find(|p| !p.version_mc.is_empty()) {
+        // Données de démonstration (MISTY_DATA_DIR) : pas d'éditeur, il téléchargerait le jeu pour ses textures
+        let demo = std::env::var_os("MISTY_DATA_DIR").is_some();
+        if let Some(p) = services::packs::lister().into_iter().find(|p| !demo && !p.version_mc.is_empty()) {
             ui::editor::ouvrir(&app, p);
             attendre(5000).await;
             app.ui.global::<EditorState>().invoke_select(0);
