@@ -1,4 +1,39 @@
 # Changelog
+## 0.3.6
+### Horizon
+- Fix: Horizon builds failed to start with "unrecognized argument: --launch-api". Misty now works with every Horizon build: stable versions (v0.2.x) and the latest nightlies
+- Fix: Mojang republished the Minecraft 26.3 files, which Horizon refused. Misty now downloads the exact version Horizon expects
+- Horizon can be played without a Microsoft account: with an offline account, the game starts offline under your username. With a Microsoft account, you are still signed in and can join online servers
+- Clearer error messages when Horizon can't start (only the useful line, not the whole help text)
+
+### Skin studio
+- Clicking a cosmetics category turns and zooms the camera onto what it dresses: the back for capes, the head for hats, the shoulder for pets, the name tag for tags…
+- Zoom in and out with the mouse wheel. Double-click, Front / Side / Back or Rotate bring back the full view
+- New hand cursor on the character: open hand on hover, closed fist while you turn it
+- The Misty cape and elytra tiles now show their real texture, like the Mojang capes
+- Nothing moves by itself anymore: no more floating character, breathing halo, fireflies or drifting buttons
+- Removed the NameMC profile link
+
+### Version picker
+- Each update banner now has its own landmark: trial spawner (1.21), cherry tree (1.20), the Warden (1.19), snowy cliff (1.18), amethyst and axolotl (1.17), Nether portal (1.16), bee nest (1.15), village house (1.14), dolphin (1.13), colored concrete (1.12), woodland mansion (1.11), polar bear (1.10), End city (1.9), ocean monument (1.8) and Ferris the crab for Horizon
+- Large banners now show the ground and the landmark
+- Removed the mod loader filters at the top (Fabric, Forge…): the mod loader is still chosen at the bottom of the picker
+
+### Friends (preview)
+- New Friends page in the sidebar: add a friend by username, Online / All / Requests tabs, and a chat. It is only the interface for now: friends and chat are coming soon
+
+### Launcher
+- Release notes in the launcher now show only the releases published on GitHub
+- Offline accounts added in the settings show up right away in the account list next to Play
+- Removed the floating particles and their setting
+- Removed the Versions tab from the settings: the version picker has its own filters
+- Removed the "Reload the version list" button from the home page
+- Texture packs: the empty page is centered, like the profiles page
+- Removed the small hover animations on the sidebar icons and buttons
+- Fix: a Misty shortcut pinned to the taskbar or the Start menu stopped working after an update. Misty now repairs it on startup
+- Misty.exe and the installer are now signed with the ENDERR.WIN certificate (self-signed for now, so Windows SmartScreen may still show a warning)
+- The old C# version was removed from the repository
+
 ## 0.3.5
 ### New look
 - New settings window inspired by the Modrinth App: it opens as a popup over a blurred background, with categories in a sidebar
