@@ -1,4 +1,48 @@
 # Changelog
+## 0.3.5
+### New look
+- New settings window inspired by the Modrinth App: it opens as a popup over a blurred background, with categories in a sidebar
+- Night theme based on the Misty website, and smoother animations everywhere in the launcher
+- The window can now be resized and maximized, and the layout adapts to large windows
+- New cloud logo, replacing the grass block
+- The pixel landscape of the Misty website is now the launcher background, with a blur you can change in the settings (2 by default)
+- Seasonal themes: Halloween and Christmas decorations appear automatically 3 days before and after the holiday
+- Loading screen at startup, and faster switching between tabs
+- Latest news card on the home page
+- Lighter launch bar at the bottom of the home page, with a blue Play button and a simpler version card (for example "26.3 VANILLA")
+
+### Version picker
+- New full-size version picker, inspired by Lunar Client: versions are grouped by update (1.21 Tricky Trials, 1.20 Trails & Tales, 26.x...), each with its own pixel-art banner
+- Filters at the top for releases, snapshots, betas and alphas, and for the mod loader (Vanilla, Fabric, Forge, NeoForge, OptiFine...): only the compatible versions are shown
+- Search bar to find a version quickly
+- Profiles tab inside the picker, to launch one of your profiles directly
+- Fix: the text in the update banners no longer moves slightly
+
+### Horizon (Minecraft rewritten in Rust)
+- Misty can now play Horizon (playhorizon.dev), an open source (MIT) rewrite of Minecraft: Java Edition 26.3 in Rust. It is not official
+- Horizon is pinned at the top of the version picker, with the same layout as the other versions: a banner, then its builds
+- Builds come straight from Horizon's GitHub releases. Nightlies and stable versions can be filtered, and you can install several builds and choose which one to play. The Horizon launcher is not needed
+- Click a build to download it (the chip fills up while it downloads), then click it again to select it. Installed builds can be deleted
+- The first launch installs Minecraft 26.3 and its Java, then prepares the build once. Horizon needs a Microsoft account that owns the game
+
+### Skin studio
+- The Skin page has been rebuilt like the shop on the Misty website, with a live 3D renderer: drag the character to turn it, with tilt and inertia
+- Animations: Idle, Walk, Run, Fly, Wave and Crouch (the character sneaks and stands back up), all smoother than before
+- The cape moves with the character
+- Misty capes and elytra can be tried on, the cosmetics shop is coming soon
+- Your name tag is shown above the head, with a new Tags category
+- New Skin button in the sidebar
+- Fixes: the Fly animation was upside down, the hand went into the head while waving, Run moved diagonally and stayed leaning forward, the elytra were not spread enough while crouching, the wings were invisible from below, and a grey block stayed after removing a cape
+
+### Profiles and modpacks
+- The "Install a modpack" and "New profile" buttons now have the same size, and so do the buttons in the search results (Install, Create profile)
+
+### Discord
+- Discord Rich Presence with the Misty logo, a status for each page of the launcher, the version you are playing and "Playing as" with your username
+
+### Other
+- README with a screenshot gallery and the themes
+
 ## 0.3.4
 - "Check for updates": only the two arrows now spin while Misty is searching, the button keeps its size so nothing moves around it anymore
 - Removed the white vertical line between the account and the profile on the home page
