@@ -11,9 +11,6 @@ pub const LAST_VERSION: &str = "lastversion";
 pub const RAM: &str = "ram";
 pub const PREMIUM: &str = "premium";
 pub const RACCOURCI: &str = "raccourci";
-pub const SNAPSHOT: &str = "snapshot";
-pub const BETA: &str = "beta";
-pub const ALPHA: &str = "alpha";
 pub const SUPPR: &str = "Suppr";
 pub const DERNIER_PROFIL: &str = "lastprofil";
 pub const RICH_PRESENCE: &str = "richpresence";
@@ -32,7 +29,7 @@ pub const TELECHARGEMENTS: &str = "telechargements";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
-    VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SNAPSHOT, BETA, ALPHA, SUPPR,
+    VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
 ];
 

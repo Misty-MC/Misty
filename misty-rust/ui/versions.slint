@@ -427,10 +427,13 @@ component PanneauHorizon inherits VerticalLayout {
         border-width: 1px;
         border-color: #F0795A66;
         Image {
+            // comme les mises à jour : le bas visible s'arrête juste sous le sol
+            x: 0;
             width: parent.width;
-            height: parent.height;
+            height: max(parent.height, parent.width * 90 / 160);
+            y: min(0px, parent.height - self.height * 82 / 90);
             source: HomeState.horizon-art;
-            image-fit: cover;
+            image-fit: fill;
             image-rendering: pixelated;
         }
         Rectangle {
@@ -787,10 +790,14 @@ export component VersionPicker inherits Rectangle {
                         border-width: 1px;
                         border-color: Theme.glass-border;
                         Image {
+                            // toute la largeur, aux proportions de l'illustration (160 × 90) ; le bas visible
+                            // s'arrête juste sous le sol (ligne 82 sur 90), pour montrer le sol et le repère de la mise à jour
+                            x: 0;
                             width: parent.width;
-                            height: parent.height;
+                            height: max(parent.height, parent.width * 90 / 160);
+                            y: min(0px, parent.height - self.height * 82 / 90);
                             source: root.groupe.art;
-                            image-fit: cover;
+                            image-fit: fill;
                             image-rendering: pixelated;
                         }
                         Rectangle {

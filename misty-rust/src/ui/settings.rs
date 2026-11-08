@@ -10,7 +10,6 @@ use std::rc::Rc;
 
 #[derive(Default)]
 pub struct Etat {
-    types_modifies: bool,
     langues: Vec<String>,
     stock: Vec<storage::Ligne>,
     stock_ouverts: std::collections::HashSet<String>,
@@ -154,16 +153,6 @@ pub fn installer(app: &Rc<App>) {
     st.on_ram_changed(move |v| {
         settings::set(settings::RAM, &(v as u32).to_string());
         afficher_ram(&a);
-    });
-
-    // Types de versions
-    let a = app.clone();
-    st.on_types_changed(move || {
-        let st = s(&a);
-        settings::set_bool(settings::SNAPSHOT, st.get_snapshot());
-        settings::set_bool(settings::BETA, st.get_beta());
-        settings::set_bool(settings::ALPHA, st.get_alpha());
-        a.settings.borrow_mut().types_modifies = true;
     });
 
     // Stockage
@@ -311,12 +300,9 @@ pub fn ouvrir(app: &Rc<App>) {
     st.set_open(true);
 }
 
-/// Ferme la fenêtre des options (et recharge l'accueil si les types de versions ont changé).
+/// Ferme la fenêtre des options.
 pub fn fermer(app: &Rc<App>) {
     s(app).set_open(false);
-    if consommer_changement_types(app) {
-        super::home::rafraichir(app, true);
-    }
 }
 
 /// Après un changement de thème : le fond flouté montre encore l'ancien thème. On le retire, on attend
@@ -408,9 +394,6 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_ram_max(ram_max as f32);
     st.set_ram_value(settings::ram_mo().clamp(1024, ram_max) as f32);
 
-    st.set_snapshot(settings::get_bool(settings::SNAPSHOT, false));
-    st.set_beta(settings::get_bool(settings::BETA, false));
-    st.set_alpha(settings::get_bool(settings::ALPHA, false));
     st.set_shortcut_enabled(!settings::get(settings::RACCOURCI).is_empty());
     st.set_rich(discord::active());
     st.set_downloads(settings::telechargements() as f32);
@@ -456,11 +439,6 @@ pub fn maj_textes(app: &Rc<App>) {
     maj_microsoft(app);
     afficher_ram(app);
     calculer_taille(app);
-}
-
-/// Indique (une seule fois) si les types de versions ont changé depuis le dernier appel.
-pub fn consommer_changement_types(app: &App) -> bool {
-    std::mem::take(&mut app.settings.borrow_mut().types_modifies)
 }
 
 fn charger_pseudos(app: &Rc<App>) {

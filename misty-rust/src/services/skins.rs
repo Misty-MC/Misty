@@ -579,6 +579,20 @@ pub fn rendre_cape(png: &[u8]) -> Option<RgbaImage> {
     Some(imageops::crop_imm(&cape, f, f, 10 * f, 16 * f).to_image())
 }
 
+/// Face peinte des deux élytres côte à côte (la zone de 12×22 en (31, 0), la seconde en miroir).
+pub fn rendre_elytres(png: &[u8]) -> Option<RgbaImage> {
+    let tex = image::load_from_memory(png).ok()?.to_rgba8();
+    let f = (tex.width() / 64).max(1);
+    if tex.width() < 43 * f || tex.height() < 22 * f {
+        return None;
+    }
+    let aile = imageops::crop_imm(&tex, 31 * f, 0, 12 * f, 22 * f).to_image();
+    let mut r = RgbaImage::from_pixel(25 * f, 22 * f, Rgba([0, 0, 0, 0]));
+    imageops::overlay(&mut r, &imageops::flip_horizontal(&aile), 0, 0);
+    imageops::overlay(&mut r, &aile, (13 * f) as i64, 0);
+    Some(r)
+}
+
 /// Texture 64 × 32 de la cape et des élytres Misty, dessinée comme sur la boutique du site :
 /// cape en dégradé nuit avec un nuage, élytres en plumes avec un croissant de lune. PNG en mémoire.
 pub fn texture_misty() -> &'static [u8] {
@@ -999,5 +1013,23 @@ mod tests_planche {
             }
         }
         planche.save(std::path::Path::new(&dossier).join("poses.png")).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests_misty {
+    #[test]
+    fn apercus_misty() {
+        let cape = super::rendre_cape(super::texture_misty()).expect("cape");
+        assert_eq!((cape.width(), cape.height()), (10, 16));
+        let ailes = super::rendre_elytres(super::texture_misty()).expect("élytres");
+        assert_eq!((ailes.width(), ailes.height()), (25, 22));
+        // pas transparentes
+        assert!(cape.pixels().filter(|p| p[3] > 0).count() > 100);
+        assert!(ailes.pixels().filter(|p| p[3] > 0).count() > 200);
+        if let Ok(d) = std::env::var("MISTY_APERCUS") {
+            image::imageops::resize(&cape, 100, 160, image::imageops::FilterType::Nearest).save(format!("{d}/cape.png")).unwrap();
+            image::imageops::resize(&ailes, 250, 220, image::imageops::FilterType::Nearest).save(format!("{d}/elytres.png")).unwrap();
+        }
     }
 }

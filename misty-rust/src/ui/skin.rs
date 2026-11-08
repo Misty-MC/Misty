@@ -49,6 +49,13 @@ fn s(app: &App) -> SkinState<'_> {
 
 pub fn installer(app: &Rc<App>) {
     let st = s(app);
+    // aperçus des articles Misty, tirés de leur texture (comme les capes Mojang)
+    if let Some(c) = skins::rendre_cape(skins::texture_misty()) {
+        st.set_misty_cape(Image::from_rgba8(images::tampon(&c)));
+    }
+    if let Some(e) = skins::rendre_elytres(skins::texture_misty()) {
+        st.set_misty_elytra(Image::from_rgba8(images::tampon(&e)));
+    }
 
     let a = app.clone();
     st.on_open(move || {
@@ -73,11 +80,6 @@ pub fn installer(app: &Rc<App>) {
     st.on_elytra_toggled(move || changer_tenue(&a));
     let a = app.clone();
     st.on_look_changed(move || changer_tenue(&a));
-    st.on_open_namemc(|| {
-        if let Some(s) = account::session() {
-            crate::services::system_info::ouvrir(&format!("https://namemc.com/profile/{}", s.pseudo));
-        }
-    });
 
     let a = app.clone();
     st.on_walk_toggled(move || {

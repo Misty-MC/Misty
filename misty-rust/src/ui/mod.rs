@@ -413,8 +413,7 @@ fn nav_clicked(app: &Rc<App>, i: i32) {
     etat.set_nav(i);
     match i {
         page::ACCUEIL => {
-            let recharger = settings::consommer_changement_types(app);
-            home::rafraichir(app, recharger);
+            home::rafraichir(app, false);
         }
         page::OPTIONS => settings::rafraichir(app),
         page::PROFILS => profiles::rafraichir(app),

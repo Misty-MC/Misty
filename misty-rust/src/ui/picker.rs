@@ -160,24 +160,19 @@ fn dessiner(cle: &str) -> SharedPixelBuffer<Rgba8Pixel> {
     let pal = palette(cle);
     let graine = cle.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100_0000_01b3)) | 1;
     let mut rng = Rng(graine);
-    let mut img = vec![[0u8; 3]; (L * H) as usize];
-    let mut pose = |x: i32, y: i32, c: [u8; 3]| {
-        if (0..L as i32).contains(&x) && (0..H as i32).contains(&y) {
-            img[(y as u32 * L + x as u32) as usize] = c;
-        }
-    };
+    let mut t = Toile { px: vec![[0u8; 3]; (L * H) as usize] };
     // ciel, par bandes de 6 pixels (effet pixel art)
     for y in 0..H as i32 {
-        let t = ((y / 6) * 6) as f32 / H as f32;
+        let k = ((y / 6) * 6) as f32 / H as f32;
         for x in 0..L as i32 {
-            pose(x, y, melange(pal.ciel[0], pal.ciel[1], t));
+            t.pose(x, y, melange(pal.ciel[0], pal.ciel[1], k));
         }
     }
     // étoiles la nuit
     if pal.nuit {
         for _ in 0..40 {
             let (x, y) = ((rng.float() * L as f32) as i32, (rng.float() * H as f32 * 0.5) as i32);
-            pose(x, y, melange(pal.ciel[1], [255, 255, 255], 0.75));
+            t.pose(x, y, melange(pal.ciel[1], [255, 255, 255], 0.75));
         }
     }
     // astre : soleil carré le jour, lune la nuit
@@ -186,7 +181,7 @@ fn dessiner(cle: &str) -> SharedPixelBuffer<Rgba8Pixel> {
     for dy in -r..=r {
         for dx in -r..=r {
             if dx * dx + dy * dy <= r * r {
-                pose(ax + dx, ay + dy, astre);
+                t.pose(ax + dx, ay + dy, astre);
             }
         }
     }
@@ -199,42 +194,374 @@ fn dessiner(cle: &str) -> SharedPixelBuffer<Rgba8Pixel> {
             let v = 0.6 * (x as f32 * freq + p1).sin() + 0.4 * (x as f32 * freq * 2.3 + p2).sin();
             let haut = ((base - amp * v) / 2.0).round() as i32 * 2;
             for y in haut..H as i32 {
-                pose(x, y, pal.cretes[i]);
+                t.pose(x, y, pal.cretes[i]);
             }
         }
     }
+    // repère derrière le sol (falaise de 1.18)
+    structure_fond(&mut t, cle);
     // sol en blocs de 8 : dessus et terre, avec un peu de grain
     let sol = 74;
     for y in sol..H as i32 {
         for x in 0..L as i32 {
             let bloc = ((x / 4 + y / 4) % 3) as f32 * 0.04;
             let base = if y < sol + 4 { pal.sol[0] } else { pal.sol[1] };
-            pose(x, y, melange(base, [0, 0, 0], bloc));
+            t.pose(x, y, melange(base, [0, 0, 0], bloc));
         }
     }
     // quelques arbres (troncs et feuillage) sur le sol
     let mut x = 6 + (rng.float() * 10.0) as i32;
+    let libre = emprise(cle);
     while x < L as i32 - 8 {
+        // pas d'arbre sur la structure de la mise à jour
+        if libre.is_some_and(|(a, b)| x + 5 >= a && x - 4 <= b) {
+            x += 20 + (rng.float() * 30.0) as i32;
+            continue;
+        }
         let tronc = melange(pal.sol[1], [0, 0, 0], 0.3);
         let feuilles = melange(pal.cretes[1], pal.sol[0], 0.35);
         for y in sol - 8..sol {
-            pose(x, y, tronc);
-            pose(x + 1, y, tronc);
+            t.pose(x, y, tronc);
+            t.pose(x + 1, y, tronc);
         }
         for dy in 0..6 {
             for dx in -3..=4 {
                 if (dx as i32).abs() + dy / 2 < 5 {
-                    pose(x + dx, sol - 14 + dy, feuilles);
+                    t.pose(x + dx, sol - 14 + dy, feuilles);
                 }
             }
         }
         x += 20 + (rng.float() * 30.0) as i32;
     }
+    // le repère de la mise à jour (Warden, cerisier, portail…)
+    structure(&mut t, cle, &mut rng);
     let mut tampon = SharedPixelBuffer::<Rgba8Pixel>::new(L, H);
-    for (p, c) in tampon.make_mut_slice().iter_mut().zip(&img) {
+    for (p, c) in tampon.make_mut_slice().iter_mut().zip(&t.px) {
         *p = Rgba8Pixel { r: c[0], g: c[1], b: c[2], a: 255 };
     }
     tampon
+}
+
+// ───────────── Structures : un repère de chaque mise à jour, posé à droite du paysage ─────────────
+
+/// Toile de l'illustration (RGB), avec de quoi y dessiner.
+struct Toile {
+    px: Vec<[u8; 3]>,
+}
+
+impl Toile {
+    fn pose(&mut self, x: i32, y: i32, c: [u8; 3]) {
+        if (0..L as i32).contains(&x) && (0..H as i32).contains(&y) {
+            self.px[(y as u32 * L + x as u32) as usize] = c;
+        }
+    }
+    fn rect(&mut self, x: i32, y: i32, w: i32, h: i32, c: [u8; 3]) {
+        for dy in 0..h {
+            for dx in 0..w {
+                self.pose(x + dx, y + dy, c);
+            }
+        }
+    }
+    fn disque(&mut self, cx: i32, cy: i32, r: i32, c: [u8; 3]) {
+        for dy in -r..=r {
+            for dx in -r..=r {
+                if dx * dx + dy * dy <= r * r + r / 2 {
+                    self.pose(cx + dx, cy + dy, c);
+                }
+            }
+        }
+    }
+    /// Sprite en texte : une lettre par pixel, « . » transparent ; `y` est la ligne du bas.
+    fn sprite(&mut self, x: i32, y: i32, lignes: &[&str], couleurs: &[(char, u32)]) {
+        self.sprite_k(x, y, lignes, couleurs, 1);
+    }
+    /// Le même, agrandi `k` fois.
+    fn sprite_k(&mut self, x: i32, y: i32, lignes: &[&str], couleurs: &[(char, u32)], k: i32) {
+        let haut = lignes.len() as i32 * k;
+        for (j, ligne) in lignes.iter().enumerate() {
+            for (i, ch) in ligne.chars().enumerate() {
+                if let Some((_, c)) = couleurs.iter().find(|(n, _)| *n == ch) {
+                    self.rect(x + i as i32 * k, y - haut + 1 + j as i32 * k, k, k, hex(*c));
+                }
+            }
+        }
+    }
+}
+
+/// Où la structure se pose (de x à x + largeur), pour laisser la place libre aux arbres.
+fn emprise(cle: &str) -> Option<(i32, i32)> {
+    Some(match cle {
+        "1.21" => (100, 150),
+        "1.20" => (98, 140),
+        "1.19" => (104, 146),
+        "1.17" => (100, 150),
+        "1.16" => (106, 140),
+        "1.15" => (104, 146),
+        "1.14" => (104, 140),
+        "1.13" => (96, 156),
+        "1.12" => (100, 150),
+        "1.11" => (96, 150),
+        "1.10" => (104, 146),
+        "1.9" => (106, 146),
+        "1.8" => (96, 156),
+        "horizon" => (110, 140),
+        _ => return None,
+    })
+}
+
+/// Derrière le sol (montagnes) : seulement 1.18.
+fn structure_fond(t: &mut Toile, cle: &str) {
+    if cle == "1.18" {
+        // falaise enneigée, en marches de 2 pixels
+        let (pied, sommet, cx) = (74, 40, 128);
+        for y in sommet..pied {
+            let demi = ((y - sommet) as f32 * 1.15 + 3.0) as i32 / 2 * 2;
+            for x in cx - demi..=cx + demi {
+                let neige = y < sommet + 9 + ((x * 7) % 5) - 2;
+                let ombre = x > cx + demi / 3;
+                let c = if neige { if ombre { 0xD6E2EE } else { 0xF6FAFF } } else if ombre { 0x5B6672 } else { 0x7D8A99 };
+                t.pose(x, y, hex(c));
+            }
+        }
+    }
+}
+
+/// Devant le sol : les autres structures.
+fn structure(t: &mut Toile, cle: &str, rng: &mut Rng) {
+    let sol = 74;
+    match cle {
+        // Tricky Trials : trial spawner, blocs de cuivre et un breeze
+        "1.21" => {
+            let (x, y) = (116, sol - 14);
+            t.rect(x, y, 14, 14, hex(0x2B2F3A));
+            for i in (x + 1..x + 14).step_by(3) {
+                t.rect(i, y + 1, 1, 12, hex(0x4A5060));
+            }
+            t.rect(x + 4, y + 4, 6, 6, hex(0xFF9A3D));
+            t.rect(x + 5, y + 5, 4, 4, hex(0xFFD27A));
+            for (fx, fy) in [(x + 3, y - 2), (x + 7, y - 4), (x + 10, y - 2), (x + 6, y - 1)] {
+                t.rect(fx, fy, 1, 2, hex(0xFF9A3D));
+            }
+            for (bx, c1, c2) in [(102, 0xC87533, 0xE0955A), (134, 0x4FA38A, 0x6FC3A8), (142, 0xC87533, 0x4FA38A)] {
+                t.rect(bx, sol - 8, 8, 8, hex(c1));
+                t.rect(bx + 1, sol - 7, 3, 3, hex(c2));
+            }
+            t.sprite(104, sol - 20, &[".bb.", "bwwb", ".bb.", "bb..", ".bb."], &[('b', 0x8FD3F5), ('w', 0xEAF7FF)]);
+        }
+        // Trails & Tales : cerisier en fleurs, pétales qui tombent
+        "1.20" => {
+            let tronc = hex(0x4A2A2A);
+            t.rect(118, sol - 18, 3, 18, tronc);
+            t.rect(114, sol - 22, 2, 6, tronc);
+            t.rect(116, sol - 18, 2, 2, tronc);
+            t.rect(121, sol - 24, 2, 8, tronc);
+            for (cx, cy, r) in [(112, 50, 9), (124, 46, 10), (135, 52, 8), (118, 55, 8), (103, 55, 6)] {
+                t.disque(cx, cy + 1, r, hex(0xA8456E));
+            }
+            for (cx, cy, r) in [(112, 50, 8), (124, 46, 9), (135, 52, 7), (118, 55, 7), (103, 55, 5)] {
+                t.disque(cx, cy, r, hex(0xE0699E));
+            }
+            for _ in 0..120 {
+                let (x, y) = (96 + (rng.float() * 50.0) as i32, 36 + (rng.float() * 28.0) as i32);
+                if t.px[(y as u32 * L + x as u32) as usize] == hex(0xE0699E) {
+                    t.pose(x, y, hex(if rng.float() < 0.55 { 0xFFC2DC } else { 0xC24F84 }));
+                }
+            }
+            for _ in 0..10 {
+                t.pose(100 + (rng.float() * 50.0) as i32, 62 + (rng.float() * 12.0) as i32, hex(0xE0699E));
+            }
+        }
+        // The Wild Update : le Warden sur un tapis de sculk
+        "1.19" => {
+            for x in (100..152).step_by(2) {
+                if rng.float() < 0.7 {
+                    t.rect(x, sol, 2, 2, hex(0x0B2E38));
+                }
+                if rng.float() < 0.15 {
+                    t.pose(x, sol, hex(0x3FE0E0));
+                }
+            }
+            t.sprite_k(
+                114,
+                sol - 1,
+                &[
+                    ".h..........h.",
+                    ".hh........hh.",
+                    "..hDDDDDDDDh..",
+                    "..DDDDDDDDDD..",
+                    "..DdDDDDDDdD..",
+                    "..DDDDmmDDDD..",
+                    "..DDDDDDDDDD..",
+                    "DDDDcDDDDcDDDD",
+                    "DDDcDcDDcDcDDD",
+                    "DD.DDcccDDD.DD",
+                    "DD.DDDcDDDD.DD",
+                    "DD.DDDDDDDD.DD",
+                    "dd.DDDDDDDD.dd",
+                    "...DDD..DDD...",
+                    "...DDD..DDD...",
+                    "...ddd..ddd...",
+                ],
+                &[('D', 0x1E5A6E), ('d', 0x134050), ('h', 0x5FF5F0), ('c', 0x5FF5F0), ('m', 0x05141A)],
+                2,
+            );
+            // hurleur de sculk
+            t.rect(102, sol - 5, 6, 5, hex(0x1E3A40));
+            t.rect(103, sol - 7, 4, 2, hex(0xD8E8D0));
+        }
+        // Caves & Cliffs I : géode d'améthyste et un axolotl
+        "1.17" => {
+            for (x, h, c) in [(104, 10, 0x9A5CC6), (108, 15, 0xC890FF), (112, 9, 0x6A3A9A), (138, 12, 0xC890FF), (142, 7, 0x9A5CC6), (146, 11, 0x6A3A9A)] {
+                for dy in 0..h {
+                    let w = if dy > h - 3 { 1 } else { 3 };
+                    t.rect(x + (3 - w) / 2, sol - 1 - dy, w, 1, hex(c));
+                }
+            }
+            t.sprite_k(
+                118,
+                sol - 1,
+                &["p.p.......", ".pPPPPPP..", "pPePPPPPPp", ".PPPPPPPpp", "..P..P...."],
+                &[('p', 0xE05A8A), ('P', 0xF7A6C4), ('e', 0x1A1A1A)],
+                2,
+            );
+        }
+        // Nether Update : portail en obsidienne
+        "1.16" => {
+            let (x, y) = (114, sol - 22);
+            t.rect(x, y, 16, 22, hex(0x1B1030));
+            t.rect(x + 3, y + 3, 10, 19, hex(0x8B3CF0));
+            for _ in 0..30 {
+                t.pose(x + 3 + (rng.float() * 10.0) as i32, y + 3 + (rng.float() * 19.0) as i32, hex(0xB070FF));
+            }
+            for _ in 0..8 {
+                t.pose(x + 4 + (rng.float() * 8.0) as i32, y + 5 + (rng.float() * 16.0) as i32, hex(0x5A1AB0));
+            }
+            // champignon carmin
+            t.rect(136, sol - 8, 2, 8, hex(0x6A2A3A));
+            t.rect(132, sol - 12, 10, 4, hex(0xC0283A));
+        }
+        // Buzzy Bees : un grand arbre, son nid et des abeilles
+        "1.15" => {
+            t.rect(122, sol - 18, 3, 18, hex(0x6B4A2A));
+            t.disque(123, 46, 10, hex(0x4E9A3A));
+            t.disque(116, 50, 6, hex(0x5FB043));
+            t.disque(131, 50, 6, hex(0x5FB043));
+            t.rect(126, 58, 6, 6, hex(0xE8B13A));
+            t.rect(126, 60, 6, 1, hex(0x7A5A1A));
+            t.rect(128, 62, 2, 2, hex(0x3A2A10));
+            for (bx, by) in [(108, 52), (140, 44), (112, 62), (144, 60)] {
+                t.sprite(bx, by, &["ww..", "ykyk", "ykyk"], &[('y', 0xF2C230), ('k', 0x2A1A0A), ('w', 0xE8F4FF)]);
+            }
+        }
+        // Village & Pillage : maison de village
+        "1.14" => {
+            let (x, y) = (110, sol - 16);
+            t.rect(x, y + 12, 22, 4, hex(0x7A7A7A));
+            t.rect(x, y + 2, 22, 10, hex(0xB8945A));
+            t.rect(x, y + 2, 2, 14, hex(0x6B4A2A));
+            t.rect(x + 20, y + 2, 2, 14, hex(0x6B4A2A));
+            for i in 0..8 {
+                t.rect(x - 2 + i, y + 2 - i, 26 - 2 * i, 1, hex(0x8A5A2A));
+            }
+            t.rect(x + 9, y + 8, 4, 8, hex(0x5A3A1A));
+            t.rect(x + 3, y + 5, 4, 3, hex(0xA8D8F0));
+            t.rect(x + 15, y + 5, 4, 3, hex(0xA8D8F0));
+            // cloche
+            t.rect(138, sol - 9, 1, 9, hex(0x5A3A1A));
+            t.rect(136, sol - 8, 5, 4, hex(0xF2C230));
+        }
+        // Update Aquatic : un dauphin qui saute, des coraux
+        "1.13" => {
+            t.sprite_k(
+                112,
+                54,
+                &["......dd....", "..dddddddd..", ".dDDDDDDDDdd", "ddDeDDDDDDd.", ".llllllldd..", "...ll...d..."],
+                &[('d', 0x6F88A8), ('D', 0x8FA8C0), ('l', 0xC8D8E8), ('e', 0x1A1A2A)],
+                2,
+            );
+            for (x, c) in [(100, 0xFF6F91), (106, 0xF2D84A), (140, 0x4A7AFF), (146, 0xFF6F91), (152, 0xB46CFF)] {
+                t.rect(x + 1, sol - 7, 1, 7, hex(c));
+                t.rect(x - 1, sol - 5, 1, 3, hex(c));
+                t.rect(x + 3, sol - 4, 1, 3, hex(c));
+            }
+        }
+        // World of Color : béton de toutes les couleurs, et un perroquet
+        "1.12" => {
+            let couleurs = [0xE03A3A, 0xF28A2A, 0xF2D84A, 0x5FBF3F, 0x2FA8C8, 0x3A5ACF, 0x8A3ACF, 0xD94FA8];
+            let mut k = 0;
+            for (rang, n) in [(0, 6), (1, 4), (2, 2)] {
+                for i in 0..n {
+                    t.rect(106 + rang * 6 + i * 6, sol - 6 - rang * 6, 6, 6, hex(couleurs[k % 8]));
+                    k += 1;
+                }
+            }
+            t.sprite(140, sol - 1, &[".rr.", "rrer", ".rr.", ".bb.", ".yb.", "..y."], &[('r', 0xE03A3A), ('e', 0x1A1A1A), ('b', 0x3A5ACF), ('y', 0xF2D84A)]);
+        }
+        // Exploration Update : le manoir des bois
+        "1.11" => {
+            let (x, y) = (104, sol - 20);
+            t.rect(x, y + 6, 40, 14, hex(0x4A3424));
+            t.rect(x + 12, y, 16, 6, hex(0x4A3424));
+            t.rect(x - 1, y + 5, 42, 2, hex(0x2E2018));
+            t.rect(x + 11, y - 1, 18, 2, hex(0x2E2018));
+            t.rect(x, y + 18, 40, 2, hex(0x7A7A7A));
+            for i in 0..5 {
+                t.rect(x + 3 + i * 8, y + 9, 3, 4, hex(0xE8D08A));
+            }
+            t.rect(x + 18, y + 2, 4, 3, hex(0xE8D08A));
+            t.rect(x + 18, y + 14, 4, 4, hex(0x2E2018));
+        }
+        // Frostburn Update : un ours polaire sur la neige
+        "1.10" => {
+            t.sprite_k(
+                110,
+                sol - 1,
+                &["..........WW..", "..WWWWWWWWWWW.", ".WWWWWWWWWWWeW", "WWWWWWWWWWWWWn", "WWWWWWWWWWWW..", ".WW.WW...WW.WW", ".WW.WW...WW.WW"],
+                &[('W', 0xF0F4F8), ('e', 0x1A1A1A), ('n', 0x2A2A2A)],
+                2,
+            );
+            for (x, h) in [(140, 14), (144, 9), (104, 10)] {
+                for dy in 0..h {
+                    let w = if dy > h - 4 { 1 } else { 3 };
+                    t.rect(x + (3 - w) / 2, sol - 1 - dy, w, 1, hex(0xA8D8F0));
+                }
+            }
+        }
+        // Combat Update : tour de l'End et un shulker
+        "1.9" => {
+            let violet = hex(0xA97BA9);
+            t.rect(122, sol - 30, 8, 30, violet);
+            t.rect(118, sol - 34, 16, 6, hex(0xC9A0C9));
+            t.rect(116, sol - 18, 20, 4, hex(0xC9A0C9));
+            for y in (sol - 26..sol).step_by(6) {
+                t.rect(125, y, 2, 3, hex(0x2A1A3A));
+            }
+            t.rect(125, sol - 40, 2, 6, hex(0xF4F0FF));
+            t.rect(108, sol - 6, 6, 6, hex(0x8A5A9A));
+            t.rect(109, sol - 3, 4, 2, hex(0xE8E4B0));
+        }
+        // Bountiful Update : monument océanique
+        "1.8" => {
+            for (i, (w, c)) in [(48, 0x3A7A70), (36, 0x4A8A80), (24, 0x5AA89A), (12, 0x6FC0B0)].iter().enumerate() {
+                t.rect(126 - w / 2, sol - 5 - i as i32 * 5, *w, 5, hex(*c));
+            }
+            for x in [108, 120, 132, 144] {
+                t.rect(x, sol - 4, 2, 2, hex(0xD8F0E8));
+            }
+            t.rect(125, sol - 18, 2, 2, hex(0xD8F0E8));
+        }
+        // Horizon : Ferris, le crabe de Rust
+        "horizon" => {
+            t.sprite_k(
+                113,
+                sol - 1,
+                &["o..........o", "oo........oo", ".oOOOOOOOOo.", "OOOeOOOOeOOO", ".OOOOOOOOOO.", "o.o......o.o"],
+                &[('o', 0xB04A2A), ('O', 0xF0795A), ('e', 0x1A1A1A)],
+                2,
+            );
+        }
+        _ => {}
+    }
 }
 
 thread_local! {
@@ -257,4 +584,27 @@ mod tests {
         assert!(!super::compatible("1.12.2", 3));
         assert!(!super::compatible("24w14a", 1));
     }
+}
+
+/// Planche de toutes les illustrations (×3), dans MISTY_PLANCHE : `cargo test planche_illustrations -- --ignored`.
+#[cfg(test)]
+#[test]
+#[ignore]
+fn planche_illustrations() {
+    let cles = ["1.21", "1.20", "1.19", "1.18", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10", "1.9", "1.8", "horizon", "26.x"];
+    let (k, col) = (3u32, 4u32);
+    let mut planche = image::RgbaImage::new(L * k * col, H * k * cles.len().div_ceil(col as usize) as u32);
+    for (i, cle) in cles.iter().enumerate() {
+        let t = dessiner(cle);
+        let (ox, oy) = ((i as u32 % col) * L * k, (i as u32 / col) * H * k);
+        for (j, p) in t.as_slice().iter().enumerate() {
+            let (x, y) = (j as u32 % L, j as u32 / L);
+            for dy in 0..k {
+                for dx in 0..k {
+                    planche.put_pixel(ox + x * k + dx, oy + y * k + dy, image::Rgba([p.r, p.g, p.b, 255]));
+                }
+            }
+        }
+    }
+    planche.save(std::env::var("MISTY_PLANCHE").unwrap_or_else(|_| "planche.png".into())).unwrap();
 }

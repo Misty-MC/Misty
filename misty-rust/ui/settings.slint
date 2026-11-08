@@ -197,47 +197,6 @@ component LigneInterrupteur inherits HorizontalLayout {
     }
 }
 
-/// Option secondaire (dans un bloc) : libellé à gauche, interrupteur à droite.
-component OptionInterrupteur inherits Rectangle {
-    in property <string> text;
-    in-out property <bool> checked;
-    callback toggled(bool);
-    height: 50px;
-    border-radius: 12px;
-    background: survol.has-hover ? Theme.glass-hover : Theme.glass;
-    border-width: 1px;
-    border-color: root.checked ? Theme.accent.with-alpha(0.45) : Theme.glass-border;
-    animate background, border-color { duration: Theme.normal; }
-    survol := TouchArea {
-        mouse-cursor: pointer;
-        clicked => {
-            root.checked = !root.checked;
-            root.toggled(root.checked);
-        }
-    }
-    HorizontalLayout {
-        padding-left: 16px;
-        padding-right: 14px;
-        Text {
-            horizontal-stretch: 1;
-            text: root.text;
-            font-family: Theme.ui-font;
-            font-size: 14px;
-            font-weight: 600;
-            color: Theme.text;
-            vertical-alignment: center;
-        }
-        VerticalLayout {
-            alignment: center;
-            ToggleSwitch {
-                width: 44px;
-                checked <=> root.checked;
-                toggled(v) => { root.toggled(v); }
-            }
-        }
-    }
-}
-
 component Separateur inherits Rectangle {
     height: 1px;
     background: Theme.line;
@@ -566,7 +525,7 @@ export component SettingsModal inherits Rectangle {
     property <int> section: SettingsState.section;
 
     // Position de l'indicateur pour chaque entrée (groupes de 26 px, entrées de 38 px + 4 px)
-    property <[length]> positions: [26px, 68px, 136px, 178px, 246px, 288px, 356px, 398px, 440px];
+    property <[length]> positions: [26px, 68px, 136px, 178px, 246px, 314px, 356px, 398px];
 
     opacity: root.ouvert ? 1 : 0;
     visible: self.opacity > 0.01 && !SettingsState.capturing;
@@ -715,12 +674,11 @@ export component SettingsModal inherits Rectangle {
 
                                 GroupeNav { y: 220px; width: parent.width; text: Tr.t("Param_Groupe_Jeu"); }
                                 EntreeNav { y: 246px; width: parent.width; icon: "\u{E9D9}"; text: Tr.t("Param_Memoire"); checked: root.section == 4; clicked => { SettingsState.section = 4; } }
-                                EntreeNav { y: 288px; width: parent.width; icon: "\u{E8F1}"; text: Tr.t("Param_Versions"); checked: root.section == 5; clicked => { SettingsState.section = 5; } }
 
-                                GroupeNav { y: 330px; width: parent.width; text: Tr.t("Param_Groupe_Launcher"); }
-                                EntreeNav { y: 356px; width: parent.width; icon: "\u{E9E9}"; text: Tr.t("Param_Comportement"); checked: root.section == 6; clicked => { SettingsState.section = 6; } }
-                                EntreeNav { y: 398px; width: parent.width; icon: "\u{EDA2}"; text: Tr.t("Param_Ressources"); checked: root.section == 7; clicked => { SettingsState.section = 7; } }
-                                EntreeNav { y: 440px; width: parent.width; icon: "\u{E90F}"; text: Tr.t("Param_Depannage"); checked: root.section == 8; clicked => { SettingsState.section = 8; } }
+                                GroupeNav { y: 288px; width: parent.width; text: Tr.t("Param_Groupe_Launcher"); }
+                                EntreeNav { y: 314px; width: parent.width; icon: "\u{E9E9}"; text: Tr.t("Param_Comportement"); checked: root.section == 5; clicked => { SettingsState.section = 5; } }
+                                EntreeNav { y: 356px; width: parent.width; icon: "\u{EDA2}"; text: Tr.t("Param_Ressources"); checked: root.section == 6; clicked => { SettingsState.section = 6; } }
+                                EntreeNav { y: 398px; width: parent.width; icon: "\u{E90F}"; text: Tr.t("Param_Depannage"); checked: root.section == 7; clicked => { SettingsState.section = 7; } }
                             }
                         }
 
@@ -990,33 +948,8 @@ export component SettingsModal inherits Rectangle {
                             BodyText { text: Tr.t("Param_Memoire_Conseil"); }
                         }
 
-                        // ── Versions affichées ──
-                        if root.section == 5: Volet {
-                            spacing: 10px;
-                            Entete {
-                                titre: Tr.t("Param_Versions_Titre");
-                                texte: Tr.t("Options_Versions_Texte");
-                            }
-                            Rectangle { height: 6px; }
-                            OptionInterrupteur {
-                                text: "Snapshots";
-                                checked <=> SettingsState.snapshot;
-                                toggled => { SettingsState.types-changed(); }
-                            }
-                            OptionInterrupteur {
-                                text: Tr.t("Options_Betas");
-                                checked <=> SettingsState.beta;
-                                toggled => { SettingsState.types-changed(); }
-                            }
-                            OptionInterrupteur {
-                                text: Tr.t("Options_indev");
-                                checked <=> SettingsState.alpha;
-                                toggled => { SettingsState.types-changed(); }
-                            }
-                        }
-
                         // ── Comportement : raccourci + Rich Presence Discord ──
-                        if root.section == 6: Volet {
+                        if root.section == 5: Volet {
                             spacing: 22px;
                             VerticalLayout {
                                 spacing: 14px;
@@ -1078,7 +1011,7 @@ export component SettingsModal inherits Rectangle {
                         }
 
                         // ── Ressources ──
-                        if root.section == 7: Volet {
+                        if root.section == 6: Volet {
                             spacing: 22px;
                             VerticalLayout {
                                 spacing: 12px;
@@ -1176,7 +1109,7 @@ export component SettingsModal inherits Rectangle {
                         }
 
                         // ── Dépannage ──
-                        if root.section == 8: Volet {
+                        if root.section == 7: Volet {
                             spacing: 26px;
                             BlocAction {
                                 titre: Tr.t("Param_Cache");

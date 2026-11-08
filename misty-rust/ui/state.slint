@@ -385,9 +385,6 @@ export global SettingsState {
     in property <string> ram-total-text;
     in property <float> ram-max: 8192;
     in-out property <float> ram-value: 4096;
-    in-out property <bool> snapshot;
-    in-out property <bool> beta;
-    in-out property <bool> alpha;
     in property <string> data-dir;
     in property <string> size-text;
     in property <bool> storage-open;
@@ -410,7 +407,6 @@ export global SettingsState {
     callback recreate-shortcut();
     callback lang-selected(int);
     callback ram-changed(float);
-    callback types-changed();
     callback open-folder();
     callback delete-all();
     callback storage-show();

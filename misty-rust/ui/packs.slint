@@ -236,7 +236,7 @@ export component PacksPage inherits Rectangle {
             vertical-stretch: 1;
             property <int> colonnes: max(1, floor((self.visible-width + 16px) / 332px));
             content-width: self.visible-width;
-            content-height: PacksState.list.length == 0 ? 300px : ceil(PacksState.list.length / self.colonnes) * 176px;
+            content-height: PacksState.list.length == 0 ? self.visible-height : ceil(PacksState.list.length / self.colonnes) * 176px;
 
             for p[i] in PacksState.list: PackCardView {
                 x: mod(i, zone.colonnes) * 332px;
@@ -253,30 +253,22 @@ export component PacksPage inherits Rectangle {
                 delete => { PacksState.delete(i); }
             }
 
-            // État vide
-            if PacksState.list.length == 0: GlassCard {
+            // État vide : centré, sans icône (comme les profils)
+            if PacksState.list.length == 0: VerticalLayout {
                 x: 0;
                 y: 0;
-                width: 520px;
-                height: vide.preferred-height;
-                vide := VerticalLayout {
-                    padding: 40px;
-                    spacing: 6px;
-                    HorizontalLayout {
-                        alignment: start;
-                        Image {
-                            width: 64px;
-                            height: 64px;
-                            source: Assets.logo;
-                            image-rendering: smooth;
-                        }
-                    }
-                    SectionTitle {
-                        text: Tr.t("Pack_AucunTitre");
-                        height: 40px;
-                        vertical-alignment: bottom;
-                    }
-                    BodyText { text: Tr.t("Soon_Aucun"); }
+                width: zone.visible-width;
+                height: zone.visible-height;
+                alignment: center;
+                spacing: 8px;
+                SectionTitle {
+                    text: Tr.t("Pack_AucunTitre");
+                    horizontal-alignment: center;
+                }
+                BodyText {
+                    text: Tr.t("Soon_Aucun");
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
                 }
             }
         }

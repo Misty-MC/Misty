@@ -29,6 +29,9 @@ export global SkinState {
     in-out property <bool> show-cape: true;
     /// Essai d'un cosmétique Misty : 0 aucun · 1 cape Misty · 2 élytres Misty
     in-out property <int> misty-equip: 0;
+    /// Aperçus de la cape et des élytres Misty (face extérieure de la texture)
+    in property <image> misty-cape;
+    in property <image> misty-elytra;
     callback elytra-toggled();
     callback walk-toggled();
     callback look-changed();
@@ -60,7 +63,6 @@ export global SkinState {
     callback slim-changed();
     callback apply();
     callback select-cape(string);
-    callback open-namemc();
 }
 
 // ───────────────────────── Petits éléments ─────────────────────────
@@ -271,11 +273,15 @@ component Scene3D inherits Rectangle {
         [20, 8, 1.0, 0, 16],      // packs : tout le personnage
     ];
     property <bool> cadre: SkinState.focus && SkinState.category >= 0 && SkinState.category < root.cadrages.length;
-    property <float> zoom: root.cadre ? root.cadrages[SkinState.category][2] : 1;
+    property <float> zoom-cadre: root.cadre ? root.cadrages[SkinState.category][2] : 1;
+    /// zoom à la molette, par-dessus le cadrage
+    property <float> zoom-main: 1;
+    animate zoom-main { duration: 140ms; easing: ease-out; }
+    property <float> zoom: root.zoom-cadre * root.zoom-main;
     property <float> vise-u: root.cadre ? root.cadrages[SkinState.category][3] : 0;
     property <float> vise-h: root.cadre ? root.cadrages[SkinState.category][4] : 16;
     property <float> attire: root.cadre ? 1 : 0;
-    animate zoom, vise-u, vise-h, attire { duration: 650ms; easing: ease-in-out; }
+    animate zoom-cadre, vise-u, vise-h, attire { duration: 650ms; easing: ease-in-out; }
     property <int> demande: SkinState.focus-count;
     changed demande => {
         if (!root.cadre) {
@@ -285,6 +291,7 @@ component Scene3D inherits Rectangle {
         root.glisse = false;
         root.elan = 0;
         root.elan-pitch = 0;
+        root.zoom-main = 1;
         let c = root.cadrages[SkinState.category];
         // le plus court chemin vers l'angle du cadrage
         root.cible = root.yaw + Math.mod(Math.mod(c[0] - root.yaw + 180, 360) + 360, 360) - 180;
@@ -377,7 +384,7 @@ component Scene3D inherits Rectangle {
 
     // prendre le personnage : de gauche à droite pour tourner, de haut en bas pour l'incliner
     TouchArea {
-        mouse-cursor: self.pressed ? MouseCursor.grabbing : MouseCursor.grab;
+        mouse-cursor: pointer;
         pointer-event(e) => {
             if (e.kind == PointerEventKind.down) {
                 root.glisse = true;
@@ -405,9 +412,19 @@ component Scene3D inherits Rectangle {
                 root.dernier-y = self.mouse-y;
             }
         }
+        scroll-event(e) => {
+            // molette vers le haut : on s'approche
+            if (e.delta-y > 0) {
+                root.zoom-main = min(3, root.zoom-main * 1.12);
+            } else if (e.delta-y < 0) {
+                root.zoom-main = max(0.6, root.zoom-main / 1.12);
+            }
+            accept
+        }
         double-clicked => {
             // double-clic : retour à la vue de face, à hauteur normale
             SkinState.focus = false;
+            root.zoom-main = 1;
             root.vise-pitch = false;
             root.tourne = false;
             root.cible = round(root.yaw / 360) * 360;
@@ -425,6 +442,7 @@ component Scene3D inherits Rectangle {
         current: root.tourne ? -1 : root.angle-vu < 45 || root.angle-vu > 315 ? 0 : root.angle-vu > 135 && root.angle-vu < 225 ? 2 : 1;
         choisi(i) => {
             SkinState.focus = false;
+            root.zoom-main = 1;
             root.tourne = false;
             root.elan = 0;
             let vise = i == 0 ? 0 : i == 1 ? 90 : 180;
@@ -603,32 +621,24 @@ component CaseMisty inherits Rectangle {
     Rectangle {
         y: 10px;
         height: parent.height - 40px;
-        if root.genre == 1: Rectangle {
+        // même taille et même place que l'image des capes Mojang
+        if root.genre == 1: Image {
+            x: (parent.width - self.width) / 2;
+            y: 0;
             width: min(root.width * 0.42, (root.height - 40px) * 0.62);
             height: self.width * 1.6;
-            border-radius: 2px;
-            background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
-            Image {
-                y: parent.height * 0.22;
-                width: parent.width * 0.7;
-                height: self.width * 0.6;
-                source: Assets.logo;
-                image-fit: contain;
-            }
+            source: SkinState.misty-cape;
+            image-fit: contain;
+            image-rendering: pixelated;
         }
-        if root.genre == 2: HorizontalLayout {
-            alignment: center;
-            spacing: 3px;
-            for c in 2: VerticalLayout {
-                alignment: center;
-                Rectangle {
-                    width: min(root.width * 0.2, 26px);
-                    height: (root.height - 40px) * 0.8;
-                    border-radius: 3px;
-                    background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
-                    transform-rotation: c == 0 ? 8deg : -8deg;
-                }
-            }
+        if root.genre == 2: Image {
+            x: (parent.width - self.width) / 2;
+            y: 0;
+            width: min(root.width * 0.62, (root.height - 40px) * 1.05);
+            height: parent.height;
+            source: SkinState.misty-elytra;
+            image-fit: contain;
+            image-rendering: pixelated;
         }
     }
     Text {
@@ -866,29 +876,6 @@ export component SkinPanel inherits Rectangle {
                                 font-size: 12px;
                                 color: SkinState.info != "" ? Theme.navy2 : Theme.text-muted;
                                 overflow: elide;
-                            }
-                            // lien NameMC
-                            Rectangle {
-                                width: lien.preferred-width;
-                                lien := HorizontalLayout {
-                                    spacing: 5px;
-                                    Text {
-                                        text: Tr.t("Skin_NameMC");
-                                        font-size: 13px;
-                                        font-weight: 600;
-                                        color: lz.has-hover ? Theme.navy : Theme.accent;
-                                        vertical-alignment: center;
-                                    }
-                                    Icon {
-                                        text: "\u{E8A7}";
-                                        font-size: 10px;
-                                        color: Theme.accent;
-                                    }
-                                }
-                                lz := TouchArea {
-                                    mouse-cursor: pointer;
-                                    clicked => { SkinState.open-namemc(); }
-                                }
                             }
                         }
                     }

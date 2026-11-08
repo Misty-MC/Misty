@@ -163,7 +163,7 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         for (mode, suffixe) in [(0, "clair"), (1, "sombre")] {
             theme.set_mode(mode);
             ui::settings::ouvrir(&app);
-            for section in 0..9 {
+            for section in 0..8 {
                 app.ui.global::<SettingsState>().set_section(section);
                 attendre(900).await;
                 photo(&app, &format!("2-options-{section}-{suffixe}"), &dossier);

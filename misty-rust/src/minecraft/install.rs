@@ -2,7 +2,7 @@
 
 use super::version::{self, FichierLib};
 use super::{java, FileProgress, McDirs};
-use crate::services::{download, http, settings};
+use crate::services::{download, http};
 use futures::StreamExt;
 use serde::Deserialize;
 use serde_json::Value;
@@ -44,23 +44,10 @@ pub async fn manifeste() -> anyhow::Result<Vec<VersionManifest>> {
     Ok(m.versions)
 }
 
-/// Versions à proposer : releases + snapshots/bêtas/alphas selon les options.
+/// Versions des listes déroulantes (nouveau profil, nouveau pack) : les releases. Snapshots, bêtas et
+/// alphas restent dans la fenêtre de choix de version, qui a ses propres filtres.
 pub async fn versions_proposees() -> anyhow::Result<Vec<String>> {
-    let snapshot = settings::get_bool(settings::SNAPSHOT, false);
-    let beta = settings::get_bool(settings::BETA, false);
-    let alpha = settings::get_bool(settings::ALPHA, false);
-    Ok(manifeste()
-        .await?
-        .into_iter()
-        .filter(|v| match v.type_.as_str() {
-            "release" => true,
-            "snapshot" => snapshot,
-            "old_beta" => beta,
-            "old_alpha" => alpha,
-            _ => false,
-        })
-        .map(|v| v.id)
-        .collect())
+    Ok(manifeste().await?.into_iter().filter(|v| v.type_ == "release").map(|v| v.id).collect())
 }
 
 /// Une version prête à être lancée.
