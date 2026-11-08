@@ -24,6 +24,8 @@ export global AppState {
     in property <string> version-text;
     /// Fenêtre agrandie (plein écran fenêtré)
     in property <bool> maximized;
+    /// Premier affichage prêt (cache l'écran de chargement)
+    in property <bool> ready;
     callback toggle-maximize();
     callback nav-clicked(int);
     callback open-data-folder();
@@ -321,6 +323,8 @@ export global SettingsState {
     callback theme-selected(int);
     callback particles-toggled(bool);
     callback blur-toggled(bool);
+    callback seasonal-toggled(bool);
+    in-out property <bool> seasonal: true;
     callback downloads-changed(float);
     callback clear-cache();
     callback open-logs();

@@ -22,13 +22,15 @@ pub const LANGUE: &str = "langue";
 pub const THEME: &str = "theme";
 pub const PARTICULES: &str = "particules";
 pub const FLOU: &str = "flou";
+/// Thèmes de saison automatiques (Halloween, Noël)
+pub const SAISON: &str = "saison";
 /// Nombre de fichiers téléchargés en même temps pendant l’installation du jeu
 pub const TELECHARGEMENTS: &str = "telechargements";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SNAPSHOT, BETA, ALPHA, SUPPR,
-    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, TELECHARGEMENTS,
+    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, SAISON, TELECHARGEMENTS,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {
@@ -116,6 +118,21 @@ pub fn telechargements() -> usize {
     get(TELECHARGEMENTS).trim().parse::<usize>().unwrap_or(16).clamp(2, 32)
 }
 
+/// Fête en cours, 3 jours avant et après : 1 Halloween (31 octobre), 2 Noël (25 décembre), 0 sinon.
+pub fn saison_du_jour() -> i32 {
+    use chrono::Datelike;
+    let jour = chrono::Local::now().date_naive();
+    saison(jour.month(), jour.day())
+}
+
+fn saison(mois: u32, jour: u32) -> i32 {
+    match (mois, jour) {
+        (10, 28..=31) | (11, 1..=3) => 1,
+        (12, 22..=28) => 2,
+        _ => 0,
+    }
+}
+
 /// Thème choisi (0 brume, 1 nuit, 2 comme Windows).
 pub fn theme() -> i32 {
     get(THEME).trim().parse::<i32>().ok().filter(|t| (0..=2).contains(t)).unwrap_or(0)
@@ -124,4 +141,20 @@ pub fn theme() -> i32 {
 /// RAM choisie pour le jeu, en Mo.
 pub fn ram_mo() -> u32 {
     get(RAM).trim().parse().unwrap_or(app_info::RAM_PAR_DEFAUT_MO)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn dates_des_saisons() {
+        assert_eq!(super::saison(10, 27), 0);
+        assert_eq!(super::saison(10, 28), 1);
+        assert_eq!(super::saison(10, 31), 1);
+        assert_eq!(super::saison(11, 3), 1);
+        assert_eq!(super::saison(11, 4), 0);
+        assert_eq!(super::saison(12, 21), 0);
+        assert_eq!(super::saison(12, 22), 2);
+        assert_eq!(super::saison(12, 28), 2);
+        assert_eq!(super::saison(12, 29), 0);
+    }
 }

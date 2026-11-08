@@ -470,5 +470,9 @@
   "Param_Debug": "Debug info",
   "Param_Debug_Texte": "Creates a text file with your Misty and Windows versions and your settings, to attach when you report a bug.",
   "Param_Debug_Bouton": "Export debug info",
-  "Param_MiseAJour": "Updates"
+  "Param_MiseAJour": "Updates",
+  "Param_Saison": "Seasonal themes",
+  "Param_Saison_Texte": "Halloween (Oct 28 – Nov 3) and Christmas (Dec 22 – 28) switch on by themselves.",
+  "Param_Saison_Halloween": "Halloween theme is on until November 3.",
+  "Param_Saison_Noel": "Christmas theme is on until December 28."
 }

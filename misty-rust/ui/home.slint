@@ -111,9 +111,9 @@ component VersionCard inherits Rectangle {
                 y: 43px + 1px + 7px * root.onde;
                 width: 144px;
                 height: 144px;
-                source: HomeState.has-card-icon ? HomeState.card-icon : Assets.grass;
+                source: HomeState.has-card-icon ? HomeState.card-icon : Assets.logo;
                 image-fit: contain;
-                image-rendering: HomeState.has-card-icon ? ImageRendering.smooth : ImageRendering.pixelated;
+                image-rendering: ImageRendering.smooth;
             }
 
             // version sélectionnée
@@ -132,8 +132,11 @@ component VersionCard inherits Rectangle {
                 OutlinedText {
                     text: HomeState.card-version;
                     font-size: 34px;
-                    stroke-color: Theme.navy;
+                    // contour toujours foncé : le chiffre reste net sur la carte, en clair comme en sombre
+                    stroke-color: #141B2B;
+                    shadow: #0A0E18;
                     thickness: 3px;
+                    depth: 3px;
                 }
             }
         }
@@ -330,8 +333,8 @@ export component HomePage inherits Rectangle {
                                     height: 58px;
                                     radius: 16px;
                                     border: 2.5px;
-                                    grass-margin: 10px;
-                                    grass-opacity: 1;
+                                    logo-margin: 10px;
+                                    logo-opacity: 1;
                                     source: HomeState.avatar;
                                     has-image: HomeState.has-avatar;
                                     pixel-art: true;

@@ -79,6 +79,74 @@ component Apparition inherits Rectangle {
     }
 }
 
+/// Page principale gardée en mémoire : fondu + léger glissement quand elle devient active,
+/// invisible (et donc ni dessinée ni animée) le reste du temps.
+component Onglet inherits Rectangle {
+    in property <bool> actif;
+    opacity: root.actif ? 1 : 0;
+    visible: self.opacity > 0.01;
+    animate opacity { duration: root.actif ? 260ms : 120ms; easing: ease-out; }
+    Rectangle {
+        y: root.actif ? 0px : 12px;
+        animate y { duration: 360ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+        @children
+    }
+}
+
+/// Écran de chargement : le nuage de Misty pendant les premiers instants, puis un fondu.
+component Chargement inherits Rectangle {
+    property <bool> fini: AppState.ready && self.minimum;
+    property <bool> minimum;
+    property <bool> maximum;
+    opacity: root.fini || root.maximum ? 0 : 1;
+    visible: self.opacity > 0.01;
+    animate opacity { duration: 380ms; easing: ease-in-out; }
+    // au moins 0,45 s (pas de flash), au plus 2,5 s (on ne bloque jamais le launcher)
+    Timer { interval: 450ms; running: !root.minimum; triggered => { root.minimum = true; } }
+    Timer { interval: 2500ms; running: !root.maximum; triggered => { root.maximum = true; } }
+    background: Theme.dark ? @linear-gradient(160deg, #0E1527 0%, #0A0F1D 100%) : @linear-gradient(135deg, #BAD6F7 0%, #95B9E4 45%, #5B7FB0 100%);
+    TouchArea { }
+    VerticalLayout {
+        alignment: center;
+        spacing: 18px;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 96px;
+                height: 96px;
+                border-radius: 28px;
+                background: Theme.dark ? #162140 : #1C2335;
+                drop-shadow-blur: 30px;
+                drop-shadow-color: Theme.accent.with-alpha(0.45);
+                transform-scale: 1 + 0.04 * sin((animation-tick() / 1400ms) * 360deg);
+                Image {
+                    width: 64px;
+                    height: 64px;
+                    source: Assets.logo;
+                    image-fit: contain;
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: center;
+            // petite barre qui glisse
+            Rectangle {
+                width: 120px;
+                height: 4px;
+                border-radius: 2px;
+                background: #FFFFFF26;
+                clip: true;
+                Rectangle {
+                    width: 40px;
+                    x: (Math.mod(animation-tick() / 1100ms, 1) * 160 - 40) * 1px;
+                    border-radius: 2px;
+                    background: Theme.dark ? Theme.accent : white;
+                }
+            }
+        }
+    }
+}
+
 export component MainWindow inherits Window {
     title: "Misty";
     // Slint ne lit pas le format .ico : on utilise la version PNG
@@ -130,11 +198,17 @@ export component MainWindow inherits Window {
             clip: true;
             background: @linear-gradient(135deg, #BAD6F7 0%, #95B9E4 45%, #5B7FB0 100%);
 
-            // nuit : fond du site (dégradé bleu nuit)
+            // nuit : fond du site (dégradé bleu nuit) ; Halloween (violet) et Noël (bleu glacé) par-dessus
             Rectangle {
                 opacity: Theme.dark ? 1 : 0;
                 animate opacity { duration: 450ms; easing: ease-in-out; }
                 background: @linear-gradient(160deg, #0E1527 0%, #0A0F1D 55%, #070B16 100%);
+            }
+            if Theme.halloween: Rectangle {
+                background: @linear-gradient(160deg, #2A1442 0%, #140A22 55%, #0A0612 100%);
+            }
+            if Theme.noel: Rectangle {
+                background: @linear-gradient(170deg, #12304F 0%, #0B1A2E 50%, #060D18 100%);
             }
 
             // vignette sombre en bas à droite
@@ -153,33 +227,34 @@ export component MainWindow inherits Window {
                 y: -self.r;
                 width: self.r * 2;
                 height: self.r * 2;
-                background: Theme.dark ? @radial-gradient(circle, #6F9CFF33 0%, #6F9CFF00 60%) : @radial-gradient(circle, #E4F1FF88 0%, #E4F1FF00 60%);
+                background: Theme.halloween ? @radial-gradient(circle, #FF8A3D40 0%, #FF8A3D00 60%) : Theme.noel ? @radial-gradient(circle, #DCEBFF30 0%, #DCEBFF00 60%) : Theme.dark ? @radial-gradient(circle, #6F9CFF33 0%, #6F9CFF00 60%) : @radial-gradient(circle, #E4F1FF88 0%, #E4F1FF00 60%);
             }
-            // bloc fantôme en bas à gauche
+            // nuage fantôme en bas à gauche
             Image {
-                x: 40px;
-                y: parent.height - 130px;
-                width: 170px;
-                height: 170px;
-                source: Assets.grass;
-                image-rendering: pixelated;
-                opacity: Theme.dark ? 0.06 : 0.13;
-                transform-rotation: -14deg;
+                x: 30px;
+                y: parent.height - 150px;
+                width: 200px;
+                height: 200px;
+                source: Assets.logo;
+                image-fit: contain;
+                opacity: Theme.dark ? 0.05 : 0.22;
+                transform-rotation: -8deg;
             }
             // carrés flottants (étoiles la nuit)
             if Theme.particles: Rectangle {
-                for p in AppState.particles: Rectangle {
-                    // la nuit, chaque carré devient une petite étoile qui scintille (comme sur le site)
-                    property <length> taille: Theme.dark ? max(2px, p.size * 0.22) : p.size;
-                    x: p.x * (root.width / 1180px) + (p.size - self.taille) / 2;
-                    y: p.y * (root.height / 720px) + p.amp * sin((animation-tick() / p.period) * 360deg) + (p.size - self.taille) / 2;
+                for p[i] in AppState.particles: Rectangle {
+                    property <float> h: root.height / 1px;
+                    // défilement vertical continu (neige qui tombe, braises qui montent)
+                    property <float> chute: Math.mod(p.y / 1px * (self.h / 720) + animation-tick() / (p.period / 160), self.h + 20) - 10;
+                    property <float> montee: self.h - Math.mod((self.h - p.y / 1px * (self.h / 720)) + animation-tick() / (p.period / 90), self.h + 20) + 10;
+                    property <length> taille: Theme.noel ? max(3px, p.size * 0.32) : Theme.halloween ? max(3px, p.size * 0.26) : Theme.dark ? max(2px, p.size * 0.22) : p.size;
+                    x: p.x * (root.width / 1180px) + (p.size - self.taille) / 2 + (Theme.noel || Theme.halloween ? p.amp * sin((animation-tick() / p.period) * 360deg) : 0px);
+                    y: Theme.noel ? self.chute * 1px : Theme.halloween ? self.montee * 1px : p.y * (root.height / 720px) + p.amp * sin((animation-tick() / p.period) * 360deg) + (p.size - self.taille) / 2;
                     width: self.taille;
                     height: self.taille;
-                    border-radius: self.taille / 5;
-                    background: Theme.dark ? #DCE8FF : white;
-                    drop-shadow-blur: Theme.dark ? 6px : 0px;
-                    drop-shadow-color: #9CC0FF;
-                    opacity: Theme.dark ? 0.3 + 0.6 * abs(sin((animation-tick() / (p.period * 0.7)) * 180deg)) : p.opacity;
+                    border-radius: Theme.noel ? self.taille / 2 : self.taille / 5;
+                    background: Theme.halloween ? (Math.mod(i, 3) == 0 ? #B46CFF : #FF9A3D) : Theme.noel ? #FFFFFF : Theme.dark ? #DCE8FF : white;
+                    opacity: Theme.noel ? 0.55 + 0.35 * p.opacity : Theme.halloween || Theme.dark ? 0.3 + 0.6 * abs(sin((animation-tick() / (p.period * 0.7)) * 180deg)) : p.opacity;
                 }
             }
         }
@@ -366,10 +441,12 @@ export component MainWindow inherits Window {
 
                 Rectangle {
                     vertical-stretch: 1;
-                    if AppState.page == 0: Apparition { HomePage { } }
-                    if AppState.page == 1: Apparition { ProfilesPage { } }
-                    if AppState.page == 3: Apparition { ChangelogPage { } }
-                    if AppState.page == 4: Apparition { PacksPage { } }
+                    // Les pages principales restent créées : changer d'onglet ne fait qu'un fondu.
+                    // Le détail d'un profil et l'éditeur sont recréés à chaque ouverture (ils dépendent de ce qu'on ouvre).
+                    Onglet { actif: AppState.page == 0; HomePage { } }
+                    Onglet { actif: AppState.page == 1; ProfilesPage { } }
+                    Onglet { actif: AppState.page == 3; ChangelogPage { } }
+                    Onglet { actif: AppState.page == 4; PacksPage { } }
                     if AppState.page == 5: Apparition { InstancePage { } }
                     if AppState.page == 6: Apparition { EditorPage { } }
                 }
@@ -378,6 +455,9 @@ export component MainWindow inherits Window {
 
         // ═══ Fenêtre des options (toujours présente, pour pouvoir animer sa fermeture) ═══
         SettingsModal { }
+
+        // ═══ Écran de chargement (au lancement) ═══
+        Chargement { }
 
         // ═══ Bulle d'aide (au-dessus des pages) ═══
         if Bulle.visible && !DialogState.visible: Rectangle {

@@ -39,8 +39,8 @@ component PackCardView inherits Rectangle {
                 height: 72px;
                 radius: 18px;
                 border: 2.5px;
-                grass-margin: 16px;
-                grass-opacity: 1;
+                logo-margin: 16px;
+                logo-opacity: 1;
                 pixel-art: true;
                 source: root.icon;
                 has-image: root.has-icon;
@@ -267,8 +267,8 @@ export component PacksPage inherits Rectangle {
                         Image {
                             width: 64px;
                             height: 64px;
-                            source: Assets.grass;
-                            image-rendering: pixelated;
+                            source: Assets.logo;
+                            image-rendering: smooth;
                         }
                     }
                     SectionTitle {

@@ -132,7 +132,7 @@ pub fn installer(app: &Rc<App>) {
 
     // Traductions
     ui.global::<Tr>().on_lookup(|cle| loc::t(&cle).into());
-    ui.global::<Assets>().set_grass(images::bloc_herbe());
+    ui.global::<Assets>().set_logo(images::logo_nuage());
     ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).into());
     ui.global::<AppState>().set_particles(modele(particules()));
 
@@ -164,6 +164,7 @@ pub fn installer(app: &Rc<App>) {
     theme.set_mode(crate::services::settings::theme());
     theme.set_particles(crate::services::settings::get_bool(crate::services::settings::PARTICULES, true));
     theme.set_blur(crate::services::settings::get_bool(crate::services::settings::FLOU, true));
+    appliquer_saison(app);
     ui.global::<AppState>().on_close(|| {
         let _ = slint::quit_event_loop();
     });
@@ -181,6 +182,21 @@ pub fn installer(app: &Rc<App>) {
     packs::installer(app);
     editor::installer(app);
     skin::installer(app);
+}
+
+/// Thème de saison (Halloween, Noël) si on est à ±3 jours de la fête et que l'option est active.
+/// En développement, MISTY_EVENT=1 ou 2 force une saison pour la tester.
+pub fn appliquer_saison(app: &App) {
+    let mut saison = if crate::services::settings::get_bool(crate::services::settings::SAISON, true) {
+        crate::services::settings::saison_du_jour()
+    } else {
+        0
+    };
+    #[cfg(debug_assertions)]
+    if let Ok(force) = std::env::var("MISTY_EVENT") {
+        saison = force.trim().parse().unwrap_or(saison);
+    }
+    app.ui.global::<crate::Theme>().set_event(saison);
 }
 
 /// Met à jour l’indicateur « fenêtre agrandie » (coins carrés, icône du bouton).
@@ -245,6 +261,7 @@ pub async fn demarrer(app: Rc<App>) {
     }
 
     home::initialiser(&app).await;
+    app.ui.global::<AppState>().set_ready(true);
 }
 
 /// `manuel` : lancé depuis les options (on affiche aussi « à jour » et les erreurs).

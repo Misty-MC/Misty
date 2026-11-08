@@ -470,5 +470,9 @@
   "Param_Debug": "Información de depuración",
   "Param_Debug_Texte": "Crea un archivo de texto con tu versión de Misty, de Windows y tus ajustes, para adjuntarlo al reportar un error.",
   "Param_Debug_Bouton": "Exportar información",
-  "Param_MiseAJour": "Actualizaciones"
+  "Param_MiseAJour": "Actualizaciones",
+  "Param_Saison": "Temas de temporada",
+  "Param_Saison_Texte": "Halloween (28 oct. – 3 nov.) y Navidad (22 – 28 dic.) se activan solos.",
+  "Param_Saison_Halloween": "El tema de Halloween está activo hasta el 3 de noviembre.",
+  "Param_Saison_Noel": "El tema de Navidad está activo hasta el 28 de diciembre."
 }

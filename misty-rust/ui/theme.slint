@@ -13,18 +13,24 @@ export global Theme {
     in-out property <bool> particles: true;
     /// Fond flouté derrière les fenêtres (options…)
     in-out property <bool> blur: true;
-    out property <bool> dark: mode == 1 || (mode == 2 && Palette.color-scheme == ColorScheme.dark);
+    /// Thème de saison, choisi par Rust selon la date : 0 aucun · 1 Halloween · 2 Noël
+    /// (3 jours avant et après la fête ; désactivable dans les options)
+    in-out property <int> event: 0;
+    out property <bool> halloween: event == 1;
+    out property <bool> noel: event == 2;
+    /// Les thèmes de saison sont des thèmes de nuit
+    out property <bool> dark: event != 0 || mode == 1 || (mode == 2 && Palette.color-scheme == ColorScheme.dark);
 
     // ── Palette de base ──
     out property <color> sky-light: #C4DFF8;
     out property <color> sky: dark ? #0A0F1D : #A8C8EC;
-    out property <color> steel: dark ? #6F9CFF : #6B90BD;
+    out property <color> steel: halloween ? #F07A2A : noel ? #E5484D : dark ? #6F9CFF : #6B90BD;
     out property <color> deep: #4F74A6;
     /// Contour et ombre des grands titres pixel
-    out property <color> slate: dark ? #3C5486 : #58738E;
-    out property <color> slate-dark: dark ? #1A2440 : #3E526A;
+    out property <color> slate: halloween ? #6B2FA3 : noel ? #B3262B : dark ? #3C5486 : #58738E;
+    out property <color> slate-dark: halloween ? #2A0F45 : noel ? #4A0E10 : dark ? #1A2440 : #3E526A;
     /// Étiquettes (texte gris-bleu) : lisibles sur les deux fonds
-    out property <color> label: dark ? #8796B5 : #58738E;
+    out property <color> label: halloween ? #B79CCB : noel ? #A9B8CC : dark ? #8796B5 : #58738E;
     out property <color> label-strong: dark ? #A3B0CB : #3E526A;
     /// Encre principale (texte fort, icônes)
     out property <color> navy: dark ? #EEF3FF : #1C2335;
@@ -32,19 +38,19 @@ export global Theme {
     out property <color> green: #1DE062;
     out property <color> green-dark: #13B24C;
     out property <color> green-edge: #0E7F37;
-    out property <color> blue: dark ? #6F9CFF : #2F8CFF;
+    out property <color> blue: halloween ? #F07A2A : noel ? #E5484D : dark ? #6F9CFF : #2F8CFF;
     out property <color> danger: #FF5A6E;
 
     // ── Accent (sélection, focus) : bleu brume du site ──
-    out property <color> accent: dark ? #9CC0FF : #2F6FD6;
-    out property <color> accent-soft: dark ? #9CC0FF29 : #2F8CFF24;
+    out property <color> accent: halloween ? #FFA14A : noel ? #FF7A7A : dark ? #9CC0FF : #2F6FD6;
+    out property <color> accent-soft: halloween ? #FFA14A29 : noel ? #FF7A7A29 : dark ? #9CC0FF29 : #2F8CFF24;
     /// Fond d'un élément choisi / bouton principal, et son texte
-    out property <color> fill: dark ? #6F9CFF : #1C2335;
-    out property <color> fill-hover: dark ? #8AAEFF : #2A3347;
+    out property <color> fill: halloween ? #F07A2A : noel ? #D93A3F : dark ? #6F9CFF : #1C2335;
+    out property <color> fill-hover: halloween ? #FF8F45 : noel ? #E85257 : dark ? #8AAEFF : #2A3347;
     out property <color> on-fill: #FFFFFF;
     /// Relief sous les boutons (comme les .btn du site)
     out property <color> lip: dark ? #060A14 : #9DB4D3;
-    out property <color> fill-lip: dark ? #3D63C4 : #070B16;
+    out property <color> fill-lip: halloween ? #8A3A0E : noel ? #7A1518 : dark ? #3D63C4 : #070B16;
 
     // ── Texte ──
     out property <color> text: dark ? #EEF3FF : #1C2335;
@@ -52,30 +58,30 @@ export global Theme {
     out property <color> text-dim: dark ? #6F7C99 : #8394AB;
 
     // ── Verre dépoli ──
-    out property <color> glass: dark ? #111A30B8 : #FFFFFF59;
-    out property <color> glass-strong: dark ? #162140F0 : #FFFFFFA6;
-    out property <color> glass-hover: dark ? #1C2A50F0 : #FFFFFF8C;
+    out property <color> glass: halloween ? #1E1230B8 : noel ? #0F1E30B8 : dark ? #111A30B8 : #FFFFFF59;
+    out property <color> glass-strong: halloween ? #2A1A40F0 : noel ? #142A42F0 : dark ? #162140F0 : #FFFFFFA6;
+    out property <color> glass-hover: halloween ? #36214FF0 : noel ? #1B3654F0 : dark ? #1C2A50F0 : #FFFFFF8C;
     out property <color> glass-border: dark ? #FFFFFF1F : #FFFFFFB3;
     /// Grands panneaux de page (barre de lancement, carte du skin…)
-    out property <color> panel: dark ? #111A30D9 : #FFFFFF73;
-    out property <color> panel-strong: dark ? #1C2A50F0 : #FFFFFFB3;
+    out property <color> panel: halloween ? #1E1230D9 : noel ? #0F1E30D9 : dark ? #111A30D9 : #FFFFFF73;
+    out property <color> panel-strong: halloween ? #36214FF0 : noel ? #1B3654F0 : dark ? #1C2A50F0 : #FFFFFFB3;
     out property <color> line: dark ? #FFFFFF14 : #1C23351A;
 
     // ── Surfaces ──
     /// Fenêtres modales
-    out property <color> surface: dark ? #0E1527F5 : #F4F8FEF2;
+    out property <color> surface: halloween ? #150D22F5 : noel ? #0B1828F5 : dark ? #0E1527F5 : #F4F8FEF2;
     /// Colonne de navigation des fenêtres modales
-    out property <color> surface-2: dark ? #0B1222F5 : #E6EEF9F2;
+    out property <color> surface-2: halloween ? #110A1CF5 : noel ? #091421F5 : dark ? #0B1222F5 : #E6EEF9F2;
     /// Listes déroulantes
-    out property <color> popup: dark ? #121B33 : #F6FAFF;
+    out property <color> popup: halloween ? #1E1230 : noel ? #10213A : dark ? #121B33 : #F6FAFF;
     out property <color> popup-hover: dark ? #FFFFFF12 : #2F8CFF26;
     out property <brush> scrim: dark ? @linear-gradient(180deg, #05080F8C 0%, #05080FC0 100%) : @linear-gradient(180deg, #14203A59 0%, #14203A99 100%);
     out property <color> shadow: dark ? #00000099 : #1C233540;
     out property <color> track: dark ? #FFFFFF1F : #1C233526;
-    out property <color> toggle-on: dark ? #6F9CFF : #13B24C;
+    out property <color> toggle-on: halloween ? #F07A2A : noel ? #2FAE66 : dark ? #6F9CFF : #13B24C;
     out property <color> toggle-off: dark ? #FFFFFF26 : #1C233533;
     /// Panneau d'aperçu du personnage (accueil, skin)
-    out property <color> stage: dark ? #0E1527 : #D9E9FA;
+    out property <color> stage: halloween ? #150D22 : noel ? #0B1828 : dark ? #0E1527 : #D9E9FA;
 
     // ── Mouvement ──
     out property <duration> fast: 120ms;
@@ -114,7 +120,8 @@ export global Bulle {
     in-out property <length> fenetre-hauteur: 720px;
 }
 
-// Images générées en Rust (bloc d'herbe en pixel art…).
+// Images partagées, fournies par Rust.
 export global Assets {
-    in property <image> grass;
+    /// Le nuage de Misty (vignettes vides, fond, carte de version)
+    in property <image> logo;
 }

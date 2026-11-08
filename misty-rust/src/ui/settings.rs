@@ -241,6 +241,13 @@ pub fn installer(app: &Rc<App>) {
         a.ui.global::<crate::Theme>().set_blur(actif);
     });
 
+    let a = app.clone();
+    st.on_seasonal_toggled(move |actif| {
+        settings::set_bool(settings::SAISON, actif);
+        super::appliquer_saison(&a);
+        s(&a).set_has_backdrop(false);
+    });
+
     // Ressources
     st.on_downloads_changed(|v| settings::set(settings::TELECHARGEMENTS, &(v.round() as u32).to_string()));
 
@@ -378,6 +385,7 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_shortcut_enabled(!settings::get(settings::RACCOURCI).is_empty());
     st.set_rich(discord::active());
     st.set_downloads(settings::telechargements() as f32);
+    st.set_seasonal(settings::get_bool(settings::SAISON, true));
 
     maj_textes(app);
     calculer_depannage(app);

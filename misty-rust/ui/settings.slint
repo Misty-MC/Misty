@@ -787,6 +787,31 @@ export component SettingsModal inherits Rectangle {
                                     titre: Tr.t("Param_Theme");
                                     texte: Tr.t("Param_Theme_Texte");
                                 }
+                                if Theme.event != 0: Rectangle {
+                                    height: 42px;
+                                    border-radius: 12px;
+                                    background: Theme.accent-soft;
+                                    border-width: 1px;
+                                    border-color: Theme.accent.with-alpha(0.5);
+                                    HorizontalLayout {
+                                        padding-left: 14px;
+                                        spacing: 10px;
+                                        Icon {
+                                            width: 16px;
+                                            text: "";
+                                            font-size: 14px;
+                                            color: Theme.accent;
+                                        }
+                                        Text {
+                                            horizontal-stretch: 1;
+                                            text: Theme.halloween ? Tr.t("Param_Saison_Halloween") : Tr.t("Param_Saison_Noel");
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                            color: Theme.accent;
+                                            vertical-alignment: center;
+                                        }
+                                    }
+                                }
                                 HorizontalLayout {
                                     spacing: 14px;
                                     CarteTheme {
@@ -814,6 +839,13 @@ export component SettingsModal inherits Rectangle {
                                         clicked => { SettingsState.theme-selected(2); }
                                     }
                                 }
+                            }
+                            Separateur { }
+                            LigneInterrupteur {
+                                titre: Tr.t("Param_Saison");
+                                texte: Tr.t("Param_Saison_Texte");
+                                checked <=> SettingsState.seasonal;
+                                toggled(v) => { SettingsState.seasonal-toggled(v); }
                             }
                             Separateur { }
                             LigneInterrupteur {
