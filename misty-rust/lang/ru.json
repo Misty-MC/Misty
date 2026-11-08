@@ -549,5 +549,11 @@
   "Ver_LoadersAttente": "Выбери версию, чтобы увидеть загрузчики.",
   "Ver_Aucune": "Нет версий по этим фильтрам.",
   "Ver_Profils_Texte": "Быстрая игра использует версию из вкладки «Версии». У профиля свои версия, моды и миры.",
-  "Home_JeuRapide_Detail": "Любая версия, без профиля"
+  "Home_JeuRapide_Detail": "Любая версия, без профиля",
+  "Ver_TousLoaders": "Все",
+  "Ver_MiseAJour": "ОБНОВЛЕНИЕ",
+  "Ver_Valider": "Готово",
+  "Ver_Nombre": "Версий: {0}",
+  "Ver_Groupe_Snapshots": "Тестовые версии",
+  "Ver_Nombre1": "1 версия"
 }

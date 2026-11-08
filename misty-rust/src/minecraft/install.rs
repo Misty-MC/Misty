@@ -22,6 +22,9 @@ pub struct VersionManifest {
     pub url: String,
     #[serde(default)]
     pub sha1: String,
+    /// Date de sortie (« 2024-06-13T08:24:03+00:00 »)
+    #[serde(default, rename = "releaseTime")]
+    pub release_time: String,
 }
 
 #[derive(Deserialize)]

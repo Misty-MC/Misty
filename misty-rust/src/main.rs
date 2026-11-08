@@ -117,6 +117,13 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         accueil.set_picker_open(true);
         attendre(1500).await;
         photo(&app, "0g-versions", &dossier);
+        // filtre Fabric : seules les versions compatibles restent
+        accueil.set_picker_loader(1);
+        accueil.invoke_picker_changed();
+        attendre(900).await;
+        photo(&app, "0g2-versions-fabric", &dossier);
+        accueil.set_picker_loader(0);
+        accueil.invoke_picker_changed();
         accueil.set_picker_tab(1);
         attendre(900).await;
         photo(&app, "0h-profils", &dossier);

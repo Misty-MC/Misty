@@ -1,12 +1,13 @@
-// Fenêtre de choix de la version (comme Lunar) : onglets Versions / Profils, filtres par type en haut
-// (versions, snapshots, bêtas, alphas), recherche, mod loader, et une grande grille de versions.
+// Fenêtre de choix de la version, façon Lunar : à gauche les mises à jour (1.21 Tricky Trials…)
+// illustrées en pixel art, à droite une grande bannière, les versions de la mise à jour et les mod
+// loaders. En haut, filtres par type, par mod loader compatible, et recherche.
 
 import { Theme, Tr, Assets } from "theme.slint";
-import { HomeState, VersionItem, ProfileItem } from "state.slint";
-import { Icon, PixelLabel, BodyText, GlassInput, MButton, Thumb } from "widgets.slint";
+import { HomeState, VersionItem, ProfileItem, VersionGroup } from "state.slint";
+import { Icon, PixelLabel, BodyText, GlassInput, MButton, OutlinedText } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
-/// Pastille de filtre (type de version, loader, onglet).
+/// Pastille de filtre (type, loader, onglet).
 component Puce inherits Rectangle {
     in property <string> text;
     in property <bool> checked;
@@ -19,14 +20,14 @@ component Puce inherits Rectangle {
     background: root.checked ? Theme.fill : zone.has-hover && root.enabled ? Theme.glass-hover : Theme.glass;
     border-width: 1px;
     border-color: root.checked ? Theme.fill : Theme.glass-border;
-    opacity: root.enabled ? 1 : 0.45;
+    opacity: root.enabled ? 1 : 0.4;
     transform-scale: zone.pressed && root.enabled ? 0.95 : 1;
     animate background, border-color { duration: Theme.normal; }
     animate transform-scale { duration: 140ms; easing: ease-out; }
     contenu := HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 8px;
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 7px;
         if root.point != transparent: VerticalLayout {
             alignment: center;
             Rectangle {
@@ -51,54 +52,62 @@ component Puce inherits Rectangle {
     }
 }
 
-/// Couleur et nom de chaque type de version.
-global Types {
-    out property <[color]> couleurs: [#1DE062, #FFBE5A, #9CC0FF, #FF8A7A];
+global Couleurs {
+    /// types : release, snapshot, bêta, alpha
+    out property <[color]> types: [#1DE062, #FFBE5A, #9CC0FF, #FF8A7A];
+    /// loaders filtrés : tous, Fabric, Forge, NeoForge, OptiFine, LiteLoader
+    out property <[color]> loaders: [transparent, #DBC9A3, #E0915A, #F2A65A, #E25A5A, #6FA3F0];
 }
 
-/// Carte d'une version : numéro en pixel, type en dessous.
-component CarteVersion inherits Rectangle {
-    in property <string> id;
-    in property <int> kind;
+/// Mise à jour dans la colonne de gauche : illustration, titre, nom, nombre de versions.
+component LigneGroupe inherits Rectangle {
+    in property <VersionGroup> g;
     in property <bool> checked;
     callback clicked;
+    height: 74px;
     border-radius: 14px;
-    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
-    border-width: root.checked ? 2px : 1px;
-    border-color: root.checked ? Theme.accent : zone.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
-    drop-shadow-blur: root.checked ? 18px : 0px;
-    drop-shadow-color: Theme.accent.with-alpha(0.35);
-    transform-scale: zone.pressed ? 0.96 : zone.has-hover ? 1.03 : 1;
-    animate background, border-color, drop-shadow-blur { duration: Theme.normal; }
-    animate transform-scale { duration: 160ms; easing: ease-out; }
-    VerticalLayout {
-        padding: 12px;
-        spacing: 6px;
-        alignment: center;
-        Text {
-            text: root.id;
-            font-family: Theme.pixel-font;
-            font-size: 15px;
-            color: root.checked ? Theme.accent : Theme.navy;
-            horizontal-alignment: center;
-            overflow: elide;
+    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : transparent;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : zone.has-hover ? Theme.glass-border : transparent;
+    animate background, border-color { duration: Theme.normal; }
+    HorizontalLayout {
+        padding: 8px;
+        spacing: 12px;
+        Rectangle {
+            width: 100px;
+            border-radius: 10px;
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.g.art;
+                image-fit: cover;
+                image-rendering: pixelated;
+                transform-scale: zone.has-hover || root.checked ? 1.12 : 1;
+                animate transform-scale { duration: 360ms; easing: ease-out; }
+            }
         }
-        HorizontalLayout {
+        VerticalLayout {
             alignment: center;
-            spacing: 6px;
-            VerticalLayout {
-                alignment: center;
-                Rectangle {
-                    width: 7px;
-                    height: 7px;
-                    border-radius: 2px;
-                    background: Types.couleurs[root.kind];
-                }
+            spacing: 2px;
+            Text {
+                text: root.g.title;
+                font-family: Theme.pixel-font;
+                font-size: 15px;
+                color: root.checked ? Theme.accent : Theme.navy;
             }
             Text {
-                text: root.kind == 0 ? Tr.t("Ver_Release") : root.kind == 1 ? "Snapshot" : root.kind == 2 ? Tr.t("Ver_Beta") : "Alpha";
+                text: root.g.name;
+                font-size: 12.5px;
+                font-weight: 600;
+                color: Theme.navy2;
+                overflow: elide;
+            }
+            Text {
+                text: root.g.count + " · " + root.g.years;
                 font-size: 11.5px;
-                color: Theme.text-muted;
+                color: Theme.text-dim;
+                overflow: elide;
             }
         }
     }
@@ -108,47 +117,176 @@ component CarteVersion inherits Rectangle {
     }
 }
 
-/// Carte d'un profil.
+/// Version dans la mise à jour choisie.
+component PuceVersion inherits Rectangle {
+    in property <VersionItem> v;
+    in property <bool> checked;
+    callback clicked;
+    height: 42px;
+    border-radius: 12px;
+    background: root.checked ? Theme.fill : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    border-width: 1px;
+    border-color: root.checked ? Theme.fill : zone.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
+    drop-shadow-blur: root.checked ? 16px : 0px;
+    drop-shadow-color: Theme.accent.with-alpha(0.4);
+    transform-scale: zone.pressed ? 0.95 : zone.has-hover ? 1.04 : 1;
+    animate background, border-color, drop-shadow-blur { duration: Theme.normal; }
+    animate transform-scale { duration: 160ms; easing: ease-out; }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 7px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 6px;
+                height: 6px;
+                border-radius: 2px;
+                background: Couleurs.types[root.v.kind];
+            }
+        }
+        Text {
+            text: root.v.id;
+            font-family: Theme.pixel-font;
+            font-size: 12.5px;
+            color: root.checked ? Theme.on-fill : Theme.navy;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Carte d'un mod loader de la version choisie.
+component CarteLoader inherits Rectangle {
+    in property <string> text;
+    in property <bool> checked;
+    in property <bool> enabled;
+    callback clicked;
+    height: 52px;
+    width: max(110px, nom.preferred-width + 46px);
+    border-radius: 14px;
+    background: root.checked ? Theme.accent-soft : zone.has-hover && root.enabled ? Theme.glass-hover : Theme.glass-strong;
+    border-width: root.checked ? 2px : 1px;
+    border-color: root.checked ? Theme.accent : Theme.glass-border;
+    opacity: root.enabled ? 1 : 0.5;
+    transform-scale: zone.pressed && root.enabled ? 0.95 : 1;
+    animate background, border-color { duration: Theme.normal; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 9px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 14px;
+                height: 14px;
+                border-radius: 4px;
+                border-width: 2px;
+                border-color: root.checked ? Theme.accent : Theme.text-dim;
+                Rectangle {
+                    width: root.checked ? 6px : 0px;
+                    height: self.width;
+                    border-radius: 1px;
+                    background: Theme.accent;
+                    animate width { duration: 220ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+                }
+            }
+        }
+        nom := Text {
+            text: root.text;
+            font-size: 14px;
+            font-weight: 700;
+            color: root.checked ? Theme.accent : Theme.navy;
+            vertical-alignment: center;
+        }
+    }
+    zone := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Carte d'un profil, avec l'illustration de sa version.
 component CarteProfil inherits Rectangle {
     in property <ProfileItem> p;
     in property <bool> checked;
     callback clicked;
-    height: 76px;
-    border-radius: 14px;
-    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    border-radius: 16px;
+    clip: true;
+    background: Theme.glass-strong;
     border-width: root.checked ? 2px : 1px;
-    border-color: root.checked ? Theme.accent : Theme.glass-border;
-    transform-scale: zone.pressed ? 0.97 : 1;
-    animate background, border-color { duration: Theme.normal; }
-    animate transform-scale { duration: 140ms; easing: ease-out; }
-    HorizontalLayout {
-        padding: 12px;
-        spacing: 12px;
-        Thumb {
-            width: 52px;
-            height: 52px;
-            radius: 12px;
-            logo-margin: 10px;
-            logo-opacity: 1;
+    border-color: root.checked ? Theme.accent : zone.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
+    drop-shadow-blur: root.checked ? 20px : 0px;
+    drop-shadow-color: Theme.accent.with-alpha(0.35);
+    transform-scale: zone.pressed ? 0.97 : zone.has-hover ? 1.02 : 1;
+    animate border-color, drop-shadow-blur { duration: Theme.normal; }
+    animate transform-scale { duration: 180ms; easing: ease-out; }
+    Image {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: 96px;
+        source: root.p.art;
+        image-fit: cover;
+        image-rendering: pixelated;
+    }
+    Rectangle {
+        y: 40px;
+        height: 56px;
+        background: @linear-gradient(180deg, #0A0F1D00 0%, #0A0F1DB3 100%);
+    }
+    // icône du profil, posée à cheval sur l'illustration
+    Rectangle {
+        x: 14px;
+        y: 66px;
+        width: 54px;
+        height: 54px;
+        border-radius: 13px;
+        background: Theme.dark ? #162140 : #1C2335;
+        border-width: 3px;
+        border-color: Theme.surface;
+        clip: true;
+        if root.p.has-icon: Image {
+            width: parent.width;
+            height: parent.height;
             source: root.p.icon;
-            has-image: root.p.has-icon;
+            image-fit: cover;
         }
-        VerticalLayout {
-            alignment: center;
-            spacing: 3px;
-            Text {
-                text: root.p.name;
-                font-size: 15px;
-                font-weight: 700;
-                color: root.checked ? Theme.accent : Theme.navy;
-                overflow: elide;
-            }
-            Text {
-                text: root.p.detail;
-                font-size: 12.5px;
-                color: Theme.text-muted;
-                overflow: elide;
-            }
+        if !root.p.has-icon: Image {
+            x: 10px;
+            y: 10px;
+            width: parent.width - 20px;
+            height: parent.height - 20px;
+            source: Assets.logo;
+            image-fit: contain;
+        }
+    }
+    VerticalLayout {
+        x: 80px;
+        y: 100px;
+        width: parent.width - 94px;
+        height: parent.height - 108px;
+        spacing: 2px;
+        Text {
+            text: root.p.name;
+            font-size: 15px;
+            font-weight: 700;
+            color: root.checked ? Theme.accent : Theme.navy;
+            overflow: elide;
+        }
+        Text {
+            text: root.p.detail;
+            font-size: 12.5px;
+            color: Theme.text-muted;
+            overflow: elide;
         }
     }
     zone := TouchArea {
@@ -159,6 +297,8 @@ component CarteProfil inherits Rectangle {
 
 export component VersionPicker inherits Rectangle {
     property <bool> ouvert: HomeState.picker-open;
+    property <bool> a-groupe: HomeState.picker-group >= 0 && HomeState.picker-group < HomeState.picker-groups.length;
+    property <VersionGroup> groupe: self.a-groupe ? HomeState.picker-groups[HomeState.picker-group] : { title: "", name: "" };
     opacity: root.ouvert ? 1 : 0;
     visible: self.opacity > 0.01;
     animate opacity { duration: root.ouvert ? 200ms : 150ms; easing: ease-out; }
@@ -170,11 +310,11 @@ export component VersionPicker inherits Rectangle {
     }
 
     carte := Rectangle {
-        width: min(1040px, parent.width - 100px);
-        height: min(680px, parent.height - 60px);
+        width: min(1180px, parent.width - 60px);
+        height: min(720px, parent.height - 40px);
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2 + (root.ouvert ? 0px : 16px);
-        border-radius: 24px;
+        border-radius: 26px;
         background: Theme.surface;
         border-width: 1px;
         border-color: Theme.glass-border;
@@ -182,18 +322,17 @@ export component VersionPicker inherits Rectangle {
         drop-shadow-offset-y: 12px;
         drop-shadow-color: Theme.shadow;
         transform-scale: root.ouvert ? 1 : 0.96;
-        animate y, transform-scale { duration: root.ouvert ? 360ms : 160ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+        animate y, transform-scale { duration: root.ouvert ? 380ms : 160ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
         clip: true;
         TouchArea { }
 
         VerticalLayout {
-            padding: 24px;
-            padding-bottom: 0px;
-            spacing: 16px;
+            padding: 22px;
+            spacing: 14px;
 
-            // ── En-tête : titre, onglets, fermer ──
+            // ── En-tête ──
             HorizontalLayout {
-                spacing: 14px;
+                spacing: 12px;
                 Text {
                     text: Tr.t("Ver_Titre");
                     font-size: 24px;
@@ -202,6 +341,17 @@ export component VersionPicker inherits Rectangle {
                     vertical-alignment: center;
                 }
                 Rectangle { horizontal-stretch: 1; }
+                if HomeState.picker-tab == 0: VerticalLayout {
+                    alignment: center;
+                    GlassInput {
+                        width: 230px;
+                        height: 38px;
+                        search: true;
+                        placeholder: Tr.t("Ver_Recherche");
+                        text <=> HomeState.picker-search;
+                        edited => { HomeState.picker-changed(); }
+                    }
+                }
                 VerticalLayout {
                     alignment: center;
                     HorizontalLayout {
@@ -242,134 +392,216 @@ export component VersionPicker inherits Rectangle {
                 }
             }
 
-            // ── Versions ──
-            if HomeState.picker-tab == 0: VerticalLayout {
-                vertical-stretch: 1;
-                spacing: 14px;
-                // filtres : types, recherche
-                HorizontalLayout {
-                    spacing: 8px;
-                    Puce {
-                        text: Tr.t("Ver_Releases");
-                        point: Types.couleurs[0];
-                        checked: HomeState.picker-release;
-                        clicked => {
-                            HomeState.picker-release = !HomeState.picker-release;
-                            HomeState.picker-changed();
-                        }
-                    }
-                    Puce {
-                        text: "Snapshots";
-                        point: Types.couleurs[1];
-                        checked: HomeState.picker-snapshot;
-                        clicked => {
-                            HomeState.picker-snapshot = !HomeState.picker-snapshot;
-                            HomeState.picker-changed();
-                        }
-                    }
-                    Puce {
-                        text: Tr.t("Ver_Betas");
-                        point: Types.couleurs[2];
-                        checked: HomeState.picker-beta;
-                        clicked => {
-                            HomeState.picker-beta = !HomeState.picker-beta;
-                            HomeState.picker-changed();
-                        }
-                    }
-                    Puce {
-                        text: "Alphas";
-                        point: Types.couleurs[3];
-                        checked: HomeState.picker-alpha;
-                        clicked => {
-                            HomeState.picker-alpha = !HomeState.picker-alpha;
-                            HomeState.picker-changed();
-                        }
-                    }
-                    Rectangle { horizontal-stretch: 1; }
-                    GlassInput {
-                        width: 220px;
-                        height: 36px;
-                        search: true;
-                        placeholder: Tr.t("Ver_Recherche");
-                        text <=> HomeState.picker-search;
-                        edited => { HomeState.picker-changed(); }
+            // ── Filtres : types, loader compatible, recherche ──
+            if HomeState.picker-tab == 0: HorizontalLayout {
+                spacing: 6px;
+                for t[i] in [Tr.t("Ver_Releases"), "Snapshots", Tr.t("Ver_Betas"), "Alphas"]: Puce {
+                    text: t;
+                    point: Couleurs.types[i];
+                    checked: i == 0 ? HomeState.picker-release : i == 1 ? HomeState.picker-snapshot : i == 2 ? HomeState.picker-beta : HomeState.picker-alpha;
+                    clicked => {
+                        if (i == 0) { HomeState.picker-release = !HomeState.picker-release; }
+                        if (i == 1) { HomeState.picker-snapshot = !HomeState.picker-snapshot; }
+                        if (i == 2) { HomeState.picker-beta = !HomeState.picker-beta; }
+                        if (i == 3) { HomeState.picker-alpha = !HomeState.picker-alpha; }
+                        HomeState.picker-changed();
                     }
                 }
-                // mod loader de la version choisie
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    VerticalLayout {
-                        alignment: center;
-                        PixelLabel {
-                            text: Tr.t("Commun_ModLoader");
-                            font-size: 10.5px;
-                        }
-                    }
-                    Rectangle { width: 4px; }
-                    for m[i] in HomeState.modes: Puce {
-                        text: m;
-                        checked: i == HomeState.mode-index;
-                        enabled: HomeState.modes-enabled;
-                        clicked => {
-                            HomeState.mode-index = i;
-                            HomeState.mode-selected(i);
-                        }
-                    }
-                    if HomeState.modes.length == 0: VerticalLayout {
-                        alignment: center;
-                        Text {
-                            text: Tr.t("Ver_LoadersAttente");
-                            font-size: 13px;
-                            color: Theme.text-muted;
-                        }
-                    }
+                Rectangle {
+                    width: 1px;
+                    background: Theme.line;
                 }
-                // grille
-                grille := ScrollView {
-                    vertical-stretch: 1;
-                    property <int> colonnes: max(3, floor((self.visible-width + 10px) / 150px));
-                    property <length> largeur: (self.visible-width - (self.colonnes - 1) * 10px) / self.colonnes;
-                    content-width: self.visible-width;
-                    content-height: ceil(HomeState.picker-versions.length / self.colonnes) * 86px + 24px;
-                    for v[i] in HomeState.picker-versions: CarteVersion {
-                        x: Math.mod(i, grille.colonnes) * (grille.largeur + 10px);
-                        y: floor(i / grille.colonnes) * 86px;
-                        width: grille.largeur;
-                        height: 76px;
-                        id: v.id;
-                        kind: v.kind;
-                        checked: HomeState.quick && v.id == HomeState.card-version;
-                        clicked => { HomeState.version-picked(v.id); }
-                    }
-                    if HomeState.picker-versions.length == 0: Text {
-                        y: 40px;
-                        width: parent.width;
-                        text: Tr.t("Ver_Aucune");
-                        font-size: 14px;
-                        color: Theme.text-muted;
-                        horizontal-alignment: center;
+                for l[i] in [Tr.t("Ver_TousLoaders"), "Fabric", "Forge", "NeoForge", "OptiFine", "LiteLoader"]: Puce {
+                    text: l;
+                    point: Couleurs.loaders[i];
+                    checked: HomeState.picker-loader == i;
+                    clicked => {
+                        HomeState.picker-loader = i;
+                        HomeState.picker-changed();
                     }
                 }
             }
 
-            // ── Profils ──
-            if HomeState.picker-tab == 1: ScrollView {
+            // ── Versions : mises à jour à gauche, détail à droite ──
+            if HomeState.picker-tab == 0: HorizontalLayout {
                 vertical-stretch: 1;
-                content-width: self.visible-width;
-                content-height: liste.preferred-height + 24px;
-                liste := VerticalLayout {
-                    width: parent.visible-width;
-                    spacing: 10px;
-                    BodyText { text: Tr.t("Ver_Profils_Texte"); }
-                    for p[i] in HomeState.profile-items: CarteProfil {
-                        p: p;
-                        checked: i == HomeState.profile-index;
-                        clicked => {
-                            HomeState.profile-index = i;
-                            HomeState.profile-selected(i);
-                            HomeState.picker-open = false;
+                spacing: 16px;
+
+                // colonne des mises à jour
+                Rectangle {
+                    width: 300px;
+                    border-radius: 18px;
+                    background: Theme.surface-2;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    clip: true;
+                    ScrollView {
+                        x: 8px;
+                        y: 8px;
+                        width: parent.width - 16px;
+                        height: parent.height - 16px;
+                        content-width: self.visible-width;
+                        content-height: HomeState.picker-groups.length * 78px;
+                        for g[i] in HomeState.picker-groups: LigneGroupe {
+                            x: 0;
+                            y: i * 78px;
+                            width: parent.width - 4px;
+                            g: g;
+                            checked: i == HomeState.picker-group;
+                            clicked => { HomeState.picker-group-selected(i); }
                         }
+                    }
+                    if HomeState.picker-groups.length == 0: Text {
+                        y: 30px;
+                        width: parent.width;
+                        text: Tr.t("Ver_Aucune");
+                        font-size: 13px;
+                        color: Theme.text-muted;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                    }
+                }
+
+                // détail de la mise à jour choisie
+                if root.a-groupe: VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 14px;
+
+                    // grande bannière illustrée
+                    Rectangle {
+                        height: 200px;
+                        border-radius: 20px;
+                        clip: true;
+                        border-width: 1px;
+                        border-color: Theme.glass-border;
+                        // l'illustration avance très lentement (effet Ken Burns)
+                        property <float> derive: 0.5 + 0.5 * sin((animation-tick() / 24000ms) * 360deg);
+                        Image {
+                            width: parent.width * 1.08;
+                            height: parent.height * 1.08;
+                            x: -parent.width * 0.08 * parent.derive;
+                            y: -parent.height * 0.04;
+                            source: root.groupe.art;
+                            image-fit: cover;
+                            image-rendering: pixelated;
+                        }
+                        Rectangle {
+                            background: @linear-gradient(90deg, #0A0F1DD9 0%, #0A0F1D80 45%, #0A0F1D00 75%);
+                        }
+                        VerticalLayout {
+                            padding: 22px;
+                            spacing: 6px;
+                            alignment: end;
+                            PixelLabel {
+                                text: Tr.t("Ver_MiseAJour");
+                                font-size: 10.5px;
+                                color: #CFE0FF;
+                            }
+                            HorizontalLayout {
+                                alignment: start;
+                                OutlinedText {
+                                    text: root.groupe.title;
+                                    font-size: 44px;
+                                    thickness: 4px;
+                                    depth: 5px;
+                                    stroke-color: #141B2B;
+                                    shadow: #0A0E18;
+                                }
+                            }
+                            Text {
+                                text: root.groupe.name;
+                                font-size: 18px;
+                                font-weight: 800;
+                                color: white;
+                            }
+                            Text {
+                                text: root.groupe.count + " · " + root.groupe.years;
+                                font-size: 13px;
+                                color: #CFDAF0;
+                            }
+                        }
+                    }
+
+                    // versions de cette mise à jour
+                    PixelLabel {
+                        text: Tr.t("Ver_Onglet_Versions");
+                        font-size: 10.5px;
+                    }
+                    grille := ScrollView {
+                        vertical-stretch: 1;
+                        property <int> colonnes: max(3, floor((self.visible-width + 8px) / 128px));
+                        property <length> largeur: (self.visible-width - 8px - (self.colonnes - 1) * 8px) / self.colonnes;
+                        content-width: self.visible-width;
+                        content-height: ceil(HomeState.picker-sub.length / self.colonnes) * 50px + 10px;
+                        for v[i] in HomeState.picker-sub: PuceVersion {
+                            x: 4px + Math.mod(i, grille.colonnes) * (grille.largeur + 8px);
+                            y: 4px + floor(i / grille.colonnes) * 50px;
+                            width: grille.largeur;
+                            v: v;
+                            checked: HomeState.quick && v.id == HomeState.card-version;
+                            clicked => { HomeState.version-picked(v.id); }
+                        }
+                    }
+
+                    // mod loader de la version choisie, puis valider
+                    HorizontalLayout {
+                        spacing: 10px;
+                        VerticalLayout {
+                            alignment: center;
+                            PixelLabel {
+                                text: Tr.t("Commun_ModLoader");
+                                font-size: 10.5px;
+                            }
+                        }
+                        for m[i] in HomeState.modes: CarteLoader {
+                            text: m;
+                            checked: i == HomeState.mode-index;
+                            enabled: HomeState.modes-enabled;
+                            clicked => {
+                                HomeState.mode-index = i;
+                                HomeState.mode-selected(i);
+                            }
+                        }
+                        if HomeState.modes.length == 0: VerticalLayout {
+                            alignment: center;
+                            Text {
+                                text: Tr.t("Ver_LoadersAttente");
+                                font-size: 13px;
+                                color: Theme.text-muted;
+                            }
+                        }
+                        Rectangle { horizontal-stretch: 1; }
+                        VerticalLayout {
+                            alignment: center;
+                            MButton {
+                                kind: 1;
+                                icon: "\u{E73E}";
+                                text: Tr.t("Ver_Valider");
+                                clicked => { HomeState.picker-open = false; }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Profils : cartes illustrées ──
+            if HomeState.picker-tab == 1: profils := ScrollView {
+                vertical-stretch: 1;
+                property <int> colonnes: max(2, floor((self.visible-width + 14px) / 300px));
+                property <length> largeur: (self.visible-width - 8px - (self.colonnes - 1) * 14px) / self.colonnes;
+                content-width: self.visible-width;
+                content-height: ceil(HomeState.profile-items.length / self.colonnes) * 186px + 10px;
+                for p[i] in HomeState.profile-items: CarteProfil {
+                    x: 4px + Math.mod(i, profils.colonnes) * (profils.largeur + 14px);
+                    y: 4px + floor(i / profils.colonnes) * 186px;
+                    width: profils.largeur;
+                    height: 172px;
+                    p: p;
+                    checked: i == HomeState.profile-index;
+                    clicked => {
+                        HomeState.profile-index = i;
+                        HomeState.profile-selected(i);
+                        HomeState.picker-open = false;
                     }
                 }
             }

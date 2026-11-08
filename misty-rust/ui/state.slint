@@ -88,6 +88,18 @@ export struct ProfileItem {
     detail: string,
     icon: image,
     has-icon: bool,
+    /// illustration de la mise à jour de sa version
+    art: image,
+}
+
+/// Mise à jour de la fenêtre de choix (1.21 « Tricky Trials »…), avec son illustration.
+export struct VersionGroup {
+    key: string,
+    title: string,
+    name: string,
+    art: image,
+    count: string,
+    years: string,
 }
 
 export global HomeState {
@@ -95,6 +107,13 @@ export global HomeState {
     in-out property <bool> picker-open;
     in-out property <int> picker-tab: 0;
     in property <[VersionItem]> picker-versions;
+    in property <[VersionGroup]> picker-groups;
+    in property <int> picker-group: -1;
+    /// versions de la mise à jour choisie (après filtres)
+    in property <[VersionItem]> picker-sub;
+    /// mod loader filtré : 0 tous · 1 Fabric · 2 Forge · 3 NeoForge · 4 OptiFine · 5 LiteLoader
+    in-out property <int> picker-loader: 0;
+    callback picker-group-selected(int);
     in-out property <bool> picker-release: true;
     in-out property <bool> picker-snapshot: false;
     in-out property <bool> picker-beta: false;

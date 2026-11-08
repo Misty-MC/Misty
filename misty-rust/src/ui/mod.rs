@@ -15,6 +15,7 @@ pub mod images;
 pub mod instance;
 pub mod news;
 pub mod packs;
+pub mod picker;
 pub mod profiles;
 pub mod scene;
 pub mod settings;

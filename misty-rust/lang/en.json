@@ -549,5 +549,11 @@
   "Ver_LoadersAttente": "Pick a version to see its mod loaders.",
   "Ver_Aucune": "No version matches these filters.",
   "Ver_Profils_Texte": "Quick play uses the version chosen in the Versions tab. A profile has its own version, mods and worlds.",
-  "Home_JeuRapide_Detail": "Any version, without a profile"
+  "Home_JeuRapide_Detail": "Any version, without a profile",
+  "Ver_TousLoaders": "All",
+  "Ver_MiseAJour": "UPDATE",
+  "Ver_Valider": "Done",
+  "Ver_Nombre": "{0} versions",
+  "Ver_Groupe_Snapshots": "Test versions",
+  "Ver_Nombre1": "1 version"
 }

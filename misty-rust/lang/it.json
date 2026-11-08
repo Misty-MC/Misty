@@ -549,5 +549,11 @@
   "Ver_LoadersAttente": "Scegli una versione per vedere i mod loader.",
   "Ver_Aucune": "Nessuna versione corrisponde ai filtri.",
   "Ver_Profils_Texte": "Il gioco rapido usa la versione scelta in Versioni. Un profilo ha la sua versione, mod e mondi.",
-  "Home_JeuRapide_Detail": "Qualsiasi versione, senza profilo"
+  "Home_JeuRapide_Detail": "Qualsiasi versione, senza profilo",
+  "Ver_TousLoaders": "Tutti",
+  "Ver_MiseAJour": "AGGIORNAMENTO",
+  "Ver_Valider": "Fatto",
+  "Ver_Nombre": "{0} versioni",
+  "Ver_Groupe_Snapshots": "Versioni di prova",
+  "Ver_Nombre1": "1 versione"
 }
