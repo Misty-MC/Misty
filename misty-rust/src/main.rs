@@ -174,7 +174,7 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         }
         // MISTY_CAPTURE_SOMBRE : les autres pages aussi en thème sombre
         theme.set_mode(if std::env::var("MISTY_CAPTURE_SOMBRE").is_ok() { 1 } else { mode_avant });
-        for (page, nom) in [(1, "1-profils"), (3, "3-notes"), (4, "4-packs")] {
+        for (page, nom) in [(1, "1-profils"), (3, "3-notes"), (4, "4-packs"), (8, "7-amis")] {
             match page {
                 1 => ui::profiles::rafraichir(&app),
                 4 => ui::packs::rafraichir(&app),

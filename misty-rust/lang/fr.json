@@ -583,5 +583,22 @@
   "Hz_TelechargementBuild": "Téléchargement de {0}…",
   "Hz_InstallationMinecraft": "Installation de Minecraft {0} pour Horizon…",
   "Hz_Preparation": "Préparation d'Horizon (la première fois seulement)…",
-  "Hz_ListeImpossible": "Impossible de charger les builds depuis GitHub."
+  "Hz_ListeImpossible": "Impossible de charger les builds depuis GitHub.",
+  "Nav_Amis": "Amis",
+  "Discord_Amis": "Regarde ses amis",
+  "Amis_Titre": "Amis",
+  "Amis_Bientot": "Bientôt",
+  "Amis_Ajouter_Titre": "Ajouter un ami",
+  "Amis_Pseudo": "Pseudo Minecraft…",
+  "Amis_Ajouter": "Ajouter",
+  "Amis_EnLigne": "En ligne",
+  "Amis_Tous": "Tous",
+  "Amis_Demandes": "Demandes",
+  "Amis_Aucun": "Pas encore d'amis",
+  "Amis_Aucun_Texte": "Ajoute tes amis avec leur pseudo pour voir quand ils jouent et rejoindre leur partie.",
+  "Amis_Chat": "Discussion",
+  "Amis_Chat_Sous": "Choisis un ami pour discuter",
+  "Amis_Chat_Titre": "Le chat arrive bientôt",
+  "Amis_Chat_Texte": "Discute avec tes amis directement dans Misty et invite-les à rejoindre ta partie en un clic.",
+  "Amis_Message": "Écris un message…"
 }

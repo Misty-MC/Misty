@@ -1,0 +1,336 @@
+// Amis : liste, ajout par pseudo et chat. Pour l'instant seulement l'interface (rien n'est envoyé) :
+// la liste montre à quoi elle ressemblera, le chat est marqué « bientôt ».
+
+import { Theme, Tr } from "theme.slint";
+import { Icon, PixelLabel, BodyText, OutlinedText, GlassCard, GlassInput, MButton } from "widgets.slint";
+
+/// Petite pastille d'onglet (En ligne, Tous, Demandes).
+component OngletAmis inherits Rectangle {
+    in property <string> text;
+    in property <bool> checked;
+    callback clicked;
+    height: 32px;
+    width: libelle.preferred-width + 24px;
+    border-radius: 10px;
+    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : transparent;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : Theme.glass-border;
+    animate background, border-color { duration: Theme.normal; }
+    libelle := Text {
+        text: root.text;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: root.checked ? Theme.accent : Theme.navy2;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Ligne d'ami « fantôme » : la forme qu'aura un ami dans la liste.
+component AmiFantome inherits Rectangle {
+    in property <length> largeur-nom;
+    in property <color> statut;
+    height: 52px;
+    border-radius: 12px;
+    background: Theme.glass;
+    HorizontalLayout {
+        padding: 10px;
+        spacing: 12px;
+        Rectangle {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: Theme.fill;
+            Rectangle {
+                x: parent.width - 9px;
+                y: parent.height - 9px;
+                width: 11px;
+                height: 11px;
+                border-radius: 3px;
+                background: root.statut;
+                border-width: 2px;
+                border-color: Theme.panel-strong;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 6px;
+            Rectangle {
+                width: root.largeur-nom;
+                height: 9px;
+                border-radius: 4px;
+                background: Theme.fill;
+            }
+            Rectangle {
+                width: root.largeur-nom * 0.6;
+                height: 7px;
+                border-radius: 3px;
+                background: Theme.glass-border;
+            }
+        }
+    }
+}
+
+/// Bulle de message floutée derrière l'annonce du chat.
+component BulleFantome inherits Rectangle {
+    in property <bool> moi;
+    in property <length> largeur;
+    height: 38px;
+    Rectangle {
+        x: root.moi ? parent.width - root.largeur : 0px;
+        width: root.largeur;
+        border-radius: 14px;
+        background: root.moi ? Theme.accent.with-alpha(0.35) : Theme.fill;
+    }
+}
+
+export component FriendsPage inherits Rectangle {
+    property <int> onglet: 0;
+    property <string> pseudo;
+
+    VerticalLayout {
+        padding-left: 26px;
+        padding-right: 30px;
+        padding-bottom: 26px;
+        spacing: 18px;
+
+        HorizontalLayout {
+            padding-left: 6px;
+            spacing: 14px;
+            alignment: start;
+            OutlinedText {
+                text: Tr.t("Amis_Titre");
+                font-size: 48px;
+                depth: 5px;
+            }
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: badge.preferred-width + 20px;
+                    height: 26px;
+                    border-radius: 8px;
+                    background: Theme.accent-soft;
+                    border-width: 1px;
+                    border-color: Theme.accent.with-alpha(0.5);
+                    badge := PixelLabel {
+                        text: Tr.t("Amis_Bientot");
+                        font-size: 10px;
+                        color: Theme.accent;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 18px;
+
+            // ═══ Amis : ajout et liste ═══
+            GlassCard {
+                width: 320px;
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 14px;
+
+                    Text {
+                        text: Tr.t("Amis_Ajouter_Titre");
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: Theme.navy;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        GlassInput {
+                            horizontal-stretch: 1;
+                            placeholder: Tr.t("Amis_Pseudo");
+                            text <=> root.pseudo;
+                        }
+                        MButton {
+                            kind: 1;
+                            icon: "\u{E8FA}";
+                            text: Tr.t("Amis_Ajouter");
+                            // l'envoi des demandes arrive avec le service d'amis
+                            enabled: false;
+                        }
+                    }
+
+                    Rectangle {
+                        height: 1px;
+                        background: Theme.line;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 6px;
+                        alignment: start;
+                        for t[i] in [Tr.t("Amis_EnLigne"), Tr.t("Amis_Tous"), Tr.t("Amis_Demandes")]: OngletAmis {
+                            text: t;
+                            checked: root.onglet == i;
+                            clicked => { root.onglet = i; }
+                        }
+                    }
+
+                    // aucun ami encore : la forme de la liste, puis le message
+                    VerticalLayout {
+                        spacing: 8px;
+                        opacity: 0.45;
+                        AmiFantome { largeur-nom: 110px; statut: #1DE062; }
+                        AmiFantome { largeur-nom: 84px; statut: #FFBE5A; }
+                        AmiFantome { largeur-nom: 128px; statut: Theme.text-dim; }
+                    }
+                    VerticalLayout {
+                        vertical-stretch: 1;
+                        alignment: center;
+                        spacing: 6px;
+                        Icon {
+                            text: "\u{E716}";
+                            font-size: 26px;
+                            color: Theme.text-dim;
+                            horizontal-alignment: center;
+                        }
+                        Text {
+                            text: Tr.t("Amis_Aucun");
+                            font-size: 15px;
+                            font-weight: 700;
+                            color: Theme.navy;
+                            horizontal-alignment: center;
+                        }
+                        BodyText {
+                            text: Tr.t("Amis_Aucun_Texte");
+                            horizontal-alignment: center;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+
+            // ═══ Chat ═══
+            GlassCard {
+                horizontal-stretch: 1;
+                clip: true;
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 14px;
+
+                    // en-tête de la discussion
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Rectangle {
+                            width: 38px;
+                            height: 38px;
+                            border-radius: 10px;
+                            background: Theme.fill;
+                            Icon {
+                                text: "\u{E8BD}";
+                                font-size: 16px;
+                                color: Theme.text-muted;
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 2px;
+                            Text {
+                                text: Tr.t("Amis_Chat");
+                                font-size: 15px;
+                                font-weight: 700;
+                                color: Theme.navy;
+                            }
+                            Text {
+                                text: Tr.t("Amis_Chat_Sous");
+                                font-size: 12px;
+                                color: Theme.text-muted;
+                            }
+                        }
+                    }
+                    Rectangle {
+                        height: 1px;
+                        background: Theme.line;
+                    }
+
+                    // messages (fantômes) et l'annonce par-dessus
+                    Rectangle {
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            alignment: end;
+                            spacing: 10px;
+                            opacity: 0.22;
+                            BulleFantome { moi: false; largeur: 210px; }
+                            BulleFantome { moi: true; largeur: 160px; }
+                            BulleFantome { moi: false; largeur: 280px; }
+                            BulleFantome { moi: true; largeur: 120px; }
+                            BulleFantome { moi: true; largeur: 230px; }
+                        }
+                        Rectangle {
+                            width: min(parent.width - 40px, 420px);
+                            height: annonce.preferred-height;
+                            border-radius: 18px;
+                            background: Theme.panel-strong;
+                            border-width: 1px;
+                            border-color: Theme.glass-border;
+                            drop-shadow-blur: 30px;
+                            drop-shadow-color: #00000066;
+                            annonce := VerticalLayout {
+                                padding: 26px;
+                                spacing: 10px;
+                                HorizontalLayout {
+                                    alignment: center;
+                                    Rectangle {
+                                        width: 54px;
+                                        height: 54px;
+                                        border-radius: 16px;
+                                        background: Theme.accent-soft;
+                                        Icon {
+                                            text: "\u{E8BD}";
+                                            font-size: 24px;
+                                            color: Theme.accent;
+                                        }
+                                    }
+                                }
+                                PixelLabel {
+                                    text: Tr.t("Amis_Bientot");
+                                    font-size: 10.5px;
+                                    color: Theme.accent;
+                                    horizontal-alignment: center;
+                                }
+                                Text {
+                                    text: Tr.t("Amis_Chat_Titre");
+                                    font-size: 19px;
+                                    font-weight: 800;
+                                    color: Theme.navy;
+                                    horizontal-alignment: center;
+                                    wrap: word-wrap;
+                                }
+                                BodyText {
+                                    text: Tr.t("Amis_Chat_Texte");
+                                    horizontal-alignment: center;
+                                    wrap: word-wrap;
+                                }
+                            }
+                        }
+                    }
+
+                    // saisie (désactivée tant que le chat n'existe pas)
+                    HorizontalLayout {
+                        spacing: 8px;
+                        GlassInput {
+                            horizontal-stretch: 1;
+                            placeholder: Tr.t("Amis_Message");
+                            enabled: false;
+                        }
+                        MButton {
+                            kind: 1;
+                            width: 52px;
+                            icon: "\u{E724}";
+                            text: "";
+                            enabled: false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

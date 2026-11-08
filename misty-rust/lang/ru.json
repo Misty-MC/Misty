@@ -583,5 +583,22 @@
   "Hz_TelechargementBuild": "Загрузка {0}…",
   "Hz_InstallationMinecraft": "Установка Minecraft {0} для Horizon…",
   "Hz_Preparation": "Подготовка Horizon (только в первый раз)…",
-  "Hz_ListeImpossible": "Не удалось загрузить сборки с GitHub."
+  "Hz_ListeImpossible": "Не удалось загрузить сборки с GitHub.",
+  "Nav_Amis": "Друзья",
+  "Discord_Amis": "Смотрит друзей",
+  "Amis_Titre": "Друзья",
+  "Amis_Bientot": "Скоро",
+  "Amis_Ajouter_Titre": "Добавить друга",
+  "Amis_Pseudo": "Ник в Minecraft…",
+  "Amis_Ajouter": "Добавить",
+  "Amis_EnLigne": "В сети",
+  "Amis_Tous": "Все",
+  "Amis_Demandes": "Заявки",
+  "Amis_Aucun": "Пока нет друзей",
+  "Amis_Aucun_Texte": "Добавляйте друзей по нику, чтобы видеть, когда они играют, и присоединяться к их игре.",
+  "Amis_Chat": "Чат",
+  "Amis_Chat_Sous": "Выберите друга, чтобы начать общение",
+  "Amis_Chat_Titre": "Чат скоро появится",
+  "Amis_Chat_Texte": "Общайтесь с друзьями прямо в Misty и приглашайте их в свою игру в один клик.",
+  "Amis_Message": "Напишите сообщение…"
 }

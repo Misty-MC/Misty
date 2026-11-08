@@ -41,6 +41,8 @@ pub mod page {
     pub const EDITEUR: i32 = 6;
     /// Onglet de la barre latérale (pas une page) : l'accueil, sur le studio du skin
     pub const SKIN: i32 = 7;
+    /// Amis et chat (interface seulement pour l'instant)
+    pub const AMIS: i32 = 8;
 }
 
 /// L'application : la fenêtre, le runtime et l'état de chaque page.
@@ -269,6 +271,7 @@ pub fn maj_discord(app: &App, force: bool) {
             page::NOTES => discord::Page::Notes,
             page::PACKS => discord::Page::Packs,
             page::EDITEUR => discord::Page::Editeur,
+            page::AMIS => discord::Page::Amis,
             _ => discord::Page::Accueil,
         }
     };

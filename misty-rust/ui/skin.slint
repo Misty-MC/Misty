@@ -1,5 +1,5 @@
 // Onglet « Skin » de l'accueil, comme le studio de la boutique du site : à gauche le personnage sur
-// un socle lumineux (halo, anneau qui tourne, lucioles), à droite le vestiaire (fiche du joueur,
+// un socle lumineux (halo), à droite le vestiaire (fiche du joueur,
 // skin, capes Mojang et cosmétiques Misty « bientôt disponibles », dont la cape et les élytres à essayer).
 
 import { Theme, Tr, Assets } from "theme.slint";
@@ -161,9 +161,8 @@ component Bascule inherits Rectangle {
 
 // ───────────────────────── La scène (à gauche) ─────────────────────────
 
-/// Le personnage sur un socle lumineux : halo de lune derrière, anneau pointillé qui tourne, lucioles.
+/// Le personnage sur un socle lumineux : halo de lune derrière, rien ne bouge tout seul.
 component Scene3D inherits Rectangle {
-    property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
 
     // Caméra (en degrés) : autour du personnage (yaw) et de haut ou de bas (pitch)
     property <float> yaw: 0;
@@ -217,16 +216,15 @@ component Scene3D inherits Rectangle {
     border-width: 1px;
     border-color: Theme.glass-border;
 
-    // halo de lune qui respire (6 s aller-retour)
-    property <float> respire: 0.5 + 0.5 * sin((animation-tick() / 12000ms) * 360deg);
+    // halo de lune, fixe
     Rectangle {
-        property <length> d: min(400px, parent.width * 0.9) * (0.94 + 0.11 * root.respire);
+        property <length> d: min(400px, parent.width * 0.9);
         x: (parent.width - self.d) / 2;
         y: parent.height * 0.44 - self.d / 2;
         width: self.d;
         height: self.d;
         border-radius: self.d / 2;
-        opacity: 0.75 + 0.25 * root.respire;
+        opacity: 0.85;
         background: @radial-gradient(circle, Theme.accent.with-alpha(0.32) 0%, Theme.accent.with-alpha(0.08) 45%, Theme.accent.with-alpha(0) 70%);
     }
 
@@ -237,25 +235,6 @@ component Scene3D inherits Rectangle {
         y: parent.height - 122px - self.d * 0.13;
         width: self.d;
         height: self.d * 0.26;
-    }
-
-    // lucioles qui montent (deux chaudes, comme sur le site)
-    for m[i] in [
-        { x: 0.30, d: 6000ms, r: 0ms, c: #E3EEFF }, { x: 0.62, d: 7000ms, r: 1200ms, c: #E3EEFF }, { x: 0.44, d: 6000ms, r: 2400ms, c: #E3EEFF },
-        { x: 0.70, d: 5500ms, r: 3100ms, c: #E3EEFF }, { x: 0.24, d: 7500ms, r: 4000ms, c: #E3EEFF }, { x: 0.55, d: 6000ms, r: 4800ms, c: #E3EEFF },
-        { x: 0.38, d: 6500ms, r: 5500ms, c: #E3EEFF }, { x: 0.76, d: 6000ms, r: 1800ms, c: #FFE2B0 }, { x: 0.20, d: 6000ms, r: 3600ms, c: #FFE2B0 },
-        { x: 0.50, d: 8000ms, r: 600ms, c: #E3EEFF }
-    ]: Rectangle {
-        property <float> t: Math.mod((animation-tick() + m.r) / m.d, 1);
-        x: parent.width * m.x + (self.t < 0.6 ? 14px * self.t / 0.6 : 14px - 22px * (self.t - 0.6) / 0.4);
-        y: parent.height - 130px - 300px * self.t;
-        width: 4px;
-        height: 4px;
-        border-radius: 1px;
-        background: m.c;
-        drop-shadow-blur: 8px;
-        drop-shadow-color: m.c;
-        opacity: self.t < 0.15 ? self.t / 0.15 : 1 - (self.t - 0.15) / 0.85;
     }
 
     // ── Cadrage par catégorie ──
@@ -737,12 +716,15 @@ export component SkinPanel inherits Rectangle {
         Scene3D {
             horizontal-stretch: 13;
             min-width: 360px;
+            // largeur décidée par le partage seulement (le contenu de la scène ne la change pas)
+            preferred-width: 0px;
         }
 
         // ═══ Le vestiaire ═══
         Rectangle {
             horizontal-stretch: 10;
             min-width: 340px;
+            preferred-width: 0px;
             max-width: 470px;
             border-radius: 22px;
             background: Theme.panel;
