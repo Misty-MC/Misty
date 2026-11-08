@@ -858,6 +858,24 @@ export component SettingsModal inherits Rectangle {
                                 toggled(v) => { SettingsState.particles-toggled(v); }
                             }
                             Separateur { }
+                            VerticalLayout {
+                                spacing: 12px;
+                                Entete {
+                                    titre: Tr.t("Param_FondFlou");
+                                    texte: Tr.t("Param_FondFlou_Texte");
+                                }
+                                CurseurBorne {
+                                    minimum: 0;
+                                    maximum: 10;
+                                    step: 1;
+                                    min-text: Tr.t("Param_FondFlou_Net");
+                                    max-text: Tr.t("Param_FondFlou_Max");
+                                    value-text: SettingsState.bg-blur == 0 ? Tr.t("Param_FondFlou_Off") : round(SettingsState.bg-blur);
+                                    value <=> SettingsState.bg-blur;
+                                    changed(v) => { SettingsState.bg-blur-changed(v); }
+                                }
+                            }
+                            Separateur { }
                             LigneInterrupteur {
                                 titre: Tr.t("Param_Flou");
                                 texte: Tr.t("Param_Flou_Texte");

@@ -247,6 +247,16 @@ pub fn installer(app: &Rc<App>) {
         recapturer_fond(&a);
     });
 
+    let a = app.clone();
+    st.on_bg_blur_changed(move |v| {
+        let niveau = v.round().clamp(0.0, 10.0) as u32;
+        if niveau == settings::fond_flou() && a.ui.global::<crate::Theme>().get_bg_blur() == niveau as i32 {
+            return;
+        }
+        settings::set(settings::FOND_FLOU, &niveau.to_string());
+        super::appliquer_flou_fond(&a, niveau);
+    });
+
     // Ressources
     st.on_downloads_changed(|v| settings::set(settings::TELECHARGEMENTS, &(v.round() as u32).to_string()));
 
@@ -408,6 +418,7 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_rich(discord::active());
     st.set_downloads(settings::telechargements() as f32);
     st.set_seasonal(settings::get_bool(settings::SAISON, true));
+    st.set_bg_blur(settings::fond_flou() as f32);
 
     maj_textes(app);
     calculer_depannage(app);

@@ -609,3 +609,79 @@ pub fn rendre_cape(png: &[u8]) -> Option<RgbaImage> {
     }
     Some(imageops::crop_imm(&cape, f, f, 10 * f, 16 * f).to_image())
 }
+
+/// Texture 64 × 32 de la cape et des élytres Misty, dessinée comme sur la boutique du site :
+/// cape en dégradé nuit avec un nuage, élytres en plumes avec un croissant de lune. PNG en mémoire.
+pub fn texture_misty() -> &'static [u8] {
+    static PNG: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+    PNG.get_or_init(|| {
+        let mut img = RgbaImage::new(64, 32);
+        let mut pose = |x: u32, y: u32, r: f32, g: f32, b: f32| {
+            img.put_pixel(x, y, image::Rgba([r.clamp(0.0, 255.0) as u8, g.clamp(0.0, 255.0) as u8, b.clamp(0.0, 255.0) as u8, 255]));
+        };
+        // Cape : face extérieure (1,1) en dégradé avec un léger grain
+        for y in 0..16u32 {
+            for x in 1..11u32 {
+                let t = y as f32 / 16.0;
+                let d = ((x + y) % 2) as f32 * 6.0 - 3.0 + (((x - 1) * 7 + y * 3) % 5) as f32 - 2.0;
+                pose(x, y + 1, (26.0 + 70.0 * t + d).round(), (40.0 + 105.0 * t + d).round(), (77.0 + 160.0 * t + d).round());
+            }
+        }
+        // Nuage sur la cape
+        let nuage = ["..###...", ".######.", "########", "########", ".######."];
+        for (y, ligne) in nuage.iter().enumerate() {
+            for (x, c) in ligne.chars().enumerate() {
+                if c == '#' {
+                    let (r, g, b) = if y == 4 { (185.0, 205.0, 245.0) } else { (234.0, 241.0, 255.0) };
+                    pose(2 + x as u32, 5 + y as u32, r, g, b);
+                }
+            }
+        }
+        for (x0, y0, l) in [(2u32, 11u32, 6u32), (6, 13, 4)] {
+            for x in x0..x0 + l {
+                pose(x, y0, 207.0, 224.0, 255.0);
+            }
+        }
+        // Face intérieure et tranches en bleu nuit uni
+        for y in 1..17u32 {
+            for x in 12..22u32 {
+                pose(x, y, 18.0, 27.0, 51.0);
+            }
+            pose(0, y, 28.0, 42.0, 77.0);
+            pose(11, y, 28.0, 42.0, 77.0);
+        }
+        for x in 1..21u32 {
+            pose(x, 0, 28.0, 42.0, 77.0);
+        }
+        // Élytres : seule la face de dos est peinte (même masque que les capes de Mojang)
+        const MASQUE: [(u32, u32); 22] = [(31, 33), (32, 33), (34, 42), (34, 42), (35, 42), (35, 42), (35, 42), (35, 42), (35, 42), (35, 42), (35, 42), (35, 42), (36, 42), (36, 42), (36, 42), (36, 42), (37, 41), (37, 41), (37, 41), (37, 41), (38, 40), (38, 39)];
+        const LUNE: [&str; 6] = ["..##", ".#..", "#...", "#...", ".#..", "..##"];
+        for (y, (x0, x1)) in MASQUE.iter().enumerate() {
+            let y = y as u32;
+            for x in *x0..=*x1 {
+                let t = y as f32 / 21.0;
+                let d = ((x * 7 + y * 3) % 5) as f32 - 2.0;
+                let (mut r, mut g, mut b) = (24.0 + 62.0 * t + d, 36.0 + 98.0 * t + d, 70.0 + 150.0 * t + d * 1.5);
+                let k = ((y as f32 - (x as f32 - 35.0) * 0.7) % 4.5 + 4.5) % 4.5;
+                if y > 7 && y < 20 && k < 1.0 {
+                    r += 70.0;
+                    g += 72.0;
+                    b += 30.0;
+                }
+                if x == *x0 {
+                    r += 40.0;
+                    g += 45.0;
+                    b += 28.0;
+                }
+                let lune = y >= 4 && x >= 37 && LUNE.get((y - 4) as usize).and_then(|l| l.as_bytes().get((x - 37) as usize)) == Some(&b'#');
+                if lune {
+                    (r, g, b) = (234.0, 241.0, 255.0);
+                }
+                pose(x, y, r.min(245.0).floor(), g.min(248.0).floor(), b.min(255.0).floor());
+            }
+        }
+        let mut png = Vec::new();
+        let _ = image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png);
+        png
+    })
+}

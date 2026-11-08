@@ -24,13 +24,15 @@ pub const PARTICULES: &str = "particules";
 pub const FLOU: &str = "flou";
 /// Thèmes de saison automatiques (Halloween, Noël)
 pub const SAISON: &str = "saison";
+/// Flou du paysage en fond (0 = net, 10 = très flou)
+pub const FOND_FLOU: &str = "fondflou";
 /// Nombre de fichiers téléchargés en même temps pendant l’installation du jeu
 pub const TELECHARGEMENTS: &str = "telechargements";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SNAPSHOT, BETA, ALPHA, SUPPR,
-    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, SAISON, TELECHARGEMENTS,
+    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, SAISON, FOND_FLOU, TELECHARGEMENTS,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {
@@ -131,6 +133,11 @@ fn saison(mois: u32, jour: u32) -> i32 {
         (12, 22..=28) => 2,
         _ => 0,
     }
+}
+
+/// Flou du paysage en fond, de 0 (net) à 10.
+pub fn fond_flou() -> u32 {
+    get(FOND_FLOU).trim().parse::<u32>().unwrap_or(0).min(10)
 }
 
 /// Thème choisi (0 brume, 1 nuit, 2 comme Windows).

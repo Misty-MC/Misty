@@ -29,7 +29,7 @@ export component Paysage inherits Rectangle {
         width: root.sw;
         height: root.sh;
         source: AppState.scene-stars;
-        image-rendering: pixelated;
+        image-rendering: Theme.bg-blur > 0 ? ImageRendering.smooth : ImageRendering.pixelated;
         image-fit: fill;
         colorize: #DBE7FF;
     }
@@ -39,7 +39,7 @@ export component Paysage inherits Rectangle {
         width: root.sw;
         height: root.sh;
         source: AppState.scene-twinkle;
-        image-rendering: pixelated;
+        image-rendering: Theme.bg-blur > 0 ? ImageRendering.smooth : ImageRendering.pixelated;
         image-fit: fill;
         colorize: white;
         // scintillement : 4 s aller-retour, entre 25 % et 100 %
@@ -67,7 +67,7 @@ export component Paysage inherits Rectangle {
         width: AppState.moon-size * root.s * 1px;
         height: self.width;
         source: AppState.scene-moon;
-        image-rendering: pixelated;
+        image-rendering: Theme.bg-blur > 0 ? ImageRendering.smooth : ImageRendering.pixelated;
         image-fit: fill;
         colorize: Theme.halloween ? #FFC27A : #EAF1FF;
     }
@@ -82,7 +82,7 @@ export component Paysage inherits Rectangle {
             width: parent.width;
             height: parent.height;
             source: crete;
-            image-rendering: pixelated;
+            image-rendering: Theme.bg-blur > 0 ? ImageRendering.smooth : ImageRendering.pixelated;
             image-fit: fill;
             colorize: root.cretes[i];
         }
@@ -95,7 +95,7 @@ export component Paysage inherits Rectangle {
             width: n.w * root.s * 1px;
             height: n.h * root.s * 1px;
             source: n.image;
-            image-rendering: pixelated;
+            image-rendering: Theme.bg-blur > 0 ? ImageRendering.smooth : ImageRendering.pixelated;
             image-fit: fill;
             colorize: root.brume;
             opacity: n.opacity * (Theme.dark ? 1 : 2.2);

@@ -96,6 +96,13 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         app.ui.global::<SkinState>().set_tab(1);
         attendre(1500).await;
         photo(&app, "0b-skin", &dossier);
+        // Studio : la cape Misty essayée
+        app.ui.global::<SkinState>().set_misty_equip(1);
+        app.ui.global::<SkinState>().invoke_look_changed();
+        attendre(3000).await;
+        photo(&app, "0c-skin-misty", &dossier);
+        app.ui.global::<SkinState>().set_misty_equip(0);
+        app.ui.global::<SkinState>().invoke_look_changed();
         app.ui.global::<SkinState>().set_tab(0);
         let etat = app.ui.global::<AppState>();
         // Fenêtre des options : chaque catégorie, en thème clair puis sombre (sans rien enregistrer)

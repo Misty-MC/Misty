@@ -2,11 +2,12 @@
 //! repris en fond du launcher.
 //!
 //! Même générateur que le site (même graine = même paysage), mais au lieu d'un SVG on produit des
-//! masques blancs en pixels : Slint les agrandit sans lissage (pixel art net) et les colore selon le
-//! thème (nuit, brume, Halloween, Noël). Les animations (lune qui flotte, étoiles qui scintillent,
-//! brume qui dérive) sont faites côté Slint.
+//! masques blancs : Slint les agrandit et les colore selon le thème (nuit, brume, Halloween, Noël).
+//! Les animations (lune qui flotte, étoiles qui scintillent, brume qui dérive) sont faites côté Slint.
+//!
+//! Flou du fond (réglable dans les options) : Slint ne sait pas flouter un élément animé, alors on
+//! floute chaque calque ici. Les calques restent séparés, donc les animations continuent.
 
-use crate::ScenePuff;
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
 
 /// Taille de la scène, en pixels du site (le launcher la met à l'échelle).
@@ -20,17 +21,74 @@ const ROWS: i32 = 55;
 const LUNE_X: f32 = 0.56;
 const LUNE_R: i32 = 44;
 
+/// Image d'un calque, préparée hors du thread de l'interface (convertie en `Image` ensuite).
+type Tampon = SharedPixelBuffer<Rgba8Pixel>;
+
+/// Nappe de brume : image et position (pixels de la scène).
+pub struct Nappe {
+    pub image: Tampon,
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub couche: i32,
+    pub periode_ms: i64,
+    pub phase: f32,
+    pub opacite: f32,
+}
+
 pub struct Scene {
-    /// Les 4 crêtes, de l'arrière vers l'avant (1 pixel d'image = 1 case de 8 px)
-    pub cretes: Vec<Image>,
-    pub etoiles: Image,
-    pub etoiles_scintillantes: Image,
-    pub lune: Image,
+    /// Les 4 crêtes, de l'arrière vers l'avant
+    pub cretes: Vec<Tampon>,
+    pub etoiles: Tampon,
+    pub etoiles_scintillantes: Tampon,
+    pub lune: Tampon,
     /// Coin haut-gauche de l'image de la lune, et sa taille (pixels de la scène)
     pub lune_x: f32,
     pub lune_y: f32,
     pub lune_taille: f32,
-    pub nappes: Vec<ScenePuff>,
+    pub nappes: Vec<Nappe>,
+}
+
+impl Scene {
+    /// Convertit pour Slint (sur le thread de l'interface).
+    pub fn vers_slint(self) -> SceneSlint {
+        SceneSlint {
+            cretes: self.cretes.into_iter().map(Image::from_rgba8).collect(),
+            etoiles: Image::from_rgba8(self.etoiles),
+            etoiles_scintillantes: Image::from_rgba8(self.etoiles_scintillantes),
+            lune: Image::from_rgba8(self.lune),
+            lune_x: self.lune_x,
+            lune_y: self.lune_y,
+            lune_taille: self.lune_taille,
+            nappes: self
+                .nappes
+                .into_iter()
+                .map(|n| crate::ScenePuff {
+                    image: Image::from_rgba8(n.image),
+                    x: n.x,
+                    y: n.y,
+                    w: n.w,
+                    h: n.h,
+                    layer: n.couche,
+                    period: n.periode_ms,
+                    phase: n.phase,
+                    opacity: n.opacite,
+                })
+                .collect(),
+        }
+    }
+}
+
+pub struct SceneSlint {
+    pub cretes: Vec<Image>,
+    pub etoiles: Image,
+    pub etoiles_scintillantes: Image,
+    pub lune: Image,
+    pub lune_x: f32,
+    pub lune_y: f32,
+    pub lune_taille: f32,
+    pub nappes: Vec<crate::ScenePuff>,
 }
 
 /// Générateur pseudo-aléatoire minimal (xorshift64*), identique au site.
@@ -58,6 +116,22 @@ struct Masque {
     alpha: Vec<u8>,
 }
 
+/// Réglage du flou : 0 = pixel art net. Sinon, le masque est agrandi (`facteur`), entouré d'une
+/// marge transparente (`marge`, en pixels agrandis) puis flouté (`sigma`, en pixels agrandis).
+#[derive(Clone, Copy)]
+struct Flou {
+    sigma: f32,
+}
+
+impl Flou {
+    fn actif(self) -> bool {
+        self.sigma > 0.0
+    }
+    fn marge(self) -> i32 {
+        (self.sigma * 3.0).ceil() as i32
+    }
+}
+
 impl Masque {
     fn new(l: i32, h: i32) -> Self {
         Masque { l, h, alpha: vec![0; (l * h) as usize] }
@@ -69,12 +143,39 @@ impl Masque {
             }
         }
     }
-    fn image(&self) -> Image {
-        let mut tampon = SharedPixelBuffer::<Rgba8Pixel>::new(self.l as u32, self.h as u32);
+    fn tampon(&self) -> Tampon {
+        let mut tampon = Tampon::new(self.l as u32, self.h as u32);
         for (p, a) in tampon.make_mut_slice().iter_mut().zip(&self.alpha) {
             *p = Rgba8Pixel { r: 255, g: 255, b: 255, a: *a };
         }
-        Image::from_rgba8(tampon)
+        tampon
+    }
+    /// Version floutée : agrandie `facteur` fois, avec `marge` pixels (agrandis) de chaque côté.
+    fn tampon_flou(&self, flou: Flou, facteur: i32, marge: i32) -> Tampon {
+        if !flou.actif() {
+            return self.tampon();
+        }
+        let (l, h) = (self.l * facteur + 2 * marge, self.h * facteur + 2 * marge);
+        let mut img = image::GrayImage::new(l as u32, h as u32);
+        for y in 0..self.h {
+            for x in 0..self.l {
+                let a = self.alpha[(y * self.l + x) as usize];
+                if a == 0 {
+                    continue;
+                }
+                for dy in 0..facteur {
+                    for dx in 0..facteur {
+                        img.put_pixel((marge + x * facteur + dx) as u32, (marge + y * facteur + dy) as u32, image::Luma([a]));
+                    }
+                }
+            }
+        }
+        let floue = image::imageops::blur(&img, flou.sigma);
+        let mut tampon = Tampon::new(l as u32, h as u32);
+        for (p, a) in tampon.make_mut_slice().iter_mut().zip(floue.as_raw()) {
+            *p = Rgba8Pixel { r: 255, g: 255, b: 255, a: *a };
+        }
+        tampon
     }
 }
 
@@ -111,7 +212,16 @@ fn nappe(rng: &mut Rng) -> Masque {
     m
 }
 
-pub fn generer() -> Scene {
+/// Génère le paysage. `niveau_flou` : 0 (net) à 10 (très flou).
+pub fn generer(niveau_flou: u32) -> Scene {
+    // Les masques floutés sont agrandis à 2 px de la scène par pixel : sigma en pixels agrandis
+    let flou = Flou { sigma: niveau_flou.min(10) as f32 * 0.85 };
+    // Échelle des calques floutés : une case (8 px de scène) = 4 pixels agrandis
+    const F: i32 = 4;
+    let marge = flou.marge();
+    // marge en pixels de la scène (1 pixel agrandi = 2 px de scène)
+    let marge_scene = (marge * 2) as f32;
+
     let mut rng = Rng(7 | 1);
 
     // Étoiles (4 pixels d'image par case, comme le site : 2 px pour les petites, 4 px pour les grandes)
@@ -125,6 +235,8 @@ pub fn generer() -> Scene {
             etoiles.remplir(x, y, taille, taille, 140);
         }
     }
+    // Les étoiles floutées restent visibles : flou plus léger, sinon elles disparaissent
+    let flou_etoiles = Flou { sigma: flou.sigma * 0.5 };
 
     // Lune : un disque de cases, quelques cratères plus sombres (moins opaques)
     let cases = LUNE_R / P;
@@ -164,7 +276,8 @@ pub fn generer() -> Scene {
                 c += rng.range(4, 16);
             }
         }
-        cretes.push(m.image());
+        // les crêtes couvrent toute la scène : pas de marge (les bords sont hors champ)
+        cretes.push(m.tampon_flou(flou, F, 0));
 
         // Nappes de brume, de plus en plus visibles vers l'avant
         let ligne = *base as i32;
@@ -176,28 +289,45 @@ pub fn generer() -> Scene {
             let retard = rng.range(0, duree);
             let op = opacite * (0.7 + rng.float() * 0.6);
             let forme = nappe(&mut rng);
-            nappes.push(ScenePuff {
-                image: forme.image(),
-                x: x as f32,
-                y: y as f32,
-                w: (forme.l * P) as f32,
-                h: (forme.h * P) as f32,
-                layer: i as i32,
-                period: (duree * 1000) as i64,
+            let (dx, dl) = if flou.actif() { (marge_scene, 2.0 * marge_scene) } else { (0.0, 0.0) };
+            nappes.push(Nappe {
+                image: forme.tampon_flou(flou, F, marge),
+                x: x as f32 - dx,
+                y: y as f32 - dx,
+                w: (forme.l * P) as f32 + dl,
+                h: (forme.h * P) as f32 + dl,
+                couche: i as i32,
+                periode_ms: (duree * 1000) as i64,
                 phase: retard as f32 / duree as f32,
-                opacity: op,
+                opacite: op,
             });
         }
     }
 
+    let marge_lune = if flou.actif() { marge_scene } else { 0.0 };
     Scene {
         cretes,
-        etoiles: etoiles.image(),
-        etoiles_scintillantes: scintillantes.image(),
-        lune: lune.image(),
-        lune_x: (mx - cases * P - P / 2) as f32,
-        lune_y: (my - cases * P - P / 2) as f32,
-        lune_taille: (cote * P) as f32,
+        etoiles: etoiles.tampon_flou(flou_etoiles, 1, 0),
+        etoiles_scintillantes: scintillantes.tampon_flou(flou_etoiles, 1, 0),
+        lune: lune.tampon_flou(flou, F, marge),
+        lune_x: (mx - cases * P - P / 2) as f32 - marge_lune,
+        lune_y: (my - cases * P - P / 2) as f32 - marge_lune,
+        lune_taille: (cote * P) as f32 + 2.0 * marge_lune,
         nappes,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn flou_garde_les_dimensions_utiles() {
+        let net = super::generer(0);
+        let flou = super::generer(6);
+        assert_eq!(net.cretes.len(), 4);
+        assert_eq!(net.nappes.len(), flou.nappes.len());
+        // la lune floutée est plus grande (marge) mais reste centrée au même endroit
+        let centre = |s: &super::Scene| (s.lune_x + s.lune_taille / 2.0, s.lune_y + s.lune_taille / 2.0);
+        assert!((centre(&net).0 - centre(&flou).0).abs() < 0.01);
+        assert!(flou.lune_taille > net.lune_taille);
     }
 }

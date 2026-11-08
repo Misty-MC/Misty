@@ -141,17 +141,13 @@ pub fn installer(app: &Rc<App>) {
     ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).into());
     ui.global::<AppState>().set_particles(modele(particules()));
 
-    // Paysage du site en fond
-    let paysage = scene::generer();
-    let etat = ui.global::<AppState>();
-    etat.set_scene_ridges(modele(paysage.cretes));
-    etat.set_scene_stars(paysage.etoiles);
-    etat.set_scene_twinkle(paysage.etoiles_scintillantes);
-    etat.set_scene_moon(paysage.lune);
-    etat.set_moon_x(paysage.lune_x);
-    etat.set_moon_y(paysage.lune_y);
-    etat.set_moon_size(paysage.lune_taille);
-    etat.set_scene_puffs(modele(paysage.nappes));
+    // Paysage du site en fond (net tout de suite, puis flouté si l'option est réglée)
+    afficher_paysage(app, scene::generer(0));
+    let flou = crate::services::settings::fond_flou();
+    ui.global::<crate::Theme>().set_bg_blur(flou as i32);
+    if flou > 0 {
+        appliquer_flou_fond(app, flou);
+    }
 
     // Fenêtre
     let a = app.clone();
@@ -200,6 +196,37 @@ pub fn installer(app: &Rc<App>) {
     editor::installer(app);
     skin::installer(app);
     news::installer(app);
+}
+
+fn afficher_paysage(app: &App, paysage: scene::Scene) {
+    let p = paysage.vers_slint();
+    let etat = app.ui.global::<AppState>();
+    etat.set_scene_ridges(modele(p.cretes));
+    etat.set_scene_stars(p.etoiles);
+    etat.set_scene_twinkle(p.etoiles_scintillantes);
+    etat.set_scene_moon(p.lune);
+    etat.set_moon_x(p.lune_x);
+    etat.set_moon_y(p.lune_y);
+    etat.set_moon_size(p.lune_taille);
+    etat.set_scene_puffs(modele(p.nappes));
+}
+
+thread_local! {
+    /// Dernier niveau de flou demandé : un calcul dépassé (curseur bougé entre-temps) est jeté
+    static FLOU_DEMANDE: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+/// Recalcule le paysage flouté (en arrière-plan) et l'affiche s'il correspond toujours au réglage.
+pub fn appliquer_flou_fond(app: &Rc<App>, niveau: u32) {
+    FLOU_DEMANDE.with(|f| f.set(niveau));
+    let a = app.clone();
+    lancer(async move {
+        let paysage = a.bloquant(move || scene::generer(niveau)).await;
+        if FLOU_DEMANDE.with(|f| f.get()) == niveau {
+            afficher_paysage(&a, paysage);
+            a.ui.global::<crate::Theme>().set_bg_blur(niveau as i32);
+        }
+    });
 }
 
 /// Thème de saison (Halloween, Noël) si on est à ±3 jours de la fête et que l'option est active.

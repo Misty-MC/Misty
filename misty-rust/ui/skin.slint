@@ -1,8 +1,10 @@
-// Onglet « Skin » de l'accueil : aperçu du personnage, changement de skin, choix de la cape.
+// Onglet « Skin » de l'accueil, comme le studio de la boutique du site : à gauche le personnage sur
+// un socle lumineux (halo, anneau qui tourne, lucioles), à droite le vestiaire (fiche du joueur,
+// skin, capes Mojang et cosmétiques Misty « bientôt disponibles », dont la cape et les élytres à essayer).
 
 import { Theme, Tr, Assets } from "theme.slint";
 import { HomeState } from "state.slint";
-import { Icon, PixelLabel, BodyText, GlassCard, MButton, TabPill, Spinner } from "widgets.slint";
+import { Icon, PixelLabel, BodyText, MButton, Spinner } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
 export struct CapeItem {
@@ -23,8 +25,13 @@ export global SkinState {
     in property <[image]> walk-frames;
     in-out property <bool> walk: false;
     in-out property <bool> elytra: false;
+    /// Montrer la cape Mojang portée
+    in-out property <bool> show-cape: true;
+    /// Essai d'un cosmétique Misty : 0 aucun · 1 cape Misty · 2 élytres Misty
+    in-out property <int> misty-equip: 0;
     callback elytra-toggled();
     callback walk-toggled();
+    callback look-changed();
     in property <bool> has-figure;
     in property <[CapeItem]> capes;
     in property <int> cape-rows: 1;
@@ -34,219 +41,522 @@ export global SkinState {
     in property <string> file-name;
     in property <bool> has-file;
     in property <string> info;
+    /// Catégorie de cosmétiques affichée (0 capes … 7 packs)
+    in-out property <int> category: 0;
     callback open();
     callback pick-file();
     callback slim-changed();
     callback apply();
     callback select-cape(string);
+    callback open-namemc();
 }
 
-/// Carte sombre avec le personnage qui flotte doucement.
-component FigureCard inherits Rectangle {
-    width: 230px;
-    height: 400px;
-    property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
-    property <angle> rot: 0deg;
-    property <bool> glisse: false;
-    property <image> vide;
-    property <length> dernier-x: 0px;
-    animate rot { duration: root.glisse ? 0ms : 300ms; easing: ease-out; }
+// ───────────────────────── Petits éléments ─────────────────────────
 
-    Rectangle {
-        border-radius: 30px;
-        background: Theme.stage;
-        drop-shadow-blur: 24px;
-        drop-shadow-color: Theme.shadow;
-        drop-shadow-offset-y: 8px;
-
-        Rectangle {
-            x: 5px;
-            y: 5px;
-            width: parent.width - 10px;
-            height: parent.height - 10px;
-            border-radius: 26px;
-            clip: true;
-            background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 35%, #161C2B 100%);
-
-            Rectangle {
-                x: (parent.width - 240px) / 2;
-                y: -50px;
-                width: 240px;
-                height: 240px;
-                border-radius: 120px;
-                opacity: 0.35;
-                background: @radial-gradient(circle, #C4DFF8 0%, #C4DFF800 100%);
+/// Groupe de boutons collés (vues, animations), comme les « .seg » du site.
+component Seg inherits Rectangle {
+    in property <[string]> items;
+    in property <int> current;
+    callback choisi(int);
+    height: 38px;
+    width: rangee.preferred-width + 8px;
+    border-radius: 12px;
+    background: Theme.dark ? #0A0F1D9E : #FFFFFF8C;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    rangee := HorizontalLayout {
+        x: 4px;
+        y: 4px;
+        height: 30px;
+        spacing: 2px;
+        for t[i] in root.items: Rectangle {
+            property <bool> actif: i == root.current;
+            width: lib.preferred-width + 22px;
+            border-radius: 9px;
+            background: self.actif ? Theme.fill : zone.has-hover ? Theme.glass-hover : transparent;
+            drop-shadow-offset-y: self.actif ? 3px : 0px;
+            drop-shadow-color: Theme.fill-lip;
+            animate background { duration: Theme.fast; }
+            lib := Text {
+                text: t;
+                font-size: 13px;
+                font-weight: 600;
+                color: parent.actif ? Theme.on-fill : zone.has-hover ? Theme.navy : Theme.text-muted;
+                horizontal-alignment: center;
+                vertical-alignment: center;
             }
-            // ombre au sol
-            Rectangle {
-                property <float> s: 0.95 + 0.15 * root.onde;
-                x: (parent.width - self.width) / 2;
-                y: parent.height - 38px;
-                width: 110px * self.s;
-                height: 14px * self.s;
-                border-radius: self.height / 2;
-                background: #00000066;
-            }
-            // Personnage : on le fait tourner en glissant la souris (face / dos avec la cape)
-            if SkinState.has-figure: Image {
-                x: (parent.width - 224px) / 2;
-                y: 26px + 6px * root.onde;
-                width: 224px;
-                height: 320px;
-                source: SkinState.walk && SkinState.walk-frames.length >= 144 ? SkinState.walk-frames[Math.mod(Math.floor(animation-tick() / 90ms), 12) * 12 + Math.mod(Math.mod(Math.round(root.rot / 30deg), 12) + 12, 12)] : SkinState.frames.length > 0 ? SkinState.frames[Math.mod(Math.mod(Math.round(root.rot / 10deg), 36) + 36, 36)] : root.vide;
-                image-fit: contain;
-                image-rendering: pixelated;
-            }
-            TouchArea {
-                enabled: SkinState.has-figure;
-                mouse-cursor: grab;
-                pointer-event(e) => {
-                    if (e.kind == PointerEventKind.down) {
-                        root.glisse = true;
-                        root.dernier-x = self.mouse-x;
-                    } else if (e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel) {
-                        root.glisse = false;
-                        // se range sur la face ou sur le dos
-                        root.rot = round(root.rot / 180deg) * 180deg;
-                    }
-                }
-                moved => {
-                    if (root.glisse) {
-                        root.rot -= (self.mouse-x - root.dernier-x) / 1px * 1.4deg;
-                        root.dernier-x = self.mouse-x;
-                    }
-                }
-            }
-            // Vues rapides : face, côté, dos
-            if SkinState.has-figure: HorizontalLayout {
-                x: 0px;
-                y: parent.height - 38px;
-                width: parent.width;
-                height: 28px;
-                alignment: center;
-                spacing: 6px;
-                for nom[i] in [Tr.t("Skin_Vue_Face"), Tr.t("Skin_Vue_Cote"), Tr.t("Skin_Vue_Dos")]: Rectangle {
-                    property <angle> cible: i == 1 ? 270deg : i * 90deg;
-                    property <int> k: Math.mod(Math.mod(Math.round(root.rot / 90deg), 4) + 4, 4);
-                    property <bool> actif: i == 0 ? self.k == 0 : i == 1 ? (self.k == 1 || self.k == 3) : self.k == 2;
-                    width: etiquette.preferred-width + 20px;
-                    border-radius: 14px;
-                    background: vue-touch.has-hover ? #FFFFFF30 : self.actif ? #FFFFFF22 : transparent;
-                    etiquette := Text {
-                        text: nom;
-                        font-family: Theme.ui-font;
-                        font-size: 13px;
-                        font-weight: 600;
-                        color: parent.actif || vue-touch.has-hover ? white : #FFFFFFAA;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-                    vue-touch := TouchArea {
-                        clicked => { root.rot = root.rot + (Math.mod(Math.mod((parent.cible - root.rot) / 1deg + 180, 360) + 360, 360) - 180) * 1deg; }
-                    }
-                }
-            }
-            // Marche et élytres, en haut à droite
-            if SkinState.has-figure: VerticalLayout {
-                x: parent.width - 78px;
-                y: 14px;
-                width: 66px;
-                spacing: 6px;
-                for opt[i] in [Tr.t("Skin_Vue_Marche"), Tr.t("Skin_Elytres")]: Rectangle {
-                    property <bool> actif: i == 0 ? SkinState.walk : SkinState.elytra;
-                    height: 26px;
-                    border-radius: 13px;
-                    border-width: 1px;
-                    border-color: self.actif ? #FFFFFF99 : #FFFFFF33;
-                    background: opt-touch.has-hover ? #FFFFFF30 : self.actif ? #FFFFFF2A : #FFFFFF10;
-                    Text {
-                        text: opt;
-                        font-family: Theme.ui-font;
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: parent.actif || opt-touch.has-hover ? white : #FFFFFFB0;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-                    opt-touch := TouchArea {
-                        clicked => {
-                            if (i == 0) {
-                                SkinState.walk = !SkinState.walk;
-                                SkinState.walk-toggled();
-                            } else {
-                                SkinState.elytra = !SkinState.elytra;
-                                SkinState.elytra-toggled();
-                            }
-                        }
-                    }
-                }
-            }            if !SkinState.has-figure && SkinState.loading: Spinner { }
-            if !SkinState.has-figure && !SkinState.loading: Image {
-                x: (parent.width - 110px) / 2;
-                y: 60px + 6px * root.onde;
-                width: 110px;
-                height: 110px;
-                source: HomeState.has-avatar ? HomeState.avatar : Assets.logo;
-                image-fit: contain;
-                image-rendering: pixelated;
+            zone := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.choisi(i); }
             }
         }
     }
 }
 
-component CapeTile inherits Rectangle {
+/// Bouton à bascule (cape, élytres, rotation), comme les « .toggle » du site : enfoncé quand actif.
+component Bascule inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <bool> active;
+    in property <bool> enabled: true;
+    callback clicked;
+    height: 38px;
+    width: contenu.preferred-width;
+    opacity: root.enabled ? 1 : 0.4;
+    // relief
+    Rectangle {
+        y: 3px;
+        height: parent.height - 3px;
+        border-radius: 11px;
+        background: Theme.lip;
+        opacity: root.active ? 0 : 0.8;
+    }
+    face := Rectangle {
+        y: root.active ? 2px : zone.has-hover && root.enabled ? -1px : 0px;
+        height: parent.height - 3px;
+        border-radius: 11px;
+        background: root.active ? Theme.accent.with-alpha(0.35) : Theme.dark ? #0A0F1D9E : #FFFFFFB3;
+        border-width: 1px;
+        border-color: root.active ? Theme.accent : Theme.glass-border;
+        animate y { duration: 120ms; easing: ease-out; }
+        animate background, border-color { duration: Theme.normal; }
+        contenu := HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 7px;
+            Icon {
+                text: root.icon;
+                font-size: 13px;
+                color: Theme.accent;
+            }
+            Text {
+                text: root.text;
+                font-size: 13px;
+                font-weight: 600;
+                color: root.active || zone.has-hover ? Theme.navy : Theme.text-muted;
+                vertical-alignment: center;
+            }
+        }
+    }
+    zone := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// ───────────────────────── La scène (à gauche) ─────────────────────────
+
+/// Le personnage sur un socle lumineux : halo de lune derrière, anneau pointillé qui tourne, lucioles.
+component Scene3D inherits Rectangle {
+    property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
+    property <angle> rot: 0deg;
+    property <bool> glisse: false;
+    property <bool> tourne: true;
+    property <image> vide;
+    property <length> dernier-x: 0px;
+    animate rot { duration: root.glisse ? 0ms : root.tourne ? 70ms : 320ms; easing: ease-out; }
+
+    // rotation automatique (comme sur le site), coupée dès qu'on prend le personnage en main
+    Timer {
+        interval: 70ms;
+        running: root.tourne && !root.glisse && SkinState.has-figure;
+        triggered => { root.rot += 2.4deg; }
+    }
+
+    border-radius: 22px;
+    clip: true;
+    background: Theme.dark ? @linear-gradient(180deg, #162140B8 0%, #0C1324D1 100%) : @linear-gradient(180deg, #FFFFFF59 0%, #DCE8F8A6 100%);
+    border-width: 1px;
+    border-color: Theme.glass-border;
+
+    // halo de lune qui respire (6 s aller-retour)
+    property <float> respire: 0.5 + 0.5 * sin((animation-tick() / 12000ms) * 360deg);
+    Rectangle {
+        property <length> d: min(400px, parent.width * 0.9) * (0.94 + 0.11 * root.respire);
+        x: (parent.width - self.d) / 2;
+        y: parent.height * 0.44 - self.d / 2;
+        width: self.d;
+        height: self.d;
+        border-radius: self.d / 2;
+        opacity: 0.75 + 0.25 * root.respire;
+        background: @radial-gradient(circle, Theme.accent.with-alpha(0.32) 0%, Theme.accent.with-alpha(0.08) 45%, Theme.accent.with-alpha(0) 70%);
+    }
+
+    // socle : lueur aplatie, anneau pointillé qui tourne, anneau intérieur
+    socle := Rectangle {
+        property <length> d: min(300px, parent.width * 0.78);
+        x: (parent.width - self.d) / 2;
+        y: parent.height - 122px - self.d * 0.13;
+        width: self.d;
+        height: self.d * 0.26;
+        Rectangle {
+            border-radius: self.height / 2;
+            background: @radial-gradient(circle, Theme.accent.with-alpha(0.45) 0%, Theme.accent.with-alpha(0.12) 45%, Theme.accent.with-alpha(0) 70%);
+        }
+        // anneau pointillé (28 traits sur l'ellipse, qui tournent en 26 s)
+        for k in 28: Rectangle {
+            property <angle> a: k * (360deg / 28) + (animation-tick() / 26000ms) * 360deg;
+            x: parent.width / 2 + parent.width * 0.44 * cos(self.a) - self.width / 2;
+            y: parent.height / 2 + parent.height * 0.44 * sin(self.a) - self.height / 2;
+            width: 9px;
+            height: 3px;
+            border-radius: 1.5px;
+            transform-rotation: self.a + 90deg;
+            background: #CFE0FF;
+            // l'arrière de l'anneau est plus discret (effet de perspective)
+            opacity: 0.35 + 0.35 * (1 + sin(self.a)) / 2;
+        }
+        // anneau intérieur, plus fin, qui tourne dans l'autre sens (18 s)
+        for k in 40: Rectangle {
+            property <angle> a: k * (360deg / 40) - (animation-tick() / 18000ms) * 360deg;
+            x: parent.width / 2 + parent.width * 0.28 * cos(self.a) - 1.5px;
+            y: parent.height / 2 + parent.height * 0.28 * sin(self.a) - 1.5px;
+            width: 3px;
+            height: 3px;
+            border-radius: 1.5px;
+            background: #CFE0FF;
+            opacity: 0.2 + 0.25 * (1 + sin(self.a)) / 2;
+        }
+    }
+
+    // lucioles qui montent (deux chaudes, comme sur le site)
+    for m[i] in [
+        { x: 0.30, d: 6000ms, r: 0ms, c: #E3EEFF }, { x: 0.62, d: 7000ms, r: 1200ms, c: #E3EEFF }, { x: 0.44, d: 6000ms, r: 2400ms, c: #E3EEFF },
+        { x: 0.70, d: 5500ms, r: 3100ms, c: #E3EEFF }, { x: 0.24, d: 7500ms, r: 4000ms, c: #E3EEFF }, { x: 0.55, d: 6000ms, r: 4800ms, c: #E3EEFF },
+        { x: 0.38, d: 6500ms, r: 5500ms, c: #E3EEFF }, { x: 0.76, d: 6000ms, r: 1800ms, c: #FFE2B0 }, { x: 0.20, d: 6000ms, r: 3600ms, c: #FFE2B0 },
+        { x: 0.50, d: 8000ms, r: 600ms, c: #E3EEFF }
+    ]: Rectangle {
+        property <float> t: Math.mod((animation-tick() + m.r) / m.d, 1);
+        x: parent.width * m.x + (self.t < 0.6 ? 14px * self.t / 0.6 : 14px - 22px * (self.t - 0.6) / 0.4);
+        y: parent.height - 130px - 300px * self.t;
+        width: 4px;
+        height: 4px;
+        border-radius: 1px;
+        background: m.c;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: m.c;
+        opacity: self.t < 0.15 ? self.t / 0.15 : 1 - (self.t - 0.15) / 0.85;
+    }
+
+    // ombre au sol
+    Rectangle {
+        property <float> s: 0.95 + 0.15 * root.onde;
+        x: (parent.width - self.width) / 2;
+        y: socle.y + socle.height / 2 - self.height / 2;
+        width: 110px * self.s;
+        height: 14px * self.s;
+        border-radius: self.height / 2;
+        background: #00000059;
+    }
+
+    // personnage
+    property <length> hauteur-perso: min(330px, root.height - 200px);
+    if SkinState.has-figure: Image {
+        width: root.hauteur-perso * 0.7;
+        height: root.hauteur-perso;
+        x: (parent.width - self.width) / 2;
+        y: socle.y + socle.height / 2 - self.height + 10px + 6px * root.onde;
+        source: SkinState.walk && SkinState.walk-frames.length >= 144 ? SkinState.walk-frames[Math.mod(Math.floor(animation-tick() / 90ms), 12) * 12 + Math.mod(Math.mod(Math.round(root.rot / 30deg), 12) + 12, 12)] : SkinState.frames.length > 0 ? SkinState.frames[Math.mod(Math.mod(Math.round(root.rot / 10deg), 36) + 36, 36)] : root.vide;
+        image-fit: contain;
+        image-rendering: pixelated;
+    }
+    if !SkinState.has-figure && SkinState.loading: Spinner { }
+    if !SkinState.has-figure && !SkinState.loading: Image {
+        x: (parent.width - 110px) / 2;
+        y: parent.height * 0.3 + 6px * root.onde;
+        width: 110px;
+        height: 110px;
+        source: HomeState.has-avatar ? HomeState.avatar : Assets.logo;
+        image-fit: contain;
+        image-rendering: pixelated;
+    }
+
+    // prendre le personnage pour le faire tourner
+    TouchArea {
+        enabled: SkinState.has-figure;
+        mouse-cursor: grab;
+        pointer-event(e) => {
+            if (e.kind == PointerEventKind.down) {
+                root.glisse = true;
+                root.tourne = false;
+                root.dernier-x = self.mouse-x;
+            } else if (e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel) {
+                root.glisse = false;
+            }
+        }
+        moved => {
+            if (root.glisse) {
+                root.rot -= (self.mouse-x - root.dernier-x) / 1px * 1.4deg;
+                root.dernier-x = self.mouse-x;
+            }
+        }
+    }
+
+    // ── en haut : vues et rotation ──
+    property <int> k: Math.mod(Math.mod(Math.round(root.rot / 90deg), 4) + 4, 4);
+    if SkinState.has-figure: Seg {
+        x: 14px;
+        y: 14px;
+        items: [Tr.t("Skin_Vue_Face"), Tr.t("Skin_Vue_Cote"), Tr.t("Skin_Vue_Dos")];
+        current: root.tourne ? -1 : root.k == 0 ? 0 : root.k == 2 ? 2 : 1;
+        choisi(i) => {
+            root.tourne = false;
+            let cible = i == 1 ? 270deg : i * 90deg;
+            root.rot = root.rot + (Math.mod(Math.mod((cible - root.rot) / 1deg + 180, 360) + 360, 360) - 180) * 1deg;
+        }
+    }
+    if SkinState.has-figure: Bascule {
+        x: parent.width - self.width - 14px;
+        y: 14px;
+        icon: "\u{E895}";
+        text: Tr.t("Skin_Rotation");
+        active: root.tourne;
+        clicked => { root.tourne = !root.tourne; }
+    }
+
+    // ── en bas : animation, cape, élytres ──
+    if SkinState.has-figure: Text {
+        y: parent.height - 78px;
+        width: parent.width;
+        text: Tr.t("Skin_Glisser");
+        font-size: 12.5px;
+        color: Theme.text-dim;
+        horizontal-alignment: center;
+    }
+    if SkinState.has-figure: Seg {
+        x: 14px;
+        y: parent.height - self.height - 14px;
+        items: [Tr.t("Skin_Repos"), Tr.t("Skin_Vue_Marche")];
+        current: SkinState.walk ? 1 : 0;
+        choisi(i) => {
+            if ((i == 1) != SkinState.walk) {
+                SkinState.walk = i == 1;
+                SkinState.walk-toggled();
+            }
+        }
+    }
+    if SkinState.has-figure: HorizontalLayout {
+        x: parent.width - self.preferred-width - 14px;
+        y: parent.height - 38px - 14px;
+        height: 38px;
+        spacing: 6px;
+        Bascule {
+            icon: "\u{E7C1}";
+            text: Tr.t("Skin_TaCape");
+            active: SkinState.show-cape && SkinState.misty-equip == 0;
+            enabled: HomeState.premium;
+            clicked => {
+                SkinState.show-cape = !SkinState.show-cape || SkinState.misty-equip != 0;
+                SkinState.misty-equip = 0;
+                SkinState.look-changed();
+            }
+        }
+        Bascule {
+            icon: "\u{E709}";
+            text: Tr.t("Skin_Elytres");
+            active: SkinState.elytra || SkinState.misty-equip == 2;
+            clicked => {
+                if (SkinState.misty-equip == 2) {
+                    SkinState.misty-equip = 0;
+                    SkinState.elytra = false;
+                } else {
+                    SkinState.elytra = !SkinState.elytra;
+                }
+                SkinState.elytra-toggled();
+            }
+        }
+    }
+}
+
+// ───────────────────────── Le vestiaire (à droite) ─────────────────────────
+
+/// Onglet de catégorie (icône + nom), comme les « .cat-tabs » du site.
+component OngletCategorie inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> checked;
+    callback clicked;
+    height: 64px;
+    border-radius: 12px;
+    background: root.checked ? @linear-gradient(160deg, Theme.fill-hover 0%, Theme.fill 100%) : zone.has-hover ? Theme.glass-hover : Theme.glass;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent.with-alpha(0.6) : zone.has-hover ? Theme.glass-border : Theme.line;
+    drop-shadow-offset-y: root.checked ? 3px : 0px;
+    drop-shadow-color: Theme.fill-lip;
+    transform-scale: zone.pressed ? 0.95 : 1;
+    animate background, border-color { duration: Theme.normal; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
+    VerticalLayout {
+        alignment: center;
+        spacing: 5px;
+        Icon {
+            text: root.icon;
+            font-size: 18px;
+            color: root.checked ? Theme.on-fill : Theme.accent;
+        }
+        Text {
+            text: root.text;
+            font-size: 12px;
+            font-weight: 600;
+            color: root.checked ? Theme.on-fill : zone.has-hover ? Theme.navy : Theme.text-muted;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Case « bientôt » : icône pâle sur fond rayé, bordure pointillée.
+component CaseBientot inherits Rectangle {
+    in property <string> icon;
+    border-radius: 12px;
+    clip: true;
+    background: Theme.glass;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    // rayures en biais
+    for r in 12: Rectangle {
+        x: r * 22px - 60px;
+        y: -20px;
+        width: 10px;
+        height: parent.height + 40px;
+        background: Theme.dark ? #FFFFFF08 : #1C233508;
+        transform-rotation: 45deg;
+    }
+    Icon {
+        y: (parent.height - self.height) / 2 - 6px;
+        text: root.icon;
+        font-size: 26px;
+        color: Theme.text-dim;
+        opacity: 0.55;
+    }
+    PixelLabel {
+        y: parent.height - 20px;
+        width: parent.width;
+        text: Tr.t("Skin_Bientot");
+        font-size: 9px;
+        color: Theme.text-dim;
+        horizontal-alignment: center;
+    }
+}
+
+/// Article Misty à essayer (cape ou élytres) : aperçu, nom, bouton Équiper / Retirer.
+component CaseMisty inherits Rectangle {
+    in property <string> text;
+    in property <int> genre;
+    property <bool> equipe: SkinState.misty-equip == root.genre;
+    border-radius: 12px;
+    background: Theme.glass-strong;
+    border-width: root.equipe ? 2px : 1px;
+    border-color: root.equipe ? Theme.accent : Theme.accent.with-alpha(0.45);
+    drop-shadow-blur: root.equipe ? 20px : 0px;
+    drop-shadow-color: Theme.accent.with-alpha(0.5);
+    animate drop-shadow-blur, border-color { duration: Theme.normal; }
+    // lueur derrière l'article
+    Rectangle {
+        border-radius: 12px;
+        background: @radial-gradient(circle, Theme.accent.with-alpha(0.28) 0%, Theme.accent.with-alpha(0) 70%);
+    }
+    VerticalLayout {
+        padding: 8px;
+        spacing: 6px;
+        // aperçu : cape (rectangle au dégradé nuit avec un nuage) ou paire d'ailes
+        Rectangle {
+            vertical-stretch: 1;
+            if root.genre == 1: Rectangle {
+                width: min(parent.width * 0.42, parent.height * 0.62);
+                height: self.width * 1.6;
+                border-radius: 3px;
+                background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
+                drop-shadow-blur: 10px;
+                drop-shadow-color: #00000080;
+                Image {
+                    y: parent.height * 0.22;
+                    width: parent.width * 0.7;
+                    height: self.width * 0.6;
+                    source: Assets.logo;
+                    image-fit: contain;
+                }
+            }
+            if root.genre == 2: HorizontalLayout {
+                alignment: center;
+                spacing: 2px;
+                for c in 2: Rectangle {
+                    width: min(parent.width * 0.22, 30px);
+                    border-radius: 3px;
+                    background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
+                    drop-shadow-blur: 10px;
+                    drop-shadow-color: #00000080;
+                    transform-rotation: c == 0 ? 8deg : -8deg;
+                }
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: 12px;
+            font-weight: 700;
+            color: Theme.navy;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+        MButton {
+            height: 34px;
+            kind: root.equipe ? 0 : 1;
+            text: root.equipe ? Tr.t("Skin_Retirer") : Tr.t("Skin_Equiper");
+            clicked => {
+                SkinState.misty-equip = root.equipe ? 0 : root.genre;
+                SkinState.look-changed();
+            }
+        }
+    }
+}
+
+/// Cape Mojang du joueur (vraie cape, appliquée au compte).
+component CaseCape inherits Rectangle {
     in property <string> name;
     in property <image> image;
     in property <bool> has-image;
     in property <bool> active;
     callback clicked;
-
-    width: 88px;
-    height: 124px;
-    border-radius: 14px;
-    background: root.active ? Theme.panel-strong : touch.has-hover ? Theme.glass-hover : Theme.glass;
-    border-width: root.active ? 2.5px : 1.5px;
-    border-color: root.active ? Theme.green : Theme.glass-border;
-    animate background { duration: 120ms; }
-
-    // fond sombre : les capes claires et sombres restent lisibles
-    if root.has-image: Rectangle {
-        x: (parent.width - 60px) / 2;
-        y: 8px;
-        width: 60px;
-        height: 92px;
-        border-radius: 8px;
-        background: #1C2335AA;
-        Image {
-            x: 4px;
-            y: 4px;
-            width: parent.width - 8px;
-            height: parent.height - 8px;
-            source: root.image;
-            image-fit: contain;
-            image-rendering: pixelated;
-        }
+    border-radius: 12px;
+    background: root.active ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    border-width: root.active ? 2px : 1px;
+    border-color: root.active ? Theme.accent : Theme.glass-border;
+    transform-scale: zone.pressed ? 0.96 : 1;
+    animate background, border-color { duration: Theme.normal; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
+    if root.has-image: Image {
+        x: (parent.width - self.width) / 2;
+        y: 10px;
+        width: min(parent.width * 0.42, (parent.height - 40px) * 0.62);
+        height: self.width * 1.6;
+        source: root.image;
+        image-fit: contain;
+        image-rendering: pixelated;
     }
     if !root.has-image: Icon {
-        y: 8px;
-        width: parent.width;
-        height: 92px;
+        y: 10px;
+        height: parent.height - 40px;
         text: "\u{E711}";
-        font-size: 24px;
-        color: Theme.label;
+        font-size: 22px;
+        color: Theme.text-dim;
     }
-    PixelLabel {
-        x: 4px;
-        y: 102px;
-        width: parent.width - 8px;
-        height: 18px;
+    Text {
+        x: 6px;
+        y: parent.height - 24px;
+        width: parent.width - 12px;
         text: root.name;
-        font-size: 9px;
-        color: Theme.navy;
+        font-size: 11px;
+        font-weight: 600;
+        color: root.active ? Theme.accent : Theme.navy;
         horizontal-alignment: center;
         overflow: elide;
     }
-    touch := TouchArea {
+    zone := TouchArea {
         mouse-cursor: pointer;
         enabled: !SkinState.busy;
         clicked => { root.clicked(); }
@@ -254,138 +564,335 @@ component CapeTile inherits Rectangle {
 }
 
 export component SkinPanel inherits Rectangle {
+    // catégories : icône, nom, description
+    property <[{icon: string, nom: string, texte: string}]> categories: [
+        { icon: "\u{E7C1}", nom: Tr.t("Cos_Capes"), texte: Tr.t("Cos_Capes_T") },
+        { icon: "\u{E709}", nom: Tr.t("Cos_Ailes"), texte: Tr.t("Cos_Ailes_T") },
+        { icon: "\u{E734}", nom: Tr.t("Cos_Chapeaux"), texte: Tr.t("Cos_Chapeaux_T") },
+        { icon: "\u{E81E}", nom: Tr.t("Cos_Tenues"), texte: Tr.t("Cos_Tenues_T") },
+        { icon: "\u{E9A9}", nom: Tr.t("Cos_Effets"), texte: Tr.t("Cos_Effets_T") },
+        { icon: "\u{EB51}", nom: Tr.t("Cos_Compagnons"), texte: Tr.t("Cos_Compagnons_T") },
+        { icon: "\u{E76E}", nom: Tr.t("Cos_Emotes"), texte: Tr.t("Cos_Emotes_T") },
+        { icon: "\u{F158}", nom: Tr.t("Cos_Packs"), texte: Tr.t("Cos_Packs_T") },
+    ];
+    property <int> cat: SkinState.category;
+
     HorizontalLayout {
-        alignment: center;
-        spacing: 26px;
-        padding-left: 14px;
+        spacing: 18px;
+        padding-left: 8px;
 
-        FigureCard { }
+        // ═══ La scène ═══
+        Scene3D {
+            horizontal-stretch: 13;
+            min-width: 360px;
+        }
 
-        GlassCard {
-            max-width: 560px;
-            min-width: 440px;
-            horizontal-stretch: 1;
-            height: 400px;
-            border-radius: 26px;
+        // ═══ Le vestiaire ═══
+        Rectangle {
+            horizontal-stretch: 10;
+            min-width: 340px;
+            max-width: 470px;
+            border-radius: 22px;
             background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.glass-border;
+            clip: true;
 
-            // Pas de compte Microsoft : rien à modifier
-            if !HomeState.premium: VerticalLayout {
-                alignment: center;
-                spacing: 16px;
-                padding: 30px;
-                Icon {
-                    text: "\u{E77B}";
-                    font-size: 34px;
-                    color: Theme.label;
-                }
-                BodyText {
-                    text: Tr.t("Skin_Connexion");
-                    font-size: 15px;
-                    color: Theme.navy2;
-                    horizontal-alignment: center;
-                }
-                HorizontalLayout {
-                    alignment: center;
-                    MButton {
-                        text: Tr.t("Skin_Connecter");
-                        kind: 1;
-                        enabled: !HomeState.ms-busy;
-                        clicked => { HomeState.ms-clicked(); }
-                    }
-                }
-            }
+            ScrollView {
+                content-width: self.visible-width;
+                content-height: vestiaire.preferred-height;
+                vestiaire := VerticalLayout {
+                    width: parent.visible-width;
+                    padding: 20px;
+                    spacing: 14px;
 
-            if HomeState.premium: VerticalLayout {
-                padding: 22px;
-                spacing: 12px;
-
-                HorizontalLayout {
-                    spacing: 10px;
-                    PixelLabel {
-                        text: Tr.t("Skin_Titre");
-                        font-size: 15px;
-                        color: Theme.navy;
-                    }
-                    PixelLabel {
-                        text: HomeState.premium-name;
-                        font-size: 11px;
-                        color: Theme.label;
-                        horizontal-stretch: 1;
-                        overflow: elide;
-                    }
-                    if SkinState.busy || SkinState.loading: Rectangle {
-                        width: 22px;
-                        Icon {
-                            text: "\u{E895}";
-                            font-size: 16px;
-                            color: Theme.green-dark;
-                            transform-rotation: (animation-tick() / 1200ms) * 360deg;
+                    // ── Fiche du joueur ──
+                    HorizontalLayout {
+                        spacing: 14px;
+                        Rectangle {
+                            width: 58px;
+                            height: 58px;
+                            border-radius: 12px;
+                            background: Theme.glass-strong;
+                            border-width: 1px;
+                            border-color: Theme.glass-border;
+                            drop-shadow-offset-y: 4px;
+                            drop-shadow-color: Theme.lip;
+                            clip: true;
+                            Image {
+                                width: parent.width;
+                                height: parent.height;
+                                source: HomeState.has-avatar ? HomeState.avatar : Assets.logo;
+                                image-fit: HomeState.has-avatar ? ImageFit.cover : ImageFit.contain;
+                                image-rendering: HomeState.has-avatar ? ImageRendering.pixelated : ImageRendering.smooth;
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 6px;
+                            Text {
+                                text: HomeState.premium ? HomeState.premium-name : "Steve";
+                                font-size: 22px;
+                                font-weight: 800;
+                                color: Theme.navy;
+                                overflow: elide;
+                            }
+                            HorizontalLayout {
+                                alignment: start;
+                                spacing: 6px;
+                                // modèle de bras : cliquable pour changer (skin à envoyer)
+                                for m[i] in [Tr.t("Skin_Classique"), Tr.t("Skin_Fin")]: Rectangle {
+                                    property <bool> actif: (i == 1) == SkinState.slim;
+                                    height: 26px;
+                                    width: mt.preferred-width + 18px;
+                                    border-radius: 8px;
+                                    background: self.actif ? Theme.accent-soft : mz.has-hover ? Theme.glass-hover : Theme.glass;
+                                    border-width: 1px;
+                                    border-color: self.actif ? Theme.accent : Theme.glass-border;
+                                    animate background, border-color { duration: Theme.fast; }
+                                    mt := Text {
+                                        text: m;
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        color: parent.actif ? Theme.accent : Theme.text-muted;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                    mz := TouchArea {
+                                        mouse-cursor: pointer;
+                                        clicked => {
+                                            if ((i == 1) != SkinState.slim) {
+                                                SkinState.slim = i == 1;
+                                                SkinState.slim-changed();
+                                            }
+                                        }
+                                    }
+                                }
+                                if SkinState.busy || SkinState.loading: Rectangle {
+                                    width: 22px;
+                                    Icon {
+                                        text: "\u{E895}";
+                                        font-size: 14px;
+                                        color: Theme.accent;
+                                        transform-rotation: (animation-tick() / 1200ms) * 360deg;
+                                    }
+                                }
+                            }
                         }
                     }
-                }
 
-                HorizontalLayout {
-                    spacing: 8px;
-                    TabPill {
-                        text: Tr.t("Skin_Classique");
-                        checked: !SkinState.slim;
-                        clicked => {
-                            SkinState.slim = false;
-                            SkinState.slim-changed();
+                    // ── Skin : connexion, ou fichier à envoyer ──
+                    if !HomeState.premium: HorizontalLayout {
+                        spacing: 12px;
+                        BodyText {
+                            horizontal-stretch: 1;
+                            text: Tr.t("Skin_Connexion");
+                            vertical-alignment: center;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            MButton {
+                                text: Tr.t("Skin_Connecter");
+                                kind: 1;
+                                enabled: !HomeState.ms-busy;
+                                clicked => { HomeState.ms-clicked(); }
+                            }
                         }
                     }
-                    TabPill {
-                        text: Tr.t("Skin_Fin");
-                        checked: SkinState.slim;
-                        clicked => {
-                            SkinState.slim = true;
-                            SkinState.slim-changed();
+                    if HomeState.premium: VerticalLayout {
+                        spacing: 8px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: start;
+                            MButton {
+                                text: Tr.t("Skin_Fichier");
+                                icon: "\u{E8E5}";
+                                enabled: !SkinState.busy;
+                                clicked => { SkinState.pick-file(); }
+                            }
+                            MButton {
+                                text: Tr.t("Skin_Appliquer");
+                                icon: "\u{E73E}";
+                                kind: 3;
+                                enabled: SkinState.has-file && !SkinState.busy;
+                                clicked => { SkinState.apply(); }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 16px;
+                            Text {
+                                horizontal-stretch: 1;
+                                text: SkinState.info != "" ? SkinState.info : SkinState.has-file ? SkinState.file-name : Tr.t("Skin_AucunFichier");
+                                font-size: 12px;
+                                color: SkinState.info != "" ? Theme.navy2 : Theme.text-muted;
+                                overflow: elide;
+                            }
+                            // lien NameMC
+                            Rectangle {
+                                width: lien.preferred-width;
+                                lien := HorizontalLayout {
+                                    spacing: 5px;
+                                    Text {
+                                        text: Tr.t("Skin_NameMC");
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                        color: lz.has-hover ? Theme.navy : Theme.accent;
+                                        vertical-alignment: center;
+                                    }
+                                    Icon {
+                                        text: "\u{E8A7}";
+                                        font-size: 10px;
+                                        color: Theme.accent;
+                                    }
+                                }
+                                lz := TouchArea {
+                                    mouse-cursor: pointer;
+                                    clicked => { SkinState.open-namemc(); }
+                                }
+                            }
                         }
                     }
-                }
 
-                HorizontalLayout {
-                    spacing: 8px;
-                    MButton {
-                        text: Tr.t("Skin_Fichier");
-                        icon: "\u{E8E5}";
-                        enabled: !SkinState.busy;
-                        clicked => { SkinState.pick-file(); }
+                    Rectangle {
+                        height: 1px;
+                        background: Theme.line;
                     }
-                    MButton {
-                        text: Tr.t("Skin_Appliquer");
-                        icon: "\u{E73E}";
-                        kind: 3;
-                        enabled: SkinState.has-file && !SkinState.busy;
-                        clicked => { SkinState.apply(); }
-                    }
-                }
-                // une seule ligne : message de retour, sinon le fichier choisi
-                BodyText {
-                    text: SkinState.info != "" ? SkinState.info : SkinState.has-file ? SkinState.file-name : Tr.t("Skin_AucunFichier");
-                    font-size: 12px;
-                    color: SkinState.info != "" ? Theme.navy2 : Theme.text-muted;
-                    overflow: elide;
-                    wrap: no-wrap;
-                }
 
-                PixelLabel {
-                    text: Tr.t("Skin_Capes");
-                    font-size: 13px;
-                    color: Theme.navy;
-                }
-                ScrollView {
-                    vertical-stretch: 1;
-                    content-height: SkinState.cape-rows * 132px;
-                    for c in SkinState.capes: CapeTile {
-                        x: c.col * 96px;
-                        y: c.row * 132px;
-                        name: c.name;
-                        image: c.image;
-                        has-image: c.has-image;
-                        active: c.active;
-                        clicked => { SkinState.select-cape(c.id); }
+                    // ── Cosmétiques ──
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text {
+                            text: Tr.t("Cos_Titre");
+                            font-size: 19px;
+                            font-weight: 700;
+                            color: Theme.navy;
+                        }
+                        BodyText { text: Tr.t("Cos_Texte"); }
+                    }
+
+                    // onglets : 4 colonnes, 2 rangées
+                    for rang in 2: HorizontalLayout {
+                        spacing: 6px;
+                        for col in 4: OngletCategorie {
+                            width: (parent.width - 18px) / 4;
+                            icon: root.categories[rang * 4 + col].icon;
+                            text: root.categories[rang * 4 + col].nom;
+                            checked: root.cat == rang * 4 + col;
+                            clicked => { SkinState.category = rang * 4 + col; }
+                        }
+                    }
+
+                    // panneau de la catégorie
+                    VerticalLayout {
+                        spacing: 6px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Icon {
+                                width: 18px;
+                                text: root.categories[root.cat].icon;
+                                font-size: 15px;
+                                color: Theme.accent;
+                            }
+                            Text {
+                                horizontal-stretch: 1;
+                                text: root.categories[root.cat].nom;
+                                font-size: 16px;
+                                font-weight: 700;
+                                color: Theme.navy;
+                                vertical-alignment: center;
+                            }
+                            // badge « Bientôt disponible », point qui pulse
+                            Rectangle {
+                                width: badge.preferred-width + 30px;
+                                height: 24px;
+                                border-radius: 7px;
+                                background: Theme.accent-soft;
+                                border-width: 1px;
+                                border-color: Theme.accent.with-alpha(0.45);
+                                Rectangle {
+                                    x: 9px;
+                                    width: 6px;
+                                    height: 6px;
+                                    border-radius: 2px;
+                                    background: Theme.toggle-on;
+                                    opacity: 0.65 + 0.35 * sin((animation-tick() / 1600ms) * 360deg);
+                                }
+                                badge := PixelLabel {
+                                    x: 21px;
+                                    text: Tr.t("Skin_BientotDispo");
+                                    font-size: 9.5px;
+                                    color: Theme.accent;
+                                }
+                            }
+                        }
+                        BodyText { text: root.categories[root.cat].texte; }
+                    }
+
+                    // cases : capes Mojang (capes) puis l'article Misty, puis « bientôt »
+                    grille := Rectangle {
+                        property <length> taille: (self.width - 16px) / 3;
+                        property <int> nb-capes: root.cat == 0 ? SkinState.capes.length : 0;
+                        property <int> nb-misty: root.cat <= 1 ? 1 : 0;
+                        property <int> nb-total: max(6, Math.ceil((self.nb-capes + self.nb-misty + 2) / 3) * 3);
+                        height: Math.ceil(self.nb-total / 3) * (self.taille + 8px) - 8px;
+                        for c[i] in SkinState.capes: CaseCape {
+                            visible: root.cat == 0;
+                            x: Math.mod(i, 3) * (grille.taille + 8px);
+                            y: floor(i / 3) * (grille.taille + 8px);
+                            width: grille.taille;
+                            height: grille.taille;
+                            name: c.name;
+                            image: c.image;
+                            has-image: c.has-image;
+                            active: c.active && SkinState.misty-equip != 1;
+                            clicked => {
+                                SkinState.misty-equip = 0;
+                                SkinState.show-cape = true;
+                                SkinState.select-cape(c.id);
+                            }
+                        }
+                        if root.cat <= 1: CaseMisty {
+                            x: Math.mod(grille.nb-capes, 3) * (grille.taille + 8px);
+                            y: floor(grille.nb-capes / 3) * (grille.taille + 8px);
+                            width: grille.taille;
+                            height: grille.taille;
+                            genre: root.cat == 0 ? 1 : 2;
+                            text: root.cat == 0 ? Tr.t("Cos_CapeMisty") : Tr.t("Cos_ElytresMisty");
+                        }
+                        for b in grille.nb-total - grille.nb-capes - grille.nb-misty: CaseBientot {
+                            x: Math.mod(grille.nb-capes + grille.nb-misty + b, 3) * (grille.taille + 8px);
+                            y: floor((grille.nb-capes + grille.nb-misty + b) / 3) * (grille.taille + 8px);
+                            width: grille.taille;
+                            height: grille.taille;
+                            icon: root.categories[root.cat].icon;
+                        }
+                    }
+
+                    // avertissement : l'article Misty n'apparaît pas encore en jeu
+                    if SkinState.misty-equip != 0: Rectangle {
+                        min-height: av.preferred-height;
+                        border-radius: 12px;
+                        background: Theme.dark ? #FFBE5A14 : #FFF1DC;
+                        border-width: 1px;
+                        border-color: Theme.dark ? #FFBE5A59 : #F0B35E;
+                        av := HorizontalLayout {
+                            padding: 11px;
+                            spacing: 10px;
+                            Icon {
+                                width: 16px;
+                                vertical-alignment: top;
+                                text: "\u{E7BA}";
+                                font-size: 14px;
+                                color: #FFC56B;
+                            }
+                            Text {
+                                horizontal-stretch: 1;
+                                text: Tr.t("Cos_PasEnJeu");
+                                font-size: 13px;
+                                color: Theme.dark ? #FFD99A : #6B4210;
+                                wrap: word-wrap;
+                            }
+                        }
                     }
                 }
             }

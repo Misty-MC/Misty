@@ -70,7 +70,14 @@ pub fn installer(app: &Rc<App>) {
     let a = app.clone();
     st.on_slim_changed(move || afficher_personnage(&a));
     let a = app.clone();
-    st.on_elytra_toggled(move || afficher_personnage(&a));
+    st.on_elytra_toggled(move || changer_tenue(&a));
+    let a = app.clone();
+    st.on_look_changed(move || changer_tenue(&a));
+    st.on_open_namemc(|| {
+        if let Some(s) = account::session() {
+            crate::services::system_info::ouvrir(&format!("https://namemc.com/profile/{}", s.pseudo));
+        }
+    });
 
     let a = app.clone();
     st.on_walk_toggled(move || {
@@ -91,6 +98,35 @@ pub fn installer(app: &Rc<App>) {
         let id = id.to_string();
         lancer(async move { changer_cape(&a, id).await });
     });
+}
+
+/// Cape et élytres affichées : l'article Misty essayé, sinon la cape Mojang portée (si elle est montrée).
+fn tenue(app: &App) -> (Option<Vec<u8>>, bool) {
+    let st = s(app);
+    match st.get_misty_equip() {
+        1 => (Some(skins::texture_misty().to_vec()), st.get_elytra()),
+        2 => (Some(skins::texture_misty().to_vec()), true),
+        _ => {
+            let cape = if st.get_show_cape() {
+                let e = app.skin.borrow();
+                e.profil.as_ref().and_then(|p| p.capes.iter().position(|c| c.active)).and_then(|i| e.capes_img.get(i).cloned().flatten())
+            } else {
+                None
+            };
+            (cape, st.get_elytra())
+        }
+    }
+}
+
+/// Changement de tenue (cape montrée ou non, élytres, article Misty) : on recalcule le personnage.
+fn changer_tenue(app: &Rc<App>) {
+    let st = s(app);
+    // Sans compte et sans rien d'essayé : Steve tel quel
+    if account::session().is_none() && st.get_misty_equip() == 0 && !st.get_elytra() {
+        afficher_steve(app, false);
+    } else {
+        afficher_personnage(app);
+    }
 }
 
 /// Connexion / déconnexion : on repart de zéro.
@@ -349,15 +385,14 @@ fn charger(app: &Rc<App>) {
 /// Calcule les images de la marche (en arrière-plan) pour le skin et la cape affichés.
 fn rendre_marche(app: &Rc<App>) {
     let fin = s(app).get_slim();
-    let elytres = s(app).get_elytra();
-    let (png, cape, generation) = {
+    let (cape, elytres) = tenue(app);
+    let (png, generation) = {
         let e = app.skin.borrow();
         let mut png = e.fichier.clone().unwrap_or_else(|| e.skin_actuel.clone());
         if png.is_empty() {
             png = include_bytes!("../../assets/steve.png").to_vec();
         }
-        let cape = e.profil.as_ref().and_then(|p| p.capes.iter().position(|c| c.active)).and_then(|i| e.capes_img.get(i).cloned().flatten());
-        (png, cape, e.generation)
+        (png, e.generation)
     };
     let a = app.clone();
     lancer(async move {
@@ -375,13 +410,16 @@ fn rendre_marche(app: &Rc<App>) {
 fn afficher_personnage(app: &Rc<App>) {
     s(app).set_walk_frames(modele(Vec::new()));
     let fin = s(app).get_slim();
-    let elytres = s(app).get_elytra();
-    let (png, cape, generation) = {
+    let (cape, elytres) = tenue(app);
+    let (png, generation) = {
         let mut e = app.skin.borrow_mut();
         e.generation += 1;
-        let png = e.fichier.clone().unwrap_or_else(|| e.skin_actuel.clone());
-        let cape = e.profil.as_ref().and_then(|p| p.capes.iter().position(|c| c.active)).and_then(|i| e.capes_img.get(i).cloned().flatten());
-        (png, cape, e.generation)
+        let mut png = e.fichier.clone().unwrap_or_else(|| e.skin_actuel.clone());
+        // pas de compte : Steve (pour essayer la cape ou les élytres Misty)
+        if png.is_empty() {
+            png = include_bytes!("../../assets/steve.png").to_vec();
+        }
+        (png, e.generation)
     };
     let a = app.clone();
     lancer(async move {

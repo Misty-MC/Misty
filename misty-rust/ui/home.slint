@@ -401,9 +401,10 @@ export component HomePage inherits Rectangle {
             // Onglet « Skin » : aperçu, skin et capes
             if SkinState.tab == 1: VerticalLayout {
                 horizontal-stretch: 1;
-                alignment: center;
+                padding-top: 4px;
+                padding-bottom: 4px;
                 SkinPanel {
-                    height: 400px;
+                    vertical-stretch: 1;
                 }
             }
 

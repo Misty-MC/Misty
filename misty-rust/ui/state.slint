@@ -354,6 +354,8 @@ export global SettingsState {
     callback particles-toggled(bool);
     callback blur-toggled(bool);
     callback seasonal-toggled(bool);
+    in-out property <float> bg-blur: 0;
+    callback bg-blur-changed(float);
     in-out property <bool> seasonal: true;
     callback downloads-changed(float);
     callback clear-cache();
