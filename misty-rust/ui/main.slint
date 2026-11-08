@@ -13,6 +13,7 @@ import { PacksPage, PackCreateOverlay } from "packs.slint";
 import { EditorPage } from "editor.slint";
 import { ScrollView } from "std-widgets.slint";
 import { Paysage } from "scene.slint";
+import { VersionPicker } from "versions.slint";
 
 export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState }
 
@@ -454,6 +455,9 @@ export component MainWindow inherits Window {
 
         // ═══ Fenêtre des options (toujours présente, pour pouvoir animer sa fermeture) ═══
         SettingsModal { }
+
+        // ═══ Choix de la version ou du profil ═══
+        VersionPicker { }
 
         // ═══ Écran de chargement (au lancement) ═══
         Chargement { }

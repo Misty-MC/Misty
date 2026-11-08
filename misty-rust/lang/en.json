@@ -535,5 +535,19 @@
   "Discord_Options": "In the settings",
   "Discord_JoueEnTantQue": "Playing as {0}",
   "Discord_Bouton": "Get Misty",
-  "Nav_Skin": "Skin"
+  "Nav_Skin": "Skin",
+  "Cos_Tags": "Tags",
+  "Cos_Tags_T": "Styles for the name above your head: colors, effects and badges.",
+  "Ver_Titre": "Choose a version",
+  "Ver_Onglet_Versions": "Versions",
+  "Ver_Onglet_Profils": "Profiles",
+  "Ver_Releases": "Releases",
+  "Ver_Betas": "Betas",
+  "Ver_Release": "Release",
+  "Ver_Beta": "Beta",
+  "Ver_Recherche": "Search a version…",
+  "Ver_LoadersAttente": "Pick a version to see its mod loaders.",
+  "Ver_Aucune": "No version matches these filters.",
+  "Ver_Profils_Texte": "Quick play uses the version chosen in the Versions tab. A profile has its own version, mods and worlds.",
+  "Home_JeuRapide_Detail": "Any version, without a profile"
 }

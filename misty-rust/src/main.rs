@@ -111,6 +111,16 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             attendre(2500).await;
             photo(&app, nom, &dossier);
         }
+        // Fenêtre de choix de la version, puis des profils
+        let accueil = app.ui.global::<HomeState>();
+        accueil.set_picker_tab(0);
+        accueil.set_picker_open(true);
+        attendre(1500).await;
+        photo(&app, "0g-versions", &dossier);
+        accueil.set_picker_tab(1);
+        attendre(900).await;
+        photo(&app, "0h-profils", &dossier);
+        accueil.set_picker_open(false);
         app.ui.global::<SkinState>().set_anim(0);
         app.ui.global::<SkinState>().set_elytra(false);
         app.ui.global::<SkinState>().invoke_elytra_toggled();

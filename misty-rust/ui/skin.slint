@@ -254,7 +254,9 @@ component Scene3D inherits Rectangle {
     }
 
     // personnage : rendu en direct (sinon, en attendant, les vues pré-calculées)
-    property <length> cote: min(400px, root.height - 130px, root.width - 20px);
+    property <length> cote: min(380px, root.height - 190px, root.width - 20px);
+    /// haut de l'image du personnage (pour poser le pseudo au-dessus de la tête)
+    property <length> haut-image: socle.y + socle.height / 2 - root.cote * (0.5 + 16 * 9 / 320) + 4px;
     if SkinState.live-ready: Image {
         width: root.cote;
         height: root.cote;
@@ -283,6 +285,25 @@ component Scene3D inherits Rectangle {
         source: HomeState.has-avatar ? HomeState.avatar : Assets.logo;
         image-fit: contain;
         image-rendering: pixelated;
+    }
+
+    // pseudo au-dessus de la tête (en pixel, sur un fond sombre, comme dans le jeu)
+    if SkinState.live-ready || SkinState.has-figure: Rectangle {
+        property <string> nom: HomeState.premium ? HomeState.premium-name : HomeState.account-index >= 0 && HomeState.account-index < HomeState.accounts.length ? HomeState.accounts[HomeState.account-index] : "Steve";
+        width: etiquette.preferred-width + 22px;
+        height: 30px;
+        x: (parent.width - self.width) / 2;
+        y: max(58px, root.haut-image + root.cote * 0.05 - self.height - 6px + 4px * root.onde);
+        border-radius: 3px;
+        background: #0A0F1D8C;
+        etiquette := Text {
+            text: parent.nom.to-uppercase();
+            font-family: Theme.pixel-font;
+            font-size: 16px;
+            color: #EAF1FF;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
     }
 
     // prendre le personnage : de gauche à droite pour tourner, de haut en bas pour l'incliner
@@ -614,6 +635,7 @@ export component SkinPanel inherits Rectangle {
         { icon: "\u{E9A9}", nom: Tr.t("Cos_Effets"), texte: Tr.t("Cos_Effets_T") },
         { icon: "\u{EB51}", nom: Tr.t("Cos_Compagnons"), texte: Tr.t("Cos_Compagnons_T") },
         { icon: "\u{E76E}", nom: Tr.t("Cos_Emotes"), texte: Tr.t("Cos_Emotes_T") },
+        { icon: "\u{E8EC}", nom: Tr.t("Cos_Tags"), texte: Tr.t("Cos_Tags_T") },
         { icon: "\u{F158}", nom: Tr.t("Cos_Packs"), texte: Tr.t("Cos_Packs_T") },
     ];
     property <int> cat: SkinState.category;
@@ -811,15 +833,15 @@ export component SkinPanel inherits Rectangle {
                         BodyText { text: Tr.t("Cos_Texte"); }
                     }
 
-                    // onglets : 4 colonnes, 2 rangées
-                    for rang in 2: HorizontalLayout {
+                    // onglets : 3 colonnes, 3 rangées
+                    for rang in 3: HorizontalLayout {
                         spacing: 6px;
-                        for col in 4: OngletCategorie {
-                            width: (parent.width - 18px) / 4;
-                            icon: root.categories[rang * 4 + col].icon;
-                            text: root.categories[rang * 4 + col].nom;
-                            checked: root.cat == rang * 4 + col;
-                            clicked => { SkinState.category = rang * 4 + col; }
+                        for col in 3: OngletCategorie {
+                            width: (parent.width - 12px) / 3;
+                            icon: root.categories[rang * 3 + col].icon;
+                            text: root.categories[rang * 3 + col].nom;
+                            checked: root.cat == rang * 3 + col;
+                            clicked => { SkinState.category = rang * 3 + col; }
                         }
                     }
 

@@ -297,7 +297,7 @@ export component PlayButton inherits Rectangle {
     callback clicked;
 
     border-radius: 22px;
-    background: root.enabled ? Theme.green-edge : #3E526A;
+    background: root.enabled ? #2C4F9E : #3E526A;
     opacity: root.enabled ? 1 : 0.7;
 
     face := Rectangle {
@@ -305,8 +305,8 @@ export component PlayButton inherits Rectangle {
         height: parent.height - 6px;
         border-radius: 22px;
         background: !root.enabled ? @linear-gradient(180deg, #8B9BB0 0%, #6B7C93 100%)
-            : touch.has-hover ? @linear-gradient(180deg, #52F28D 0%, #1FCB5D 100%)
-            : @linear-gradient(180deg, #3BEB7B 0%, #16C052 100%);
+            : touch.has-hover ? @linear-gradient(180deg, #C4DAFF 0%, #8AAEFF 100%)
+            : @linear-gradient(180deg, #B4CFFF 0%, #6F9CFF 100%);
         border-width: 2px;
         border-color: #FFFFFF55;
         animate y { duration: 80ms; }
@@ -315,7 +315,7 @@ export component PlayButton inherits Rectangle {
             font-family: Theme.pixel-font;
             font-size: root.font-size;
             color: white;
-            stroke: root.enabled ? Theme.green-edge : #3E526A;
+            stroke: root.enabled ? #2C4F9E : #3E526A;
             stroke-width: 2px;
             stroke-style: outside;
             horizontal-alignment: center;

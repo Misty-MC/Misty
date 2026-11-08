@@ -1,0 +1,378 @@
+// Fenêtre de choix de la version (comme Lunar) : onglets Versions / Profils, filtres par type en haut
+// (versions, snapshots, bêtas, alphas), recherche, mod loader, et une grande grille de versions.
+
+import { Theme, Tr, Assets } from "theme.slint";
+import { HomeState, VersionItem, ProfileItem } from "state.slint";
+import { Icon, PixelLabel, BodyText, GlassInput, MButton, Thumb } from "widgets.slint";
+import { ScrollView } from "std-widgets.slint";
+
+/// Pastille de filtre (type de version, loader, onglet).
+component Puce inherits Rectangle {
+    in property <string> text;
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    in property <color> point: transparent;
+    callback clicked;
+    height: 36px;
+    width: contenu.preferred-width;
+    border-radius: 11px;
+    background: root.checked ? Theme.fill : zone.has-hover && root.enabled ? Theme.glass-hover : Theme.glass;
+    border-width: 1px;
+    border-color: root.checked ? Theme.fill : Theme.glass-border;
+    opacity: root.enabled ? 1 : 0.45;
+    transform-scale: zone.pressed && root.enabled ? 0.95 : 1;
+    animate background, border-color { duration: Theme.normal; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
+    contenu := HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 8px;
+        if root.point != transparent: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 2px;
+                background: root.point;
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: 13px;
+            font-weight: 600;
+            color: root.checked ? Theme.on-fill : Theme.navy;
+            vertical-alignment: center;
+        }
+    }
+    zone := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Couleur et nom de chaque type de version.
+global Types {
+    out property <[color]> couleurs: [#1DE062, #FFBE5A, #9CC0FF, #FF8A7A];
+}
+
+/// Carte d'une version : numéro en pixel, type en dessous.
+component CarteVersion inherits Rectangle {
+    in property <string> id;
+    in property <int> kind;
+    in property <bool> checked;
+    callback clicked;
+    border-radius: 14px;
+    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    border-width: root.checked ? 2px : 1px;
+    border-color: root.checked ? Theme.accent : zone.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
+    drop-shadow-blur: root.checked ? 18px : 0px;
+    drop-shadow-color: Theme.accent.with-alpha(0.35);
+    transform-scale: zone.pressed ? 0.96 : zone.has-hover ? 1.03 : 1;
+    animate background, border-color, drop-shadow-blur { duration: Theme.normal; }
+    animate transform-scale { duration: 160ms; easing: ease-out; }
+    VerticalLayout {
+        padding: 12px;
+        spacing: 6px;
+        alignment: center;
+        Text {
+            text: root.id;
+            font-family: Theme.pixel-font;
+            font-size: 15px;
+            color: root.checked ? Theme.accent : Theme.navy;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            alignment: center;
+            spacing: 6px;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    background: Types.couleurs[root.kind];
+                }
+            }
+            Text {
+                text: root.kind == 0 ? Tr.t("Ver_Release") : root.kind == 1 ? "Snapshot" : root.kind == 2 ? Tr.t("Ver_Beta") : "Alpha";
+                font-size: 11.5px;
+                color: Theme.text-muted;
+            }
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Carte d'un profil.
+component CarteProfil inherits Rectangle {
+    in property <ProfileItem> p;
+    in property <bool> checked;
+    callback clicked;
+    height: 76px;
+    border-radius: 14px;
+    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    border-width: root.checked ? 2px : 1px;
+    border-color: root.checked ? Theme.accent : Theme.glass-border;
+    transform-scale: zone.pressed ? 0.97 : 1;
+    animate background, border-color { duration: Theme.normal; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
+    HorizontalLayout {
+        padding: 12px;
+        spacing: 12px;
+        Thumb {
+            width: 52px;
+            height: 52px;
+            radius: 12px;
+            logo-margin: 10px;
+            logo-opacity: 1;
+            source: root.p.icon;
+            has-image: root.p.has-icon;
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 3px;
+            Text {
+                text: root.p.name;
+                font-size: 15px;
+                font-weight: 700;
+                color: root.checked ? Theme.accent : Theme.navy;
+                overflow: elide;
+            }
+            Text {
+                text: root.p.detail;
+                font-size: 12.5px;
+                color: Theme.text-muted;
+                overflow: elide;
+            }
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component VersionPicker inherits Rectangle {
+    property <bool> ouvert: HomeState.picker-open;
+    opacity: root.ouvert ? 1 : 0;
+    visible: self.opacity > 0.01;
+    animate opacity { duration: root.ouvert ? 200ms : 150ms; easing: ease-out; }
+
+    Rectangle { background: Theme.scrim; }
+    TouchArea {
+        enabled: root.ouvert;
+        clicked => { HomeState.picker-open = false; }
+    }
+
+    carte := Rectangle {
+        width: min(1040px, parent.width - 100px);
+        height: min(680px, parent.height - 60px);
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2 + (root.ouvert ? 0px : 16px);
+        border-radius: 24px;
+        background: Theme.surface;
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        drop-shadow-blur: 50px;
+        drop-shadow-offset-y: 12px;
+        drop-shadow-color: Theme.shadow;
+        transform-scale: root.ouvert ? 1 : 0.96;
+        animate y, transform-scale { duration: root.ouvert ? 360ms : 160ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+        clip: true;
+        TouchArea { }
+
+        VerticalLayout {
+            padding: 24px;
+            padding-bottom: 0px;
+            spacing: 16px;
+
+            // ── En-tête : titre, onglets, fermer ──
+            HorizontalLayout {
+                spacing: 14px;
+                Text {
+                    text: Tr.t("Ver_Titre");
+                    font-size: 24px;
+                    font-weight: 800;
+                    color: Theme.navy;
+                    vertical-alignment: center;
+                }
+                Rectangle { horizontal-stretch: 1; }
+                VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Puce {
+                            text: Tr.t("Ver_Onglet_Versions");
+                            checked: HomeState.picker-tab == 0;
+                            clicked => { HomeState.picker-tab = 0; }
+                        }
+                        Puce {
+                            text: Tr.t("Ver_Onglet_Profils");
+                            checked: HomeState.picker-tab == 1;
+                            clicked => { HomeState.picker-tab = 1; }
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 20px;
+                        background: fermer.has-hover ? Theme.glass-hover : Theme.glass;
+                        border-width: 1px;
+                        border-color: fermer.has-hover ? Theme.accent : Theme.glass-border;
+                        transform-rotation: fermer.has-hover ? 90deg : 0deg;
+                        animate transform-rotation { duration: 260ms; easing: ease-out; }
+                        animate background, border-color { duration: Theme.fast; }
+                        Icon {
+                            text: "\u{E8BB}";
+                            font-size: 12px;
+                        }
+                        fermer := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { HomeState.picker-open = false; }
+                        }
+                    }
+                }
+            }
+
+            // ── Versions ──
+            if HomeState.picker-tab == 0: VerticalLayout {
+                vertical-stretch: 1;
+                spacing: 14px;
+                // filtres : types, recherche
+                HorizontalLayout {
+                    spacing: 8px;
+                    Puce {
+                        text: Tr.t("Ver_Releases");
+                        point: Types.couleurs[0];
+                        checked: HomeState.picker-release;
+                        clicked => {
+                            HomeState.picker-release = !HomeState.picker-release;
+                            HomeState.picker-changed();
+                        }
+                    }
+                    Puce {
+                        text: "Snapshots";
+                        point: Types.couleurs[1];
+                        checked: HomeState.picker-snapshot;
+                        clicked => {
+                            HomeState.picker-snapshot = !HomeState.picker-snapshot;
+                            HomeState.picker-changed();
+                        }
+                    }
+                    Puce {
+                        text: Tr.t("Ver_Betas");
+                        point: Types.couleurs[2];
+                        checked: HomeState.picker-beta;
+                        clicked => {
+                            HomeState.picker-beta = !HomeState.picker-beta;
+                            HomeState.picker-changed();
+                        }
+                    }
+                    Puce {
+                        text: "Alphas";
+                        point: Types.couleurs[3];
+                        checked: HomeState.picker-alpha;
+                        clicked => {
+                            HomeState.picker-alpha = !HomeState.picker-alpha;
+                            HomeState.picker-changed();
+                        }
+                    }
+                    Rectangle { horizontal-stretch: 1; }
+                    GlassInput {
+                        width: 220px;
+                        height: 36px;
+                        search: true;
+                        placeholder: Tr.t("Ver_Recherche");
+                        text <=> HomeState.picker-search;
+                        edited => { HomeState.picker-changed(); }
+                    }
+                }
+                // mod loader de la version choisie
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    VerticalLayout {
+                        alignment: center;
+                        PixelLabel {
+                            text: Tr.t("Commun_ModLoader");
+                            font-size: 10.5px;
+                        }
+                    }
+                    Rectangle { width: 4px; }
+                    for m[i] in HomeState.modes: Puce {
+                        text: m;
+                        checked: i == HomeState.mode-index;
+                        enabled: HomeState.modes-enabled;
+                        clicked => {
+                            HomeState.mode-index = i;
+                            HomeState.mode-selected(i);
+                        }
+                    }
+                    if HomeState.modes.length == 0: VerticalLayout {
+                        alignment: center;
+                        Text {
+                            text: Tr.t("Ver_LoadersAttente");
+                            font-size: 13px;
+                            color: Theme.text-muted;
+                        }
+                    }
+                }
+                // grille
+                grille := ScrollView {
+                    vertical-stretch: 1;
+                    property <int> colonnes: max(3, floor((self.visible-width + 10px) / 150px));
+                    property <length> largeur: (self.visible-width - (self.colonnes - 1) * 10px) / self.colonnes;
+                    content-width: self.visible-width;
+                    content-height: ceil(HomeState.picker-versions.length / self.colonnes) * 86px + 24px;
+                    for v[i] in HomeState.picker-versions: CarteVersion {
+                        x: Math.mod(i, grille.colonnes) * (grille.largeur + 10px);
+                        y: floor(i / grille.colonnes) * 86px;
+                        width: grille.largeur;
+                        height: 76px;
+                        id: v.id;
+                        kind: v.kind;
+                        checked: HomeState.quick && v.id == HomeState.card-version;
+                        clicked => { HomeState.version-picked(v.id); }
+                    }
+                    if HomeState.picker-versions.length == 0: Text {
+                        y: 40px;
+                        width: parent.width;
+                        text: Tr.t("Ver_Aucune");
+                        font-size: 14px;
+                        color: Theme.text-muted;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+
+            // ── Profils ──
+            if HomeState.picker-tab == 1: ScrollView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                content-height: liste.preferred-height + 24px;
+                liste := VerticalLayout {
+                    width: parent.visible-width;
+                    spacing: 10px;
+                    BodyText { text: Tr.t("Ver_Profils_Texte"); }
+                    for p[i] in HomeState.profile-items: CarteProfil {
+                        p: p;
+                        checked: i == HomeState.profile-index;
+                        clicked => {
+                            HomeState.profile-index = i;
+                            HomeState.profile-selected(i);
+                            HomeState.picker-open = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

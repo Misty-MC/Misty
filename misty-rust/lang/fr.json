@@ -535,5 +535,19 @@
   "Discord_Options": "Dans les options",
   "Discord_JoueEnTantQue": "Joue en tant que {0}",
   "Discord_Bouton": "Télécharger Misty",
-  "Nav_Skin": "Skin"
+  "Nav_Skin": "Skin",
+  "Cos_Tags": "Tags",
+  "Cos_Tags_T": "Des styles pour le pseudo au-dessus de ta tête : couleurs, effets et badges.",
+  "Ver_Titre": "Choisir une version",
+  "Ver_Onglet_Versions": "Versions",
+  "Ver_Onglet_Profils": "Profils",
+  "Ver_Releases": "Versions",
+  "Ver_Betas": "Bêtas",
+  "Ver_Release": "Version",
+  "Ver_Beta": "Bêta",
+  "Ver_Recherche": "Chercher une version…",
+  "Ver_LoadersAttente": "Choisis une version pour voir ses mod loaders.",
+  "Ver_Aucune": "Aucune version ne correspond à ces filtres.",
+  "Ver_Profils_Texte": "Le jeu rapide utilise la version choisie dans l'onglet Versions. Un profil a sa propre version, ses mods et ses mondes.",
+  "Home_JeuRapide_Detail": "N'importe quelle version, sans profil"
 }

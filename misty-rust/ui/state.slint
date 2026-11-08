@@ -76,7 +76,33 @@ export global DialogState {
 
 // ───────────────────────── Accueil ─────────────────────────
 
+/// Version de la fenêtre de choix : 0 release · 1 snapshot · 2 bêta · 3 alpha
+export struct VersionItem {
+    id: string,
+    kind: int,
+}
+
+/// Profil de la fenêtre de choix (le premier est le jeu rapide).
+export struct ProfileItem {
+    name: string,
+    detail: string,
+    icon: image,
+    has-icon: bool,
+}
+
 export global HomeState {
+    /// Fenêtre de choix de la version (0 versions · 1 profils)
+    in-out property <bool> picker-open;
+    in-out property <int> picker-tab: 0;
+    in property <[VersionItem]> picker-versions;
+    in-out property <bool> picker-release: true;
+    in-out property <bool> picker-snapshot: false;
+    in-out property <bool> picker-beta: false;
+    in-out property <bool> picker-alpha: false;
+    in-out property <string> picker-search;
+    callback picker-changed();
+    callback version-picked(string);
+    in property <[ProfileItem]> profile-items;
     /// Dernière news (dernière release GitHub, ou notes de version intégrées hors ligne)
     in property <bool> news-visible;
     in property <string> news-title;

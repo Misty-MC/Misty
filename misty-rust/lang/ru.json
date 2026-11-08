@@ -535,5 +535,19 @@
   "Discord_Options": "В настройках",
   "Discord_JoueEnTantQue": "Играет как {0}",
   "Discord_Bouton": "Скачать Misty",
-  "Nav_Skin": "Скин"
+  "Nav_Skin": "Скин",
+  "Cos_Tags": "Теги",
+  "Cos_Tags_T": "Стили для ника над головой: цвета, эффекты и значки.",
+  "Ver_Titre": "Выбор версии",
+  "Ver_Onglet_Versions": "Версии",
+  "Ver_Onglet_Profils": "Профили",
+  "Ver_Releases": "Релизы",
+  "Ver_Betas": "Беты",
+  "Ver_Release": "Релиз",
+  "Ver_Beta": "Бета",
+  "Ver_Recherche": "Найти версию…",
+  "Ver_LoadersAttente": "Выбери версию, чтобы увидеть загрузчики.",
+  "Ver_Aucune": "Нет версий по этим фильтрам.",
+  "Ver_Profils_Texte": "Быстрая игра использует версию из вкладки «Версии». У профиля свои версия, моды и миры.",
+  "Home_JeuRapide_Detail": "Любая версия, без профиля"
 }

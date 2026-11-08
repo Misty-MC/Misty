@@ -1,6 +1,6 @@
 //! Page d'accueil : choix du compte, du profil (ou jeu rapide : version + mod loader) et lancement du jeu.
 
-use super::{dialogs, images, lancer, modele_textes, App};
+use super::{dialogs, images, lancer, modele, modele_textes, App};
 use crate::minecraft::{install, launch, loaders, FileProgress, McDirs};
 use crate::services::instances::{self, Instance};
 use crate::services::{account, content, discord, loc, pseudos, settings};
@@ -23,6 +23,8 @@ pub struct Etat {
     versions: Vec<String>,
     modes: Vec<String>,
     pseudos: Vec<String>,
+    /// Toutes les versions de Mojang, avec leur type (0 release, 1 snapshot, 2 bêta, 3 alpha)
+    toutes: Vec<(String, i32)>,
 }
 
 fn h(app: &App) -> HomeState<'_> {
@@ -69,6 +71,14 @@ pub fn installer(app: &Rc<App>) {
         settings::set(settings::DERNIER_PROFIL, profil.as_ref().map(|p| p.id.as_str()).unwrap_or(""));
         a.home.borrow_mut().profil = profil;
         maj_mode_profil(&a);
+    });
+    // Fenêtre de choix de version
+    let a = app.clone();
+    s.on_picker_changed(move || filtrer_versions(&a));
+    let a = app.clone();
+    s.on_version_picked(move |id| {
+        let a = a.clone();
+        lancer(async move { version_choisie_par_id(&a, id.to_string()).await });
     });
     let a = app.clone();
     s.on_version_selected(move |i| {
@@ -274,6 +284,29 @@ fn charger_profils(app: &Rc<App>) {
 
     h(app).set_profiles(modele_textes(&noms));
     h(app).set_profile_index(index as i32);
+    // cartes de la fenêtre de choix
+    let cartes: Vec<crate::ProfileItem> = profils
+        .iter()
+        .zip(&noms)
+        .map(|(p, nom)| {
+            let icone = p
+                .as_ref()
+                .and_then(|i| std::fs::read(i.chemin_icone()).ok())
+                .and_then(|o| super::images::decoder(&o, 96))
+                .map(slint::Image::from_rgba8);
+            crate::ProfileItem {
+                name: nom.clone().into(),
+                detail: match p {
+                    Some(i) => format!("{} · {}", i.version_mc, i.loader),
+                    None => loc::t("Home_JeuRapide_Detail"),
+                }
+                .into(),
+                has_icon: icone.is_some(),
+                icon: icone.unwrap_or_default(),
+            }
+        })
+        .collect();
+    h(app).set_profile_items(modele(cartes));
     {
         let mut e = app.home.borrow_mut();
         e.profil = profils[index].clone();
@@ -369,12 +402,71 @@ async fn charger_versions(app: &Rc<App>) {
         Ok(v) => {
             h(app).set_versions(modele_textes(&v));
             app.home.borrow_mut().versions = v;
+            // la fenêtre de choix propose toutes les versions, filtrées par type
+            if let Ok(m) = app.bg(install::manifeste()).await {
+                let toutes = m
+                    .into_iter()
+                    .filter_map(|v| {
+                        let k = match v.type_.as_str() {
+                            "release" => 0,
+                            "snapshot" => 1,
+                            "old_beta" => 2,
+                            "old_alpha" => 3,
+                            _ => return None,
+                        };
+                        Some((v.id, k))
+                    })
+                    .collect();
+                app.home.borrow_mut().toutes = toutes;
+                filtrer_versions(app);
+            }
         }
         Err(e) => {
             statut(app, &loc::t("Home_VersionsImpossible"));
             dialogs::erreur(app, &loc::t("Home_VersionsIndisponibles"), &loc::tf("Home_VersionsErreur", &[&e])).await;
         }
     }
+}
+
+/// Versions affichées dans la fenêtre de choix : types cochés, et recherche.
+fn filtrer_versions(app: &App) {
+    let s = h(app);
+    let types = [s.get_picker_release(), s.get_picker_snapshot(), s.get_picker_beta(), s.get_picker_alpha()];
+    let recherche = s.get_picker_search().trim().to_lowercase();
+    let liste: Vec<crate::VersionItem> = app
+        .home
+        .borrow()
+        .toutes
+        .iter()
+        .filter(|(id, k)| types[*k as usize] && (recherche.is_empty() || id.to_lowercase().contains(&recherche)))
+        .map(|(id, k)| crate::VersionItem { id: id.clone().into(), kind: *k })
+        .collect();
+    s.set_picker_versions(modele(liste));
+}
+
+/// Une version choisie dans la grande fenêtre : on passe en jeu rapide sur cette version (même si
+/// son type est masqué dans les options).
+async fn version_choisie_par_id(app: &Rc<App>, id: String) {
+    if app.home.borrow().profil.is_some() {
+        settings::set(settings::DERNIER_PROFIL, "");
+        app.home.borrow_mut().profil = None;
+        h(app).set_profile_index(0);
+        maj_mode_profil(app);
+    }
+    let index = {
+        let mut e = app.home.borrow_mut();
+        match e.versions.iter().position(|v| *v == id) {
+            Some(i) => i,
+            None => {
+                e.versions.insert(0, id.clone());
+                0
+            }
+        }
+    };
+    let versions = app.home.borrow().versions.clone();
+    h(app).set_versions(modele_textes(&versions));
+    h(app).set_version_index(index as i32);
+    version_choisie(app, index as i32).await;
 }
 
 fn charger_derniere_version(app: &Rc<App>) {

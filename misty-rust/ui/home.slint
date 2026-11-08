@@ -497,100 +497,75 @@ export component HomePage inherits Rectangle {
                             }
                         }
 
-                        // espace entre le compte et le profil (plus de trait)
-                        Rectangle { width: 1.5px; }
+                        Rectangle { width: 22px; }
 
-                        HorizontalLayout {
-                            padding-left: 18px;
-                            spacing: 10px;
-
-                            // Profil
-                            VerticalLayout {
-                                alignment: end;
-                                spacing: 6px;
-                                Label { text: Tr.t("Home_Profil"); }
-                                GlassCombo {
-                                    width: 160px;
-                                    model: HomeState.profiles;
-                                    current-index <=> HomeState.profile-index;
-                                    enabled: HomeState.selectors-enabled;
-                                    selected(i) => { HomeState.profile-selected(i); }
-                                }
-                            }
-
-                            // Jeu rapide : version + loader au choix
-                            if HomeState.quick: HorizontalLayout {
-                                spacing: 10px;
-                                VerticalLayout {
-                                    alignment: end;
-                                    spacing: 6px;
-                                    Label { text: Tr.t("Commun_Version"); }
+                        // Version ou profil : un seul bouton, qui ouvre la grande fenêtre de choix
+                        VerticalLayout {
+                            alignment: end;
+                            spacing: 6px;
+                            Label { text: HomeState.quick ? Tr.t("Commun_Version") : Tr.t("Home_Profil"); }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                choix := Rectangle {
+                                    width: 300px;
+                                    height: 44px;
+                                    border-radius: 12px;
+                                    background: zone-choix.has-hover && HomeState.selectors-enabled ? Theme.glass-hover : Theme.glass-strong;
+                                    border-width: 1px;
+                                    border-color: zone-choix.has-hover && HomeState.selectors-enabled ? Theme.accent : Theme.glass-border;
+                                    opacity: HomeState.selectors-enabled ? 1 : 0.55;
+                                    animate background, border-color { duration: Theme.fast; }
                                     HorizontalLayout {
-                                        spacing: 8px;
-                                        GlassCombo {
-                                            width: 130px;
-                                            model: HomeState.versions;
-                                            current-index <=> HomeState.version-index;
-                                            enabled: HomeState.selectors-enabled;
-                                            selected(i) => { HomeState.version-selected(i); }
+                                        padding-left: 14px;
+                                        padding-right: 12px;
+                                        spacing: 10px;
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Icon {
+                                                text: HomeState.quick ? "\u{E7FC}" : "\u{E8F1}";
+                                                font-size: 14px;
+                                                color: Theme.accent;
+                                            }
                                         }
-                                        IconButton {
-                                            width: 44px;
-                                            height: 44px;
-                                            icon: "\u{E72C}";
-                                            tooltip: Tr.t("Home_Recharger");
-                                            enabled: HomeState.reload-enabled;
-                                            clicked => { HomeState.reload(); }
-                                        }
-                                    }
-                                }
-                                VerticalLayout {
-                                    alignment: end;
-                                    spacing: 6px;
-                                    Label { text: Tr.t("Commun_ModLoader"); }
-                                    GlassCombo {
-                                        width: 130px;
-                                        model: HomeState.modes;
-                                        current-index <=> HomeState.mode-index;
-                                        enabled: HomeState.modes-enabled && HomeState.selectors-enabled;
-                                        selected(i) => { HomeState.mode-selected(i); }
-                                    }
-                                }
-                            }
-
-                            // Profil choisi : résumé + accès à la gestion du contenu
-                            if !HomeState.quick: VerticalLayout {
-                                alignment: end;
-                                spacing: 6px;
-                                Label { text: Tr.t("Home_Contenu"); }
-                                HorizontalLayout {
-                                    spacing: 8px;
-                                    Rectangle {
-                                        width: 258px;
-                                        height: 44px;
-                                        border-radius: 12px;
-                                        background: Theme.glass-strong;
-                                        border-width: 1.5px;
-                                        border-color: Theme.glass-border;
                                         Text {
-                                            x: 14px;
-                                            width: parent.width - 28px;
-                                            text: HomeState.summary;
-                                            font-family: Theme.ui-font;
-                                            font-weight: 600;
-                                            font-size: 13px;
+                                            horizontal-stretch: 1;
+                                            text: HomeState.quick ? HomeState.card-version + "  ·  " + HomeState.card-loader : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
+                                            font-size: 14px;
+                                            font-weight: 700;
                                             color: Theme.navy;
                                             vertical-alignment: center;
                                             overflow: elide;
                                         }
+                                        Icon {
+                                            text: "\u{E70D}";
+                                            font-size: 10px;
+                                            color: Theme.text-muted;
+                                        }
                                     }
-                                    IconButton {
-                                        width: 44px;
-                                        height: 44px;
-                                        icon: "\u{E70F}";
-                                        tooltip: Tr.t("Home_Gerer");
-                                        clicked => { HomeState.manage(); }
+                                    zone-choix := TouchArea {
+                                        enabled: HomeState.selectors-enabled;
+                                        mouse-cursor: pointer;
+                                        clicked => {
+                                            HomeState.picker-tab = HomeState.quick ? 0 : 1;
+                                            HomeState.picker-open = true;
+                                        }
                                     }
+                                }
+                                // profil : gérer son contenu ; jeu rapide : recharger les versions
+                                if !HomeState.quick: IconButton {
+                                    width: 44px;
+                                    height: 44px;
+                                    icon: "\u{E70F}";
+                                    tooltip: Tr.t("Home_Gerer");
+                                    clicked => { HomeState.manage(); }
+                                }
+                                if HomeState.quick: IconButton {
+                                    width: 44px;
+                                    height: 44px;
+                                    icon: "\u{E72C}";
+                                    tooltip: Tr.t("Home_Recharger");
+                                    enabled: HomeState.reload-enabled;
+                                    clicked => { HomeState.reload(); }
                                 }
                             }
                         }
