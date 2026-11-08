@@ -19,6 +19,12 @@ export global SkinState {
     /// Onglet de l'accueil : 0 jouer, 1 skin et capes
     in-out property <int> tab: 0;
     in property <[image]> frames;
+    /// Images de la marche : pose x 12 angles
+    in property <[image]> walk-frames;
+    in-out property <bool> walk: false;
+    in-out property <bool> elytra: false;
+    callback elytra-toggled();
+    callback walk-toggled();
     in property <bool> has-figure;
     in property <[CapeItem]> capes;
     in property <int> cape-rows: 1;
@@ -83,22 +89,13 @@ component FigureCard inherits Rectangle {
             }
             // Personnage : on le fait tourner en glissant la souris (face / dos avec la cape)
             if SkinState.has-figure: Image {
-                x: (parent.width - 160px) / 2;
+                x: (parent.width - 224px) / 2;
                 y: 26px + 6px * root.onde;
-                width: 160px;
+                width: 224px;
                 height: 320px;
-                source: SkinState.frames.length > 0 ? SkinState.frames[Math.mod(Math.mod(Math.round(root.rot / 10deg), 36) + 36, 36)] : root.vide;
+                source: SkinState.walk && SkinState.walk-frames.length >= 144 ? SkinState.walk-frames[Math.mod(Math.floor(animation-tick() / 90ms), 12) * 12 + Math.mod(Math.mod(Math.round(root.rot / 30deg), 12) + 12, 12)] : SkinState.frames.length > 0 ? SkinState.frames[Math.mod(Math.mod(Math.round(root.rot / 10deg), 36) + 36, 36)] : root.vide;
                 image-fit: contain;
                 image-rendering: pixelated;
-            }
-            if SkinState.has-figure: PixelLabel {
-                y: parent.height - 24px;
-                width: parent.width;
-                height: 16px;
-                text: Tr.t("Skin_Tourner");
-                font-size: 9px;
-                color: #FFFFFF99;
-                horizontal-alignment: center;
             }
             TouchArea {
                 enabled: SkinState.has-figure;
@@ -120,7 +117,70 @@ component FigureCard inherits Rectangle {
                     }
                 }
             }
-            if !SkinState.has-figure && SkinState.loading: Spinner { }
+            // Vues rapides : face, côté, dos
+            if SkinState.has-figure: HorizontalLayout {
+                x: 0px;
+                y: parent.height - 38px;
+                width: parent.width;
+                height: 28px;
+                alignment: center;
+                spacing: 6px;
+                for nom[i] in [Tr.t("Skin_Vue_Face"), Tr.t("Skin_Vue_Cote"), Tr.t("Skin_Vue_Dos")]: Rectangle {
+                    property <angle> cible: i == 1 ? 270deg : i * 90deg;
+                    property <int> k: Math.mod(Math.mod(Math.round(root.rot / 90deg), 4) + 4, 4);
+                    property <bool> actif: i == 0 ? self.k == 0 : i == 1 ? (self.k == 1 || self.k == 3) : self.k == 2;
+                    width: etiquette.preferred-width + 20px;
+                    border-radius: 14px;
+                    background: vue-touch.has-hover ? #FFFFFF30 : self.actif ? #FFFFFF22 : transparent;
+                    etiquette := Text {
+                        text: nom;
+                        font-family: Theme.ui-font;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: parent.actif || vue-touch.has-hover ? white : #FFFFFFAA;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    vue-touch := TouchArea {
+                        clicked => { root.rot = root.rot + (Math.mod(Math.mod((parent.cible - root.rot) / 1deg + 180, 360) + 360, 360) - 180) * 1deg; }
+                    }
+                }
+            }
+            // Marche et élytres, en haut à droite
+            if SkinState.has-figure: VerticalLayout {
+                x: parent.width - 78px;
+                y: 14px;
+                width: 66px;
+                spacing: 6px;
+                for opt[i] in [Tr.t("Skin_Vue_Marche"), Tr.t("Skin_Elytres")]: Rectangle {
+                    property <bool> actif: i == 0 ? SkinState.walk : SkinState.elytra;
+                    height: 26px;
+                    border-radius: 13px;
+                    border-width: 1px;
+                    border-color: self.actif ? #FFFFFF99 : #FFFFFF33;
+                    background: opt-touch.has-hover ? #FFFFFF30 : self.actif ? #FFFFFF2A : #FFFFFF10;
+                    Text {
+                        text: opt;
+                        font-family: Theme.ui-font;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: parent.actif || opt-touch.has-hover ? white : #FFFFFFB0;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    opt-touch := TouchArea {
+                        clicked => {
+                            if (i == 0) {
+                                SkinState.walk = !SkinState.walk;
+                                SkinState.walk-toggled();
+                            } else {
+                                SkinState.elytra = !SkinState.elytra;
+                                SkinState.elytra-toggled();
+                            }
+                        }
+                    }
+                }
+            }            if !SkinState.has-figure && SkinState.loading: Spinner { }
             if !SkinState.has-figure && !SkinState.loading: Image {
                 x: (parent.width - 110px) / 2;
                 y: 60px + 6px * root.onde;

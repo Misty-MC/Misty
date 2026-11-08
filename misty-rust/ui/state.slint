@@ -232,6 +232,19 @@ export struct PseudoRow {
     items: [string],
 }
 
+export struct StorageRow {
+    cle: string,
+    nom: string,
+    info: string,
+    size-text: string,
+    fraction: float,
+    niveau: int,
+    expandable: bool,
+    expanded: bool,
+    locked: bool,
+    reste: bool,
+}
+
 export struct MsCompte {
     pseudo: string,
     uuid: string,
@@ -258,6 +271,10 @@ export global SettingsState {
     in-out property <bool> alpha;
     in property <string> data-dir;
     in property <string> size-text;
+    in property <bool> storage-open;
+    in property <bool> storage-busy;
+    in property <[StorageRow]> storage-rows;
+    in property <string> storage-total;
     in-out property <bool> rich;
     in property <string> about-text;
     in property <bool> checking-update;
@@ -277,6 +294,10 @@ export global SettingsState {
     callback types-changed();
     callback open-folder();
     callback delete-all();
+    callback storage-show();
+    callback storage-close();
+    callback storage-toggle(string);
+    callback storage-delete(string);
     callback rich-toggled(bool);
     callback github();
     callback check-update();

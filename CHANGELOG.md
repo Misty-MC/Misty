@@ -8,6 +8,8 @@
 - When Mojang limits the number of requests, Misty keeps showing your last known skin and capes, tells you with a message, and checks your setup again by itself as soon as the limit is lifted
 - The head of your account on the home page now comes from your saved skin instead of an external website
 - Changing capes quickly no longer triggers Mojang's request limit: only the last chosen cape is sent, Misty retries by itself if Mojang asks to wait, and a clear message replaces the raw error
+- Skin tab: the cape now hangs slightly diagonally behind the character, like on NameMC, and Front / Side / Back buttons under the preview turn the character to that view. Walk and Elytra buttons sit at the top right of the preview: the character walks with legs and arms swinging in opposition, and the wings use your cape texture. Front, Side and Back take the shortest way round, and Side shows the other side
+- New "Manage storage" window in the settings: lists what can safely be deleted (Minecraft versions one by one, libraries, assets, Java, downloads, cache, logs and crash reports) with the size of each, detects leftovers and incomplete versions, and explains what happens before deleting. Worlds, instances and other personal data are never touched
 
 ## 0.3.3
 - Misty now uses the new GitHub repository (Misty-MC/Misty) to look for updates: this version keeps your updates going without reinstalling

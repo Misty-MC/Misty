@@ -1,7 +1,7 @@
 // Options : comptes hors-ligne, compte Microsoft, RAM, raccourci, types de versions, stockage, langue.
 
 import { Theme, Tr } from "theme.slint";
-import { SettingsState } from "state.slint";
+import { SettingsState, StorageRow } from "state.slint";
 import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, IconButton, MButton, GlassInput, ToggleSwitch, GlassSlider, LangCombo, ChromeButton } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
@@ -339,6 +339,11 @@ export component SettingsPage inherits Rectangle {
                                 clicked => { SettingsState.open-folder(); }
                             }
                             MButton {
+                                kind: 1;
+                                text: Tr.t("Stock_Gerer");
+                                clicked => { SettingsState.storage-show(); }
+                            }
+                            MButton {
                                 kind: 2;
                                 text: Tr.t("Options_ToutSupprimer");
                                 clicked => { SettingsState.delete-all(); }
@@ -387,6 +392,143 @@ export component SettingsPage inherits Rectangle {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+component LigneStockage inherits Rectangle {
+    in property <StorageRow> r;
+    height: r.niveau == 0 ? 62px : 46px;
+    border-radius: 12px;
+    background: r.niveau == 0 ? #FFFFFF99 : #FFFFFF55;
+    border-width: 1px;
+    border-color: r.reste ? #FF5A6E88 : #FFFFFFB3;
+
+    // barre de proportion (poids relatif dans le dossier de données)
+    if r.niveau == 0 && !r.locked: Rectangle {
+        x: 14px;
+        y: parent.height - 9px;
+        height: 3px;
+        width: max(4px, (parent.width - 28px) * r.fraction);
+        border-radius: 2px;
+        background: Theme.steel;
+    }
+
+    TouchArea {
+        enabled: r.expandable;
+        clicked => { SettingsState.storage-toggle(r.cle); }
+    }
+    HorizontalLayout {
+        padding-left: r.niveau == 0 ? 14px : 40px;
+        padding-right: 10px;
+        padding-top: 6px;
+        padding-bottom: r.niveau == 0 ? 12px : 6px;
+        spacing: 10px;
+        Icon {
+            width: 16px;
+            text: r.locked ? "\u{E72E}" : r.expandable ? (r.expanded ? "\u{E70D}" : "\u{E76C}") : "";
+            font-size: 12px;
+            color: Theme.text-muted;
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 1px;
+            Text {
+                text: r.nom;
+                font-family: Theme.ui-font;
+                font-size: r.niveau == 0 ? 14px : 13px;
+                font-weight: r.niveau == 0 ? 700 : 500;
+                color: Theme.text;
+                overflow: elide;
+            }
+            if r.info != "": Text {
+                text: r.info;
+                font-family: Theme.ui-font;
+                font-size: 11px;
+                color: r.reste ? Theme.danger : Theme.text-muted;
+                overflow: elide;
+            }
+        }
+        Text {
+            text: r.size-text;
+            font-family: Theme.ui-font;
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.navy;
+            vertical-alignment: center;
+        }
+        if !r.locked: IconButton {
+            icon: "\u{E74D}";
+            tooltip: Tr.t("Stock_Supprimer");
+            width: 34px;
+            height: 34px;
+            y: (parent.height - self.height) / 2;
+            clicked => { SettingsState.storage-delete(r.cle); }
+        }
+        if r.locked: Rectangle { width: 34px; }
+    }
+}
+
+/// Fenêtre modale : couvre toute la fenêtre de l'application (posée par main.slint).
+export component StorageOverlay inherits Rectangle {
+    background: @linear-gradient(180deg, #14203A73 0%, #14203AA6 100%);
+    TouchArea {
+        clicked => { SettingsState.storage-close(); }
+    }
+    Rectangle {
+        width: min(640px, parent.width - 40px);
+        height: min(620px, parent.height - 40px);
+        border-radius: 24px;
+        background: #F6FAFFF2;
+        border-width: 2px;
+        border-color: white;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #1C233560;
+        TouchArea { }
+        VerticalLayout {
+            padding: 24px;
+            spacing: 10px;
+            HorizontalLayout {
+                spacing: 10px;
+                SectionTitle {
+                    text: Tr.t("Stock_Titre");
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                }
+                PixelLabel {
+                    text: SettingsState.storage-total;
+                    font-size: 13px;
+                    color: Theme.navy;
+                    vertical-alignment: center;
+                }
+            }
+            BodyText { text: Tr.t("Stock_Intro"); wrap: word-wrap; }
+            if SettingsState.storage-busy: Rectangle {
+                vertical-stretch: 1;
+                Text {
+                    text: Tr.t("Options_Calcul");
+                    font-family: Theme.pixel-font;
+                    font-size: 13px;
+                    color: Theme.text-muted;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if !SettingsState.storage-busy: ScrollView {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    spacing: 6px;
+                    for r in SettingsState.storage-rows: LigneStockage { r: r; }
+                }
+            }
+            HorizontalLayout {
+                alignment: end;
+                MButton {
+                    text: Tr.t("Commun_Fermer");
+                    clicked => { SettingsState.storage-close(); }
                 }
             }
         }

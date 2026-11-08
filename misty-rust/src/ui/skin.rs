@@ -4,7 +4,7 @@ use super::{dialogs, images, lancer, modele, App};
 use crate::services::skins::{self, Profil};
 use crate::services::{account, loc};
 use crate::{CapeItem, HomeState, SkinState};
-use slint::{ComponentHandle, Image};
+use slint::{ComponentHandle, Image, Model};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -69,6 +69,15 @@ pub fn installer(app: &Rc<App>) {
 
     let a = app.clone();
     st.on_slim_changed(move || afficher_personnage(&a));
+    let a = app.clone();
+    st.on_elytra_toggled(move || afficher_personnage(&a));
+
+    let a = app.clone();
+    st.on_walk_toggled(move || {
+        if s(&a).get_walk() && s(&a).get_walk_frames().row_count() == 0 {
+            rendre_marche(&a);
+        }
+    });
 
     let a = app.clone();
     st.on_apply(move || {
@@ -337,8 +346,36 @@ fn charger(app: &Rc<App>) {
     });
 }
 /// Preview in 3D: the chosen skin if any, otherwise the current skin, with the equipped cape.
-fn afficher_personnage(app: &Rc<App>) {
+/// Calcule les images de la marche (en arrière-plan) pour le skin et la cape affichés.
+fn rendre_marche(app: &Rc<App>) {
     let fin = s(app).get_slim();
+    let elytres = s(app).get_elytra();
+    let (png, cape, generation) = {
+        let e = app.skin.borrow();
+        let mut png = e.fichier.clone().unwrap_or_else(|| e.skin_actuel.clone());
+        if png.is_empty() {
+            png = include_bytes!("../../assets/steve.png").to_vec();
+        }
+        let cape = e.profil.as_ref().and_then(|p| p.capes.iter().position(|c| c.active)).and_then(|i| e.capes_img.get(i).cloned().flatten());
+        (png, cape, e.generation)
+    };
+    let a = app.clone();
+    lancer(async move {
+        let vues = a.bloquant(move || skins::rendre_marche(&png, fin, cape.as_deref(), elytres)).await;
+        if a.skin.borrow().generation != generation {
+            return;
+        }
+        if let Some(vues) = vues {
+            let images: Vec<Image> = vues.iter().map(|v| Image::from_rgba8(images::tampon(v))).collect();
+            s(&a).set_walk_frames(modele(images));
+        }
+    });
+}
+
+fn afficher_personnage(app: &Rc<App>) {
+    s(app).set_walk_frames(modele(Vec::new()));
+    let fin = s(app).get_slim();
+    let elytres = s(app).get_elytra();
     let (png, cape, generation) = {
         let mut e = app.skin.borrow_mut();
         e.generation += 1;
@@ -370,13 +407,16 @@ fn afficher_personnage(app: &Rc<App>) {
             }
         }
         // 2. Le tour complet (calculé sur tous les cœurs)
-        let vues = a.bloquant(move || skins::rendre_tour(&png, fin, cape.as_deref())).await;
+        let vues = a.bloquant(move || skins::rendre_tour_elytres(&png, fin, cape.as_deref(), elytres)).await;
         if a.skin.borrow().generation != generation {
             return;
         }
         if let Some(vues) = vues {
             let images: Vec<Image> = vues.iter().map(|v| Image::from_rgba8(images::tampon(v))).collect();
             st.set_frames(modele(images));
+            if st.get_walk() {
+                rendre_marche(&a);
+            }
         }
     });
 }

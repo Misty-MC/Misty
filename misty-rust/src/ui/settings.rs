@@ -1,8 +1,8 @@
 //! Options : comptes hors-ligne, compte Microsoft, RAM, raccourci, types de versions, stockage, langue.
 
 use super::{dialogs, lancer, modele, App};
-use crate::services::{account, app_info, discord, loc, paths, pseudos, settings, shortcut, system_info};
-use crate::{LangItem, PseudoRow, SettingsState};
+use crate::services::{account, app_info, discord, loc, paths, pseudos, settings, shortcut, storage, system_info};
+use crate::{LangItem, PseudoRow, SettingsState, StorageRow};
 use slint::ComponentHandle;
 use std::path::Path;
 use std::rc::Rc;
@@ -11,6 +11,8 @@ use std::rc::Rc;
 pub struct Etat {
     types_modifies: bool,
     langues: Vec<String>,
+    stock: Vec<storage::Ligne>,
+    stock_ouverts: std::collections::HashSet<String>,
 }
 
 fn s(app: &App) -> SettingsState<'_> {
@@ -169,6 +171,34 @@ pub fn installer(app: &Rc<App>) {
         lancer(async move { tout_supprimer(&a).await });
     });
 
+    let a = app.clone();
+    st.on_storage_show(move || {
+        s(&a).set_storage_open(true);
+        stock_analyser(&a);
+    });
+    let a = app.clone();
+    st.on_storage_close(move || {
+        s(&a).set_storage_open(false);
+        calculer_taille(&a);
+    });
+    let a = app.clone();
+    st.on_storage_toggle(move |cle| {
+        let cle = cle.to_string();
+        {
+            let mut e = a.settings.borrow_mut();
+            if !e.stock_ouverts.remove(&cle) {
+                e.stock_ouverts.insert(cle);
+            }
+        }
+        stock_afficher(&a);
+    });
+    let a = app.clone();
+    st.on_storage_delete(move |cle| {
+        let a = a.clone();
+        let cle = cle.to_string();
+        lancer(async move { stock_supprimer(&a, cle).await });
+    });
+
     // Discord
     st.on_rich_toggled(|actif| {
         settings::set_bool(settings::RICH_PRESENCE, actif);
@@ -322,15 +352,102 @@ async fn creer_raccourci(app: &App, dossier: &str) {
 
 // ───────────────────────── Stockage ─────────────────────────
 
+fn taille_texte(octets: u64) -> String {
+    let mo = octets as f64 / (1024.0 * 1024.0);
+    if mo >= 1024.0 {
+        format!("{:.2} {}", mo / 1024.0, loc::t("Unite_Go"))
+    } else if mo >= 1.0 {
+        format!("{mo:.0} {}", loc::t("Unite_Mo"))
+    } else {
+        format!("{:.0} Ko", octets as f64 / 1024.0)
+    }
+}
+
 fn calculer_taille(app: &Rc<App>) {
     s(app).set_size_text(loc::t("Options_Calcul").into());
     let a = app.clone();
     lancer(async move {
         let octets = a.bloquant(|| system_info::taille_dossier(&paths::data_dir())).await;
-        let mo = octets as f64 / (1024.0 * 1024.0);
-        let texte = if mo >= 1024.0 { format!("{:.2} {}", mo / 1024.0, loc::t("Unite_Go")) } else { format!("{mo:.0} {}", loc::t("Unite_Mo")) };
-        s(&a).set_size_text(texte.into());
+        s(&a).set_size_text(taille_texte(octets).into());
     });
+}
+
+/// Nom lisible d'un groupe (« versions » → « Versions de Minecraft »).
+fn nom_groupe(cle: &str) -> String {
+    loc::t(&format!("Stock_G_{}", cle.trim_start_matches('@')))
+}
+
+fn stock_analyser(app: &Rc<App>) {
+    s(app).set_storage_busy(true);
+    let a = app.clone();
+    lancer(async move {
+        let lignes = a.bloquant(storage::analyser).await;
+        let total: u64 = lignes.iter().filter(|l| l.niveau == 0).map(|l| l.taille).sum();
+        s(&a).set_storage_total(taille_texte(total).into());
+        a.settings.borrow_mut().stock = lignes;
+        stock_afficher(&a);
+        s(&a).set_storage_busy(false);
+    });
+}
+
+/// Reconstruit la liste affichée : les groupes, et le détail des groupes dépliés.
+fn stock_afficher(app: &Rc<App>) {
+    let e = app.settings.borrow();
+    let max = e.stock.iter().filter(|l| l.niveau == 0 && !l.protege).map(|l| l.taille).max().unwrap_or(1).max(1);
+    let mut lignes = Vec::new();
+    let mut groupe_ouvert = false;
+    for l in &e.stock {
+        if l.niveau == 0 {
+            groupe_ouvert = e.stock_ouverts.contains(&l.cle);
+        } else if !groupe_ouvert {
+            continue;
+        }
+        let (nom, info) = if l.niveau == 0 {
+            let base = nom_groupe(&l.cle);
+            let mut info = loc::t(&format!("Stock_I_{}", l.cle.trim_start_matches('@')));
+            if l.reste {
+                info = format!("{info} — {}", loc::t("Stock_ResteGroupe"));
+            }
+            (base, info)
+        } else {
+            (l.nom.clone(), if l.reste { loc::t("Stock_Reste") } else { String::new() })
+        };
+        lignes.push(StorageRow {
+            cle: l.cle.clone().into(),
+            nom: nom.into(),
+            info: info.into(),
+            size_text: taille_texte(l.taille).into(),
+            fraction: l.taille as f32 / max as f32,
+            niveau: l.niveau as i32,
+            expandable: l.depliable,
+            expanded: l.depliable && e.stock_ouverts.contains(&l.cle),
+            locked: l.protege,
+            reste: l.reste,
+        });
+    }
+    drop(e);
+    s(app).set_storage_rows(modele(lignes));
+}
+
+async fn stock_supprimer(app: &Rc<App>, cle: String) {
+    let (nom, taille) = {
+        let e = app.settings.borrow();
+        let Some(l) = e.stock.iter().find(|l| l.cle == cle) else { return };
+        (if l.niveau == 0 { nom_groupe(&l.cle) } else { l.nom.clone() }, l.taille)
+    };
+    let avertissement = loc::t(&format!("Stock_W_{}", storage::groupe_de(&cle)));
+    let texte = format!("{}\n\n{avertissement}", loc::tf("Stock_Confirm_Texte", &[&nom, &taille_texte(taille)]));
+    let ok = dialogs::confirmer(app, &loc::tf("Stock_Confirm_Titre", &[&nom]), &texte, Some(&loc::t("Stock_Supprimer")), None, true).await;
+    if !ok {
+        return;
+    }
+    s(app).set_storage_busy(true);
+    let c = cle.clone();
+    let resultat = app.bloquant(move || storage::supprimer(&c)).await;
+    if let Err(e) = resultat {
+        dialogs::erreur(app, &loc::t("Options_SuppressionIncomplete"), &e.to_string()).await;
+    }
+    stock_analyser(app);
 }
 
 async fn tout_supprimer(app: &Rc<App>) {
