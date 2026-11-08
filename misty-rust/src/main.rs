@@ -111,6 +111,21 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             attendre(2500).await;
             photo(&app, nom, &dossier);
         }
+        // Cadrages de la caméra par catégorie (capes, chapeaux, compagnons, tags)
+        {
+            let st = app.ui.global::<SkinState>();
+            st.set_anim(0);
+            st.set_elytra(false);
+            st.invoke_elytra_toggled();
+            for (cat, nom) in [(0, "0j-cadre-capes"), (2, "0k-cadre-chapeaux"), (5, "0l-cadre-compagnons"), (7, "0m-cadre-tags")] {
+                st.set_category(cat);
+                st.set_focus(true);
+                st.set_focus_count(st.get_focus_count() + 1);
+                attendre(1800).await;
+                photo(&app, nom, &dossier);
+            }
+            st.set_focus(false);
+        }
         // Fenêtre de choix de la version, puis des profils
         let accueil = app.ui.global::<HomeState>();
         accueil.set_picker_tab(0);

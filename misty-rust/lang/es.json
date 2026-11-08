@@ -444,8 +444,6 @@
   "Param_Theme_Brume": "Bruma",
   "Param_Theme_Nuit": "Noche",
   "Param_Theme_Systeme": "Como Windows",
-  "Param_Particules": "Partículas flotantes",
-  "Param_Particules_Texte": "Pequeños cuadrados que flotan en el fondo (estrellas en modo Noche).",
   "Param_Flou": "Efectos de desenfoque",
   "Param_Flou_Texte": "Desenfoca el launcher detrás de ventanas como esta. Desactívalo si Misty va lento en tu PC.",
   "Param_Langue_Avert": "Algunas partes del launcher pueden quedarse en inglés si falta una traducción.",

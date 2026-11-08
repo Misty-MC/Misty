@@ -142,7 +142,6 @@ pub fn installer(app: &Rc<App>) {
     ui.global::<Tr>().on_lookup(|cle| loc::t(&cle).into());
     ui.global::<Assets>().set_logo(images::logo_nuage());
     ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).into());
-    ui.global::<AppState>().set_particles(modele(particules()));
 
     // Paysage du site en fond (net tout de suite, puis flouté si l'option est réglée)
     afficher_paysage(app, scene::generer(0));
@@ -179,7 +178,6 @@ pub fn installer(app: &Rc<App>) {
     // Apparence enregistrée
     let theme = ui.global::<crate::Theme>();
     theme.set_mode(crate::services::settings::theme());
-    theme.set_particles(crate::services::settings::get_bool(crate::services::settings::PARTICULES, true));
     theme.set_blur(crate::services::settings::get_bool(crate::services::settings::FLOU, true));
     appliquer_saison(app);
     ui.global::<AppState>().on_close(|| {
@@ -294,28 +292,6 @@ fn suivre_agrandissement(app: &App) {
 fn fenetre(app: &App, f: impl FnOnce(&slint::winit_030::winit::window::Window)) {
     use slint::winit_030::WinitWindowAccessor;
     app.ui.window().with_winit_window(f);
-}
-
-/// Petits carrés blancs translucides qui flottent lentement en fond.
-fn particules() -> Vec<Particle> {
-    let mut graine: u32 = 7;
-    let mut hasard = move || {
-        graine = graine.wrapping_mul(1_103_515_245).wrapping_add(12_345);
-        ((graine >> 16) & 0x7fff) as f32 / 32768.0
-    };
-    (0..14)
-        .map(|_| {
-            let taille = 8.0 + hasard() * 22.0;
-            Particle {
-                x: 120.0 + hasard() * 1000.0,
-                y: 20.0 + hasard() * 640.0,
-                size: taille,
-                opacity: 0.06 + hasard() * 0.14,
-                amp: 10.0 + hasard() * 10.0,
-                period: (8000.0 + hasard() * 8000.0) as i64,
-            }
-        })
-        .collect()
 }
 
 /// Démarrage (après l'affichage de la fenêtre) : migration, mises à jour, accueil.

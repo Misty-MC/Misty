@@ -218,6 +218,11 @@ pub fn langue_changee(app: &Rc<App>) {
 
 // ───────────────────────── Comptes ─────────────────────────
 
+/// Liste des comptes hors ligne de l'accueil, à recharger quand les paramètres en ajoutent ou en suppriment.
+pub fn comptes_hors_ligne_changes(app: &Rc<App>) {
+    charger_pseudos(app);
+}
+
 fn charger_pseudos(app: &Rc<App>) {
     let liste = pseudos::lire();
     let dernier = settings::get(settings::LAST_PSEUDO);

@@ -444,8 +444,6 @@
   "Param_Theme_Brume": "Туман",
   "Param_Theme_Nuit": "Ночь",
   "Param_Theme_Systeme": "Как в Windows",
-  "Param_Particules": "Парящие частицы",
-  "Param_Particules_Texte": "Маленькие квадраты на фоне (звёзды в ночном режиме).",
   "Param_Flou": "Эффекты размытия",
   "Param_Flou_Texte": "Размывает лаунчер за такими окнами. Отключи, если Misty тормозит на твоём ПК.",
   "Param_Langue_Avert": "Некоторые части лаунчера могут остаться на английском, если перевода нет.",

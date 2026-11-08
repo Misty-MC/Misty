@@ -33,6 +33,7 @@ pub fn installer(app: &Rc<App>) {
         pseudos::ajouter(&pseudo);
         s(&a).set_new_pseudo("".into());
         charger_pseudos(&a);
+        super::home::comptes_hors_ligne_changes(&a);
     });
     let a = app.clone();
     st.on_remove_pseudo(move |pseudo| {
@@ -50,6 +51,7 @@ pub fn installer(app: &Rc<App>) {
             if ok {
                 pseudos::supprimer(&pseudo);
                 charger_pseudos(&a);
+                super::home::comptes_hors_ligne_changes(&a);
             }
         });
     });
@@ -228,11 +230,6 @@ pub fn installer(app: &Rc<App>) {
         settings::set(settings::THEME, &mode.to_string());
         a.ui.global::<crate::Theme>().set_mode(mode);
         recapturer_fond(&a);
-    });
-    let a = app.clone();
-    st.on_particles_toggled(move |actif| {
-        settings::set_bool(settings::PARTICULES, actif);
-        a.ui.global::<crate::Theme>().set_particles(actif);
     });
     let a = app.clone();
     st.on_blur_toggled(move |actif| {

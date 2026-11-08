@@ -233,23 +233,6 @@ export component MainWindow inherits Window {
             }
             // paysage du site : montagnes, sapins, lune, brume qui dérive
             Paysage { }
-            // carrés flottants (étoiles la nuit)
-            if Theme.particles: Rectangle {
-                for p[i] in AppState.particles: Rectangle {
-                    property <float> h: root.height / 1px;
-                    // défilement vertical continu (neige qui tombe, braises qui montent)
-                    property <float> chute: Math.mod(p.y / 1px * (self.h / 720) + animation-tick() / (p.period / 160), self.h + 20) - 10;
-                    property <float> montee: self.h - Math.mod((self.h - p.y / 1px * (self.h / 720)) + animation-tick() / (p.period / 90), self.h + 20) + 10;
-                    property <length> taille: Theme.noel ? max(3px, p.size * 0.32) : Theme.halloween ? max(3px, p.size * 0.26) : Theme.dark ? max(2px, p.size * 0.22) : p.size;
-                    x: p.x * (root.width / 1180px) + (p.size - self.taille) / 2 + (Theme.noel || Theme.halloween ? p.amp * sin((animation-tick() / p.period) * 360deg) : 0px);
-                    y: Theme.noel ? self.chute * 1px : Theme.halloween ? self.montee * 1px : p.y * (root.height / 720px) + p.amp * sin((animation-tick() / p.period) * 360deg) + (p.size - self.taille) / 2;
-                    width: self.taille;
-                    height: self.taille;
-                    border-radius: Theme.noel ? self.taille / 2 : self.taille / 5;
-                    background: Theme.halloween ? (Math.mod(i, 3) == 0 ? #B46CFF : #FF9A3D) : Theme.noel ? #FFFFFF : Theme.dark ? #DCE8FF : white;
-                    opacity: Theme.noel ? 0.55 + 0.35 * p.opacity : Theme.halloween || Theme.dark ? 0.3 + 0.6 * abs(sin((animation-tick() / (p.period * 0.7)) * 180deg)) : p.opacity;
-                }
-            }
         }
 
         HorizontalLayout {

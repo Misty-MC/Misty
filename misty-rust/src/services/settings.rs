@@ -20,7 +20,6 @@ pub const RICH_PRESENCE: &str = "richpresence";
 pub const LANGUE: &str = "langue";
 /// Apparence : 0 brume (clair), 1 nuit (sombre), 2 comme Windows
 pub const THEME: &str = "theme";
-pub const PARTICULES: &str = "particules";
 pub const FLOU: &str = "flou";
 /// Thèmes de saison automatiques (Halloween, Noël)
 pub const SAISON: &str = "saison";
@@ -34,7 +33,7 @@ pub const TELECHARGEMENTS: &str = "telechargements";
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SNAPSHOT, BETA, ALPHA, SUPPR,
-    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
+    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

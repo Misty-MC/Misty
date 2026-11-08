@@ -444,8 +444,6 @@
   "Param_Theme_Brume": "Mist",
   "Param_Theme_Nuit": "Night",
   "Param_Theme_Systeme": "Sync with Windows",
-  "Param_Particules": "Floating particles",
-  "Param_Particules_Texte": "Little squares drifting in the background (stars in Night mode).",
   "Param_Flou": "Blur effects",
   "Param_Flou_Texte": "Blurs the launcher behind windows like this one. Turn it off if Misty feels slow on your PC.",
   "Param_Langue_Avert": "Some parts of the launcher may stay in English when a translation is missing.",

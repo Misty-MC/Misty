@@ -851,13 +851,6 @@ export component SettingsModal inherits Rectangle {
                                 toggled(v) => { SettingsState.seasonal-toggled(v); }
                             }
                             Separateur { }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_Particules");
-                                texte: Tr.t("Param_Particules_Texte");
-                                checked: Theme.particles;
-                                toggled(v) => { SettingsState.particles-toggled(v); }
-                            }
-                            Separateur { }
                             VerticalLayout {
                                 spacing: 12px;
                                 Entete {

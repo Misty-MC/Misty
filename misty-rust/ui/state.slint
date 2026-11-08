@@ -19,19 +19,9 @@ export struct ScenePuff {
     opacity: float,
 }
 
-export struct Particle {
-    x: length,
-    y: length,
-    size: length,
-    opacity: float,
-    amp: length,
-    period: duration,
-}
-
 export global AppState {
     /// 0 accueil, 1 profils, 2 options, 3 notes, 4 packs, 5 détail d'un profil, 6 éditeur de pack
     in-out property <int> page: 0;
-    in property <[Particle]> particles;
     /// Onglet de la barre latérale allumé
     in-out property <int> nav: 0;
     in property <string> version-text;
@@ -432,7 +422,6 @@ export global SettingsState {
     callback check-update();
     callback close();
     callback theme-selected(int);
-    callback particles-toggled(bool);
     callback blur-toggled(bool);
     callback seasonal-toggled(bool);
     in-out property <float> bg-blur: 0;

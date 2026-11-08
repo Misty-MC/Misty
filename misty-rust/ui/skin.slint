@@ -49,8 +49,12 @@ export global SkinState {
     in property <string> file-name;
     in property <bool> has-file;
     in property <string> info;
-    /// Catégorie de cosmétiques affichée (0 capes … 7 packs)
+    /// Catégorie de cosmétiques affichée (0 capes … 8 packs)
     in-out property <int> category: 0;
+    /// La caméra cadre la catégorie choisie (sinon : tout le personnage)
+    in-out property <bool> focus: false;
+    /// +1 à chaque clic sur une catégorie (même la catégorie déjà ouverte : on recadre)
+    in-out property <int> focus-count: 0;
     callback open();
     callback pick-file();
     callback slim-changed();
@@ -170,6 +174,9 @@ component Scene3D inherits Rectangle {
     property <bool> vise: false;
     property <bool> glisse: false;
     property <bool> tourne: true;
+    /// inclinaison demandée par un cadrage
+    property <float> pitch-cible: 8;
+    property <bool> vise-pitch: false;
     property <length> dernier-x: 0px;
     property <length> dernier-y: 0px;
     property <image> vide;
@@ -179,6 +186,13 @@ component Scene3D inherits Rectangle {
         interval: 16ms;
         running: SkinState.tab == 1 && AppState.page == 0 && !SettingsState.open;
         triggered => {
+            if (root.vise-pitch && !root.glisse) {
+                root.pitch += (root.pitch-cible - root.pitch) * 0.16;
+                if (abs(root.pitch-cible - root.pitch) < 0.2) {
+                    root.pitch = root.pitch-cible;
+                    root.vise-pitch = false;
+                }
+            }
             if (root.vise) {
                 root.yaw += (root.cible - root.yaw) * 0.16;
                 if (abs(root.cible - root.yaw) < 0.2) {
@@ -242,8 +256,46 @@ component Scene3D inherits Rectangle {
         opacity: self.t < 0.15 ? self.t / 0.15 : 1 - (self.t - 0.15) / 0.85;
     }
 
+    // ── Cadrage par catégorie ──
+    // [angle autour, inclinaison, zoom, décalage latéral, hauteur visée] ; unités du modèle :
+    // les pieds à 0, le sommet de la tête à 32, le centre de l'image à 16.
+    property <[[float]]> cadrages: [
+        [180, 8, 1.3, 0, 16],     // capes : le dos
+        [155, 16, 1.2, 0, 19],    // ailes : le dos, un peu de haut
+        [25, 12, 2.0, 0, 29],     // chapeaux : la tête, avec de la place au-dessus
+        [20, 6, 1.5, 0, 16],      // tenues : le corps
+        [0, 8, 0.85, 0, 16],      // effets : tout le personnage, avec de la place autour
+        [30, 12, 1.8, 5.2, 26],   // compagnons : l'épaule, avec de la place au-dessus
+        [0, 6, 1.6, 0, 21],       // emotes : le haut du corps
+        [0, 4, 2.0, 0, 34],       // tags : le pseudo au-dessus de la tête
+        [20, 8, 1.0, 0, 16],      // packs : tout le personnage
+    ];
+    property <bool> cadre: SkinState.focus && SkinState.category >= 0 && SkinState.category < root.cadrages.length;
+    property <float> zoom: root.cadre ? root.cadrages[SkinState.category][2] : 1;
+    property <float> vise-u: root.cadre ? root.cadrages[SkinState.category][3] : 0;
+    property <float> vise-h: root.cadre ? root.cadrages[SkinState.category][4] : 16;
+    property <float> attire: root.cadre ? 1 : 0;
+    animate zoom, vise-u, vise-h, attire { duration: 650ms; easing: ease-in-out; }
+    property <int> demande: SkinState.focus-count;
+    changed demande => {
+        if (!root.cadre) {
+            return;
+        }
+        root.tourne = false;
+        root.glisse = false;
+        root.elan = 0;
+        root.elan-pitch = 0;
+        let c = root.cadrages[SkinState.category];
+        // le plus court chemin vers l'angle du cadrage
+        root.cible = root.yaw + Math.mod(Math.mod(c[0] - root.yaw + 180, 360) + 360, 360) - 180;
+        root.vise = true;
+        root.pitch-cible = c[1];
+        root.vise-pitch = true;
+    }
+
     // ombre au sol
     Rectangle {
+        opacity: clamp(1 - (root.zoom - 1) * 3, 0, 1);
         property <float> s: 0.95 + 0.15 * root.onde;
         x: (parent.width - self.width) / 2;
         y: socle.y + socle.height / 2 - self.height / 2;
@@ -255,14 +307,25 @@ component Scene3D inherits Rectangle {
 
     // personnage : rendu en direct (sinon, en attendant, les vues pré-calculées)
     property <length> cote: min(380px, root.height - 190px, root.width - 20px);
-    /// haut de l'image du personnage (pour poser le pseudo au-dessus de la tête)
-    property <length> haut-image: socle.y + socle.height / 2 - root.cote * (0.5 + 16 * 9 / 320) + 4px;
+    // une unité du modèle à l'écran (le rendu fait 320 px pour 9 px par unité), sans puis avec le zoom
+    property <length> unite-1: root.cote * 9 / 320;
+    property <length> unite: root.unite-1 * root.zoom;
+    // centre de l'image sans cadrage : les pieds se posent au centre du socle
+    property <length> centre-x0: root.width / 2;
+    property <length> centre-y0: socle.y + socle.height / 2 - root.unite-1 * 16 + 4px;
+    // le point visé, là où il est sans zoom, attiré vers le milieu de la scène
+    property <length> vise-x: root.centre-x0 + root.vise-u * root.unite-1;
+    property <length> vise-y: root.centre-y0 - (root.vise-h - 16) * root.unite-1;
+    property <length> ancre-x: root.vise-x + (root.width / 2 - root.vise-x) * root.attire;
+    property <length> ancre-y: root.vise-y + (root.height * 0.46 - root.vise-y) * root.attire;
+    // centre de l'image zoomée : le point visé reste sur l'ancre
+    property <length> centre-x: root.ancre-x - root.vise-u * root.unite;
+    property <length> centre-y: root.ancre-y + (root.vise-h - 16) * root.unite;
     if SkinState.live-ready: Image {
-        width: root.cote;
-        height: root.cote;
-        x: (parent.width - self.width) / 2;
-        // le bas du carré (les pieds, quand on regarde de face) se pose au centre du socle
-        y: socle.y + socle.height / 2 - self.height * (0.5 + 16 * 9 / 320) + 4px + 4px * root.onde;
+        width: root.cote * root.zoom;
+        height: root.cote * root.zoom;
+        x: root.centre-x - self.width / 2;
+        y: root.centre-y - self.height / 2 + 4px * root.onde;
         source: SkinState.live;
         image-fit: contain;
         image-rendering: pixelated;
@@ -290,16 +353,22 @@ component Scene3D inherits Rectangle {
     // pseudo au-dessus de la tête (en pixel, sur un fond sombre, comme dans le jeu)
     if SkinState.live-ready || SkinState.has-figure: Rectangle {
         property <string> nom: HomeState.premium ? HomeState.premium-name : HomeState.account-index >= 0 && HomeState.account-index < HomeState.accounts.length ? HomeState.accounts[HomeState.account-index] : "Steve";
-        width: etiquette.preferred-width + 22px;
-        height: 30px;
-        x: (parent.width - self.width) / 2;
-        y: max(58px, root.haut-image + root.cote * 0.05 - self.height - 6px + 4px * root.onde);
-        border-radius: 3px;
+        // le pseudo grandit avec le zoom, un peu moins vite que le personnage
+        property <float> echelle: max(0.85, 1 + (root.zoom - 1) * 0.7);
+        width: etiquette.preferred-width + 22px * self.echelle;
+        height: 30px * self.echelle;
+        x: root.centre-x - self.width / 2;
+        // posé au-dessus de la tête (sommet du modèle : 32)
+        y: max(58px * (1 - root.attire), root.centre-y - 16 * root.unite - self.height - 6px * self.echelle + 4px * root.onde);
+        // coupé par le haut de la scène (zoom sur le corps) : on le cache plutôt que de le tronquer
+        opacity: clamp((self.y - 50px) / 16px, 0, 1);
+        animate opacity { duration: 200ms; }
+        border-radius: 3px * self.echelle;
         background: #0A0F1D8C;
         etiquette := Text {
             text: parent.nom.to-uppercase();
             font-family: Theme.pixel-font;
-            font-size: 16px;
+            font-size: 16px * parent.echelle;
             color: #EAF1FF;
             horizontal-alignment: center;
             vertical-alignment: center;
@@ -314,6 +383,7 @@ component Scene3D inherits Rectangle {
                 root.glisse = true;
                 root.tourne = false;
                 root.vise = false;
+                root.vise-pitch = false;
                 root.elan = 0;
                 root.elan-pitch = 0;
                 root.dernier-x = self.mouse-x;
@@ -337,6 +407,8 @@ component Scene3D inherits Rectangle {
         }
         double-clicked => {
             // double-clic : retour à la vue de face, à hauteur normale
+            SkinState.focus = false;
+            root.vise-pitch = false;
             root.tourne = false;
             root.cible = round(root.yaw / 360) * 360;
             root.vise = true;
@@ -352,6 +424,7 @@ component Scene3D inherits Rectangle {
         items: [Tr.t("Skin_Vue_Face"), Tr.t("Skin_Vue_Cote"), Tr.t("Skin_Vue_Dos")];
         current: root.tourne ? -1 : root.angle-vu < 45 || root.angle-vu > 315 ? 0 : root.angle-vu > 135 && root.angle-vu < 225 ? 2 : 1;
         choisi(i) => {
+            SkinState.focus = false;
             root.tourne = false;
             root.elan = 0;
             let vise = i == 0 ? 0 : i == 1 ? 90 : 180;
@@ -369,6 +442,9 @@ component Scene3D inherits Rectangle {
         clicked => {
             root.tourne = !root.tourne;
             root.vise = false;
+            if (root.tourne) {
+                SkinState.focus = false;
+            }
         }
     }
 
@@ -377,6 +453,7 @@ component Scene3D inherits Rectangle {
         y: parent.height - 78px;
         width: parent.width;
         text: Tr.t("Skin_Glisser");
+        opacity: 1 - root.attire;
         font-size: 12.5px;
         color: Theme.text-dim;
         horizontal-alignment: center;
@@ -841,7 +918,11 @@ export component SkinPanel inherits Rectangle {
                             icon: root.categories[rang * 3 + col].icon;
                             text: root.categories[rang * 3 + col].nom;
                             checked: root.cat == rang * 3 + col;
-                            clicked => { SkinState.category = rang * 3 + col; }
+                            clicked => {
+                                SkinState.category = rang * 3 + col;
+                                SkinState.focus = true;
+                                SkinState.focus-count += 1;
+                            }
                         }
                     }
 
