@@ -422,5 +422,17 @@
   "Skin_Vue_Cote": "Side",
   "Skin_Vue_Dos": "Back",
   "Skin_Vue_Marche": "Walk",
-  "Skin_Elytres": "Elytra"
+  "Skin_Elytres": "Elytra",
+  "Param_Groupe_Affichage": "DISPLAY",
+  "Param_Groupe_Comptes": "ACCOUNTS",
+  "Param_Groupe_Jeu": "GAME",
+  "Param_Groupe_Launcher": "LAUNCHER",
+  "Param_Langue": "Language",
+  "Param_Microsoft": "Microsoft",
+  "Param_HorsLigne": "Offline accounts",
+  "Param_Memoire": "Memory",
+  "Param_Versions": "Versions",
+  "Param_Comportement": "Behavior",
+  "Param_Stockage": "Storage",
+  "Param_APropos": "About"
 }

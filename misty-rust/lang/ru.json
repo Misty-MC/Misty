@@ -422,5 +422,17 @@
   "Skin_Vue_Cote": "Сбоку",
   "Skin_Vue_Dos": "Сзади",
   "Skin_Vue_Marche": "Ходьба",
-  "Skin_Elytres": "Элитры"
+  "Skin_Elytres": "Элитры",
+  "Param_Groupe_Affichage": "ОТОБРАЖЕНИЕ",
+  "Param_Groupe_Comptes": "АККАУНТЫ",
+  "Param_Groupe_Jeu": "ИГРА",
+  "Param_Groupe_Launcher": "ЛАУНЧЕР",
+  "Param_Langue": "Язык",
+  "Param_Microsoft": "Microsoft",
+  "Param_HorsLigne": "Офлайн-аккаунты",
+  "Param_Memoire": "Память",
+  "Param_Versions": "Версии",
+  "Param_Comportement": "Поведение",
+  "Param_Stockage": "Хранилище",
+  "Param_APropos": "О программе"
 }

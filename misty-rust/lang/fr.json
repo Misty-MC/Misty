@@ -422,5 +422,17 @@
   "Skin_Vue_Cote": "Côté",
   "Skin_Vue_Dos": "Dos",
   "Skin_Vue_Marche": "Marche",
-  "Skin_Elytres": "Élytres"
+  "Skin_Elytres": "Élytres",
+  "Param_Groupe_Affichage": "AFFICHAGE",
+  "Param_Groupe_Comptes": "COMPTES",
+  "Param_Groupe_Jeu": "JEU",
+  "Param_Groupe_Launcher": "LAUNCHER",
+  "Param_Langue": "Langue",
+  "Param_Microsoft": "Microsoft",
+  "Param_HorsLigne": "Comptes hors-ligne",
+  "Param_Memoire": "Mémoire",
+  "Param_Versions": "Versions",
+  "Param_Comportement": "Comportement",
+  "Param_Stockage": "Stockage",
+  "Param_APropos": "À propos"
 }

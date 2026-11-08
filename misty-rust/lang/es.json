@@ -422,5 +422,17 @@
   "Skin_Vue_Cote": "Lado",
   "Skin_Vue_Dos": "Espalda",
   "Skin_Vue_Marche": "Caminar",
-  "Skin_Elytres": "Élitros"
+  "Skin_Elytres": "Élitros",
+  "Param_Groupe_Affichage": "PANTALLA",
+  "Param_Groupe_Comptes": "CUENTAS",
+  "Param_Groupe_Jeu": "JUEGO",
+  "Param_Groupe_Launcher": "LAUNCHER",
+  "Param_Langue": "Idioma",
+  "Param_Microsoft": "Microsoft",
+  "Param_HorsLigne": "Cuentas sin conexión",
+  "Param_Memoire": "Memoria",
+  "Param_Versions": "Versiones",
+  "Param_Comportement": "Comportamiento",
+  "Param_Stockage": "Almacenamiento",
+  "Param_APropos": "Acerca de"
 }

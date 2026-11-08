@@ -422,5 +422,17 @@
   "Skin_Vue_Cote": "Lato",
   "Skin_Vue_Dos": "Retro",
   "Skin_Vue_Marche": "Cammina",
-  "Skin_Elytres": "Elitre"
+  "Skin_Elytres": "Elitre",
+  "Param_Groupe_Affichage": "ASPETTO",
+  "Param_Groupe_Comptes": "ACCOUNT",
+  "Param_Groupe_Jeu": "GIOCO",
+  "Param_Groupe_Launcher": "LAUNCHER",
+  "Param_Langue": "Lingua",
+  "Param_Microsoft": "Microsoft",
+  "Param_HorsLigne": "Account offline",
+  "Param_Memoire": "Memoria",
+  "Param_Versions": "Versioni",
+  "Param_Comportement": "Comportamento",
+  "Param_Stockage": "Archiviazione",
+  "Param_APropos": "Informazioni"
 }
