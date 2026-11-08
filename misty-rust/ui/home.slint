@@ -69,9 +69,9 @@ component VersionCard inherits Rectangle {
 
     Rectangle {
         border-radius: 30px;
-        background: #D9E9FA;
+        background: Theme.stage;
         drop-shadow-blur: 24px;
-        drop-shadow-color: #1C233540;
+        drop-shadow-color: Theme.shadow;
         drop-shadow-offset-y: 8px;
 
         Rectangle {
@@ -148,7 +148,7 @@ component VersionCard inherits Rectangle {
         border-radius: 27px;
         background: white;
         drop-shadow-blur: 8px;
-        drop-shadow-color: #1C233540;
+        drop-shadow-color: Theme.shadow;
         Rectangle {
             x: 5px;
             y: 5px;
@@ -173,7 +173,7 @@ component VersionCard inherits Rectangle {
         border-radius: 21px;
         background: white;
         drop-shadow-blur: 8px;
-        drop-shadow-color: #1C233540;
+        drop-shadow-color: Theme.shadow;
         Rectangle {
             x: 5px;
             y: 5px;
@@ -301,7 +301,7 @@ export component HomePage inherits Rectangle {
         // ═══════════ Barre de lancement ═══════════
         GlassCard {
             border-radius: 26px;
-            background: #FFFFFF73;
+            background: Theme.panel;
             // La barre garde sa hauteur naturelle : c'est le héros au-dessus qui prend la place libre
             vertical-stretch: 0;
             height: barre.preferred-height;
@@ -358,7 +358,7 @@ export component HomePage inherits Rectangle {
                                         }
                                         if HomeState.premium && HomeState.ms-names.length <= 1: Rectangle {
                                             border-radius: 12px;
-                                            background: Theme.navy;
+                                            background: Theme.dark ? #162140 : #1C2335;
                                             HorizontalLayout {
                                                 padding-left: 12px;
                                                 padding-right: 12px;

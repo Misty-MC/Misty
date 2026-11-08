@@ -16,7 +16,7 @@ export component Icon inherits Text {
 export component PixelLabel inherits Text {
     font-family: Theme.pixel-font;
     font-size: 13px;
-    color: Theme.slate-dark;
+    color: Theme.label-strong;
     vertical-alignment: center;
 }
 
@@ -98,7 +98,7 @@ export component Thumb inherits Rectangle {
     in property <length> border: 0px;
     in property <bool> pixel-art: false;
 
-    background: Theme.navy;
+    background: Theme.dark ? #162140 : #1C2335;
     border-radius: root.radius;
     border-width: root.border;
     border-color: white;
@@ -126,7 +126,7 @@ export component Thumb inherits Rectangle {
 /// Petite étiquette colorée ("1.20.1", "FABRIC"…).
 export component Badge inherits Rectangle {
     in property <string> text;
-    in property <color> couleur: Theme.navy;
+    in property <color> couleur: Theme.fill;
     in property <length> font-size: 11px;
     background: root.couleur;
     border-radius: 8px;
@@ -144,7 +144,8 @@ export component Badge inherits Rectangle {
 
 // ───────────────────────── Boutons ─────────────────────────
 
-/// Bouton texte. kind : 0 = verre, 1 = principal (bleu nuit), 2 = danger, 3 = vert.
+/// Bouton texte en relief (comme les boutons du site) : il se soulève au survol et s'enfonce au clic.
+/// kind : 0 = verre, 1 = principal, 2 = danger, 3 = vert.
 export component MButton inherits Rectangle {
     in property <string> text;
     in property <string> icon;
@@ -156,34 +157,52 @@ export component MButton inherits Rectangle {
 
     height: 40px;
     min-width: contenu.preferred-width;
-    border-radius: 12px;
-    border-width: 1.5px;
-    opacity: root.enabled ? 1 : 0.55;
+    opacity: root.enabled ? 1 : 0.5;
+    animate opacity { duration: Theme.normal; }
 
-    property <color> fond: root.kind == 1 ? Theme.navy : root.kind == 2 ? Theme.danger : root.kind == 3 ? Theme.green-dark : Theme.glass-strong;
-    property <color> encre: root.kind == 0 ? Theme.text : white;
-    background: touch.pressed ? root.fond.darker(0.15) : touch.has-hover && root.enabled ? root.fond.brighter(0.12) : root.fond;
-    border-color: root.kind == 0 ? Theme.glass-border : root.kind == 2 ? #FFFFFF66 : root.fond;
-    animate background { duration: 120ms; }
+    property <color> fond: root.kind == 1 ? Theme.fill : root.kind == 2 ? Theme.danger : root.kind == 3 ? Theme.green-dark : Theme.glass-strong;
+    property <color> relief: root.kind == 1 ? Theme.fill-lip : root.kind == 2 ? #B8323F : root.kind == 3 ? Theme.green-edge : Theme.lip;
+    property <color> encre: root.kind == 0 ? Theme.text : Theme.on-fill;
+    property <bool> survol: touch.has-hover && root.enabled;
+    property <bool> appui: touch.pressed && root.enabled;
 
-    contenu := HorizontalLayout {
-        padding-left: 16px;
-        padding-right: 16px;
-        spacing: 8px;
-        alignment: center;
-        if root.icon != "": Icon {
-            text: root.icon;
-            font-size: 12px;
-            color: root.encre;
-            transform-rotation: root.icon-spin ? (animation-tick() / 900ms) * 360deg : 0deg;
-        }
-        Text {
-            text: root.text;
-            font-family: Theme.ui-font;
-            font-size: 13px;
-            font-weight: 600;
-            color: root.encre;
-            vertical-alignment: center;
+    // relief sous le bouton
+    Rectangle {
+        y: 4px;
+        height: parent.height - 4px;
+        border-radius: 12px;
+        background: root.relief;
+        opacity: root.kind == 0 ? 0.55 : 1;
+    }
+    face := Rectangle {
+        y: root.appui ? 3px : root.survol ? -1px : 0px;
+        height: parent.height - 4px;
+        border-radius: 12px;
+        border-width: 1px;
+        border-color: root.kind == 0 ? Theme.glass-border : root.fond.brighter(0.2);
+        background: root.appui ? root.fond.darker(0.08) : root.survol ? root.fond.brighter(0.1) : root.fond;
+        animate y { duration: 110ms; easing: ease-out; }
+        animate background { duration: Theme.fast; }
+
+        contenu := HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 8px;
+            alignment: center;
+            if root.icon != "": Icon {
+                text: root.icon;
+                font-size: 12px;
+                color: root.encre;
+                transform-rotation: root.icon-spin ? (animation-tick() / 900ms) * 360deg : 0deg;
+            }
+            Text {
+                text: root.text;
+                font-family: Theme.ui-font;
+                font-size: 13px;
+                font-weight: 600;
+                color: root.encre;
+                vertical-alignment: center;
+            }
         }
     }
     touch := TouchArea {
@@ -207,11 +226,13 @@ export component IconButton inherits Rectangle {
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    border-width: 1.5px;
-    border-color: root.bord;
-    background: touch.pressed ? root.fond.darker(0.15) : touch.has-hover && root.enabled ? root.fond.brighter(0.15) : root.fond;
+    border-width: 1px;
+    border-color: touch.has-hover && root.enabled ? Theme.accent : root.bord;
+    background: touch.pressed ? root.fond.darker(0.1) : touch.has-hover && root.enabled ? root.fond.brighter(0.15) : root.fond;
     opacity: root.enabled ? 1 : 0.5;
-    animate background { duration: 120ms; }
+    transform-scale: touch.pressed && root.enabled ? 0.9 : 1;
+    animate background, border-color { duration: Theme.fast; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
 
     Icon {
         text: root.icon;
@@ -242,7 +263,7 @@ export component IconButton inherits Rectangle {
     }
 }
 
-/// Bouton de la barre de titre (réduire / fermer).
+/// Bouton de la barre de titre (réduire / agrandir / fermer).
 export component ChromeButton inherits Rectangle {
     in property <string> icon;
     in property <bool> close: false;
@@ -251,12 +272,15 @@ export component ChromeButton inherits Rectangle {
     width: 46px;
     height: 34px;
     border-radius: 10px;
-    background: touch.has-hover ? (root.close ? Theme.danger : #FFFFFF66) : transparent;
-    animate background { duration: 120ms; }
+    background: touch.has-hover ? (root.close ? Theme.danger : Theme.glass-hover) : transparent;
+    transform-scale: touch.pressed ? 0.9 : 1;
+    animate background { duration: Theme.fast; }
+    animate transform-scale { duration: 120ms; easing: ease-out; }
     Icon {
         text: root.icon;
         font-size: 10px;
         color: touch.has-hover && root.close ? white : root.encre;
+        animate color { duration: Theme.fast; }
     }
     touch := TouchArea {
         mouse-cursor: pointer;
@@ -319,10 +343,12 @@ export component TabPill inherits Rectangle {
     horizontal-stretch: 0;
     border-radius: 18px;
     border-width: 1.5px;
-    border-color: root.checked ? Theme.navy : Theme.glass-border;
-    background: root.checked ? Theme.navy : touch.has-hover && root.enabled ? Theme.glass-hover : Theme.glass;
+    border-color: root.checked ? Theme.fill : touch.has-hover && root.enabled ? Theme.accent : Theme.glass-border;
+    background: root.checked ? Theme.fill : touch.has-hover && root.enabled ? Theme.glass-hover : Theme.glass;
     opacity: root.enabled ? 1 : 0.45;
-    animate background { duration: 120ms; }
+    transform-scale: touch.pressed && root.enabled ? 0.95 : 1;
+    animate background, border-color { duration: Theme.normal; easing: ease-out; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
 
     contenu := HorizontalLayout {
         padding-left: 14px;
@@ -341,14 +367,14 @@ export component TabPill inherits Rectangle {
         if root.icon != "": Icon {
             text: root.icon;
             font-size: 13px;
-            color: root.checked ? white : Theme.navy;
+            color: root.checked ? Theme.on-fill : Theme.navy;
         }
         Text {
             text: root.text;
             font-family: Theme.ui-font;
             font-size: 13px;
             font-weight: 600;
-            color: root.checked ? white : Theme.navy;
+            color: root.checked ? Theme.on-fill : Theme.navy;
             vertical-alignment: center;
         }
     }
@@ -377,8 +403,9 @@ export component GlassInput inherits Rectangle {
     border-radius: 12px;
     background: Theme.glass-strong;
     border-width: 1.5px;
-    border-color: input.has-focus ? Theme.blue : Theme.glass-border;
+    border-color: input.has-focus ? Theme.accent : Theme.glass-border;
     opacity: root.enabled ? 1 : 0.6;
+    animate border-color { duration: Theme.normal; }
 
     public function focus-input() {
         input.focus();
@@ -394,7 +421,7 @@ export component GlassInput inherits Rectangle {
         if root.search: Icon {
             text: "\u{E721}";
             font-size: 13px;
-            color: Theme.slate;
+            color: Theme.text-muted;
             width: 16px;
         }
         Rectangle {
@@ -440,8 +467,9 @@ export component GlassCombo inherits Rectangle {
     border-radius: 12px;
     border-width: 1.5px;
     border-color: Theme.glass-border;
-    background: touch.has-hover && root.enabled ? #FFFFFFC8 : Theme.glass-strong;
+    background: touch.has-hover && root.enabled ? Theme.glass-hover : Theme.glass-strong;
     opacity: root.enabled ? 1 : 0.55;
+    animate background { duration: Theme.fast; }
 
     Text {
         x: 14px;
@@ -474,12 +502,12 @@ export component GlassCombo inherits Rectangle {
         width: root.width;
         height: root.hauteur-liste;
         Rectangle {
-            background: #F6FAFF;
+            background: Theme.popup;
             border-radius: 12px;
-            border-width: 1.5px;
-            border-color: white;
-            drop-shadow-blur: 16px;
-            drop-shadow-color: #1C233540;
+            border-width: 1px;
+            border-color: Theme.glass-border;
+            drop-shadow-blur: 18px;
+            drop-shadow-color: Theme.shadow;
             drop-shadow-offset-y: 4px;
             ListView {
                 x: 6px;
@@ -495,7 +523,8 @@ export component GlassCombo inherits Rectangle {
                 for item[i] in root.model: Rectangle {
                     height: 36px;
                     border-radius: 8px;
-                    background: ligne.has-hover ? #2F8CFF26 : i == root.current-index ? #1C233514 : transparent;
+                    background: ligne.has-hover ? Theme.popup-hover : i == root.current-index ? Theme.accent-soft : transparent;
+                    animate background { duration: Theme.fast; }
                     Text {
                         x: 10px;
                         width: parent.width - 20px;
@@ -542,8 +571,8 @@ export component ToggleSwitch inherits Rectangle {
                 width: 44px;
                 height: 24px;
                 border-radius: 12px;
-                background: root.checked ? Theme.green-dark : #1C233533;
-                animate background { duration: 150ms; }
+                background: root.checked ? Theme.toggle-on : Theme.toggle-off;
+                animate background { duration: 220ms; easing: ease-out; }
                 Rectangle {
                     x: root.checked ? 22px : 2px;
                     y: 2px;
@@ -553,7 +582,7 @@ export component ToggleSwitch inherits Rectangle {
                     background: white;
                     drop-shadow-blur: 3px;
                     drop-shadow-color: #0003;
-                    animate x { duration: 150ms; easing: ease-out; }
+                    animate x { duration: 260ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
                 }
             }
         }
@@ -587,8 +616,8 @@ export component GlassSlider inherits Rectangle {
     in property <float> maximum: 100;
     in-out property <float> value;
     in property <float> step: 1;
-    in property <color> fill: Theme.navy;
-    in property <brush> track: #1C233526;
+    in property <color> fill: Theme.fill;
+    in property <brush> track: Theme.track;
     callback changed(float);
 
     height: 24px;
@@ -654,7 +683,7 @@ export component SlimProgress inherits Rectangle {
     in property <float> progress;
     height: 8px;
     border-radius: 4px;
-    background: #FFFFFF73;
+    background: Theme.track;
     clip: true;
     Rectangle {
         x: 0;
@@ -679,6 +708,8 @@ export component Spinner inherits Rectangle {
 /// Liste déroulante des langues (avec drapeaux).
 export struct LangItem {
     name: string,
+    /// Nom de la langue en anglais (« French »), affiché en gris
+    english: string,
     flag: image,
 }
 
@@ -691,7 +722,8 @@ export component LangCombo inherits Rectangle {
     border-radius: 12px;
     border-width: 1.5px;
     border-color: Theme.glass-border;
-    background: touch.has-hover ? #FFFFFFC8 : Theme.glass-strong;
+    background: touch.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    animate background { duration: Theme.fast; }
 
     HorizontalLayout {
         padding-left: 14px;
@@ -733,18 +765,19 @@ export component LangCombo inherits Rectangle {
         width: root.width;
         height: root.hauteur-liste;
         Rectangle {
-            background: #F6FAFF;
+            background: Theme.popup;
             border-radius: 12px;
-            border-width: 1.5px;
-            border-color: white;
-            drop-shadow-blur: 16px;
-            drop-shadow-color: #1C233540;
+            border-width: 1px;
+            border-color: Theme.glass-border;
+            drop-shadow-blur: 18px;
+            drop-shadow-color: Theme.shadow;
             VerticalLayout {
                 padding: 6px;
                 for item[i] in root.model: Rectangle {
                     height: 40px;
                     border-radius: 8px;
-                    background: ligne.has-hover ? #2F8CFF26 : i == root.current-index ? #1C233514 : transparent;
+                    background: ligne.has-hover ? Theme.popup-hover : i == root.current-index ? Theme.accent-soft : transparent;
+                    animate background { duration: Theme.fast; }
                     HorizontalLayout {
                         padding-left: 10px;
                         spacing: 10px;

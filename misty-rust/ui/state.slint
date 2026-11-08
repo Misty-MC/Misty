@@ -22,6 +22,9 @@ export global AppState {
     /// Onglet de la barre latérale allumé
     in-out property <int> nav: 0;
     in property <string> version-text;
+    /// Fenêtre agrandie (plein écran fenêtré)
+    in property <bool> maximized;
+    callback toggle-maximize();
     callback nav-clicked(int);
     callback open-data-folder();
     callback minimize();
@@ -252,6 +255,19 @@ export struct MsCompte {
 }
 
 export global SettingsState {
+    /// Fenêtre des options ouverte
+    in property <bool> open;
+    /// Catégorie affichée : 0 apparence · 1 langue · 2 Microsoft · 3 hors-ligne · 4 Java et mémoire
+    /// · 5 versions · 6 comportement · 7 ressources · 8 dépannage
+    in-out property <int> section: 0;
+    /// Capture floutée de la fenêtre, posée derrière la fenêtre des options
+    in property <image> backdrop;
+    in property <bool> has-backdrop;
+    /// « Windows 10.0.19045 », affiché sous la version de Misty
+    in property <string> system-text;
+    in-out property <float> downloads: 16;
+    in property <string> cache-size;
+    in property <string> logs-size;
     in property <[MsCompte]> ms-accounts;
     in property <[PseudoRow]> pseudo-rows;
     in-out property <string> new-pseudo;
@@ -301,6 +317,14 @@ export global SettingsState {
     callback rich-toggled(bool);
     callback github();
     callback check-update();
+    callback close();
+    callback theme-selected(int);
+    callback particles-toggled(bool);
+    callback blur-toggled(bool);
+    callback downloads-changed(float);
+    callback clear-cache();
+    callback open-logs();
+    callback export-debug();
 }
 
 // ───────────────────────── Notes de version ─────────────────────────

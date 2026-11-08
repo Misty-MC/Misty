@@ -60,3 +60,25 @@ pub fn montrer_fichier(fichier: &Path) {
 pub fn ouvrir(cible: &str) {
     let _ = open::that_detached(cible);
 }
+
+/// Version de Windows, comme « Windows 10.0.19045 » (lue dans le registre).
+#[cfg(windows)]
+pub fn version_windows() -> String {
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+    let Ok(cle) = winreg::RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion") else {
+        return "Windows".into();
+    };
+    let majeure: u32 = cle.get_value("CurrentMajorVersionNumber").unwrap_or(10);
+    let mineure: u32 = cle.get_value("CurrentMinorVersionNumber").unwrap_or(0);
+    let build: String = cle.get_value("CurrentBuild").unwrap_or_default();
+    if build.is_empty() {
+        format!("Windows {majeure}.{mineure}")
+    } else {
+        format!("Windows {majeure}.{mineure}.{build}")
+    }
+}
+
+#[cfg(not(windows))]
+pub fn version_windows() -> String {
+    std::env::consts::OS.to_string()
+}

@@ -34,7 +34,7 @@ export component ChangelogPage inherits Rectangle {
                     y: 0;
                     width: parent.width - 12px;
                     height: parent.height - 14px;
-                    background: s.recent ? #FFFFFF8C : Theme.glass;
+                    background: s.recent ? Theme.panel-strong : Theme.glass;
                     contenu := HorizontalLayout {
                         padding-left: 20px;
                         padding-right: 20px;
@@ -48,7 +48,7 @@ export component ChangelogPage inherits Rectangle {
                                 alignment: start;
                                 Rectangle {
                                     border-radius: 10px;
-                                    background: s.recent ? Theme.green : Theme.navy;
+                                    background: s.recent ? Theme.green-dark : Theme.fill;
                                     width: titre.preferred-width + 24px;
                                     height: 30px;
                                     titre := PixelLabel {

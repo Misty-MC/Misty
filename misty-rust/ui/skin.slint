@@ -54,9 +54,9 @@ component FigureCard inherits Rectangle {
 
     Rectangle {
         border-radius: 30px;
-        background: #D9E9FA;
+        background: Theme.stage;
         drop-shadow-blur: 24px;
-        drop-shadow-color: #1C233540;
+        drop-shadow-color: Theme.shadow;
         drop-shadow-offset-y: 8px;
 
         Rectangle {
@@ -204,7 +204,7 @@ component CapeTile inherits Rectangle {
     width: 88px;
     height: 124px;
     border-radius: 14px;
-    background: root.active ? #FFFFFFB3 : touch.has-hover ? Theme.glass-hover : Theme.glass;
+    background: root.active ? Theme.panel-strong : touch.has-hover ? Theme.glass-hover : Theme.glass;
     border-width: root.active ? 2.5px : 1.5px;
     border-color: root.active ? Theme.green : Theme.glass-border;
     animate background { duration: 120ms; }
@@ -233,7 +233,7 @@ component CapeTile inherits Rectangle {
         height: 92px;
         text: "\u{E711}";
         font-size: 24px;
-        color: Theme.slate;
+        color: Theme.label;
     }
     PixelLabel {
         x: 4px;
@@ -267,7 +267,7 @@ export component SkinPanel inherits Rectangle {
             horizontal-stretch: 1;
             height: 400px;
             border-radius: 26px;
-            background: #FFFFFF73;
+            background: Theme.panel;
 
             // Pas de compte Microsoft : rien à modifier
             if !HomeState.premium: VerticalLayout {
@@ -277,7 +277,7 @@ export component SkinPanel inherits Rectangle {
                 Icon {
                     text: "\u{E77B}";
                     font-size: 34px;
-                    color: Theme.slate;
+                    color: Theme.label;
                 }
                 BodyText {
                     text: Tr.t("Skin_Connexion");
@@ -310,7 +310,7 @@ export component SkinPanel inherits Rectangle {
                     PixelLabel {
                         text: HomeState.premium-name;
                         font-size: 11px;
-                        color: Theme.slate;
+                        color: Theme.label;
                         horizontal-stretch: 1;
                         overflow: elide;
                     }

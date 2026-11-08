@@ -1,4 +1,5 @@
-//! Options : comptes hors-ligne, compte Microsoft, RAM, raccourci, types de versions, stockage, langue.
+//! Options (fenêtre par-dessus le launcher) : apparence, langue, comptes, mémoire, versions,
+//! comportement, ressources, dépannage.
 
 use super::{dialogs, lancer, modele, App};
 use crate::services::{account, app_info, discord, loc, paths, pseudos, settings, shortcut, storage, system_info};
@@ -215,6 +216,140 @@ pub fn installer(app: &Rc<App>) {
     });
 
     st.on_github(|| system_info::ouvrir(&format!("https://github.com/{}", app_info::GITHUB_REPO)));
+
+    // Fenêtre
+    st.set_system_text(system_info::version_windows().into());
+    let a = app.clone();
+    st.on_close(move || fermer(&a));
+
+    // Apparence
+    let a = app.clone();
+    st.on_theme_selected(move |mode| {
+        settings::set(settings::THEME, &mode.to_string());
+        a.ui.global::<crate::Theme>().set_mode(mode);
+        // La capture floutée montre encore l'ancien thème : on garde seulement le voile
+        s(&a).set_has_backdrop(false);
+    });
+    let a = app.clone();
+    st.on_particles_toggled(move |actif| {
+        settings::set_bool(settings::PARTICULES, actif);
+        a.ui.global::<crate::Theme>().set_particles(actif);
+    });
+    let a = app.clone();
+    st.on_blur_toggled(move |actif| {
+        settings::set_bool(settings::FLOU, actif);
+        a.ui.global::<crate::Theme>().set_blur(actif);
+    });
+
+    // Ressources
+    st.on_downloads_changed(|v| settings::set(settings::TELECHARGEMENTS, &(v.round() as u32).to_string()));
+
+    // Dépannage
+    let a = app.clone();
+    st.on_clear_cache(move || {
+        let a = a.clone();
+        lancer(async move {
+            let resultat = a.bloquant(|| {
+                let cache = paths::data_dir().join("cache");
+                if cache.exists() {
+                    std::fs::remove_dir_all(&cache)
+                } else {
+                    Ok(())
+                }
+            });
+            if let Err(e) = resultat.await {
+                dialogs::erreur(&a, &loc::t("Param_Cache"), &e.to_string()).await;
+            }
+            calculer_depannage(&a);
+            calculer_taille(&a);
+        });
+    });
+    st.on_open_logs(|| {
+        let logs = paths::data_dir().join("logs");
+        let _ = std::fs::create_dir_all(&logs);
+        system_info::ouvrir_dossier(&logs);
+    });
+    let a = app.clone();
+    st.on_export_debug(move || {
+        let fichier = paths::data_dir().join("misty-debug.txt");
+        match std::fs::write(&fichier, infos_debug()) {
+            Ok(()) => system_info::montrer_fichier(&fichier),
+            Err(e) => {
+                let a = a.clone();
+                lancer(async move { dialogs::erreur(&a, &loc::t("Param_Debug"), &e.to_string()).await });
+            }
+        }
+    });
+}
+
+/// Ouvre la fenêtre des options : capture floutée de la fenêtre en fond, puis réglages à jour.
+pub fn ouvrir(app: &Rc<App>) {
+    let st = s(app);
+    if st.get_open() {
+        return;
+    }
+    app.ui.global::<crate::Bulle>().set_visible(false);
+    let fond = if app.ui.global::<crate::Theme>().get_blur() { capture_floutee(app) } else { None };
+    st.set_has_backdrop(fond.is_some());
+    if let Some(image) = fond {
+        st.set_backdrop(image);
+    }
+    rafraichir(app);
+    st.set_open(true);
+}
+
+/// Ferme la fenêtre des options (et recharge l'accueil si les types de versions ont changé).
+pub fn fermer(app: &Rc<App>) {
+    s(app).set_open(false);
+    if consommer_changement_types(app) {
+        super::home::rafraichir(app, true);
+    }
+}
+
+/// Capture de la fenêtre, réduite puis floutée (le fond « verre dépoli » de la fenêtre des options).
+fn capture_floutee(app: &App) -> Option<slint::Image> {
+    let capture = app.ui.window().take_snapshot().ok()?;
+    let image = image::RgbaImage::from_raw(capture.width(), capture.height(), capture.as_bytes().to_vec())?;
+    // Réduire d'abord : le flou est bien plus rapide, et l'agrandissement à l'affichage l'adoucit encore
+    let (l, h) = ((image.width() / 6).max(1), (image.height() / 6).max(1));
+    let petite = image::imageops::resize(&image, l, h, image::imageops::FilterType::Triangle);
+    let floue = image::imageops::blur(&petite, 3.5);
+    let tampon = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(floue.as_raw(), floue.width(), floue.height());
+    Some(slint::Image::from_rgba8(tampon))
+}
+
+/// Tailles du cache et des journaux (page Dépannage).
+fn calculer_depannage(app: &Rc<App>) {
+    let a = app.clone();
+    lancer(async move {
+        let (cache, logs) = a
+            .bloquant(|| {
+                let d = paths::data_dir();
+                let logs = system_info::taille_dossier(&d.join("logs")) + system_info::taille_dossier(&d.join("crash-reports"));
+                (system_info::taille_dossier(&d.join("cache")), logs)
+            })
+            .await;
+        s(&a).set_cache_size(taille_texte(cache).into());
+        s(&a).set_logs_size(taille_texte(logs).into());
+    });
+}
+
+/// Fichier texte à joindre à un signalement de bug.
+fn infos_debug() -> String {
+    let theme = ["brume", "nuit", "systeme"].get(settings::theme() as usize).copied().unwrap_or("?");
+    [
+        format!("Misty {}", app_info::VERSION),
+        system_info::version_windows(),
+        format!("RAM : {} Mo (allouee au jeu : {} Mo)", system_info::ram_totale_mo(), settings::ram_mo()),
+        format!("Langue : {}", loc::code()),
+        format!("Theme : {theme}"),
+        format!("Telechargements simultanes : {}", settings::telechargements()),
+        format!("Dossier : {}", paths::data_dir().display()),
+        format!("Profils : {}", crate::services::instances::lister().len()),
+        format!("Compte Microsoft : {}", if account::session().is_some() { "oui" } else { "non" }),
+    ]
+    .join("
+")
 }
 
 /// Recharge l'affichage depuis les fichiers de config (appelé à chaque ouverture de la page).
@@ -225,7 +360,7 @@ pub fn rafraichir(app: &Rc<App>) {
     let langues = loc::disponibles();
     let items: Vec<LangItem> = langues
         .iter()
-        .map(|l| LangItem { name: l.nom.clone().into(), flag: drapeau(&l.pays) })
+        .map(|l| LangItem { name: l.nom.clone().into(), english: nom_anglais(&l.code).into(), flag: drapeau(&l.pays) })
         .collect();
     st.set_langs(modele(items));
     st.set_lang_index(langues.iter().position(|l| l.code == loc::code()).map(|i| i as i32).unwrap_or(-1));
@@ -242,8 +377,22 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_alpha(settings::get_bool(settings::ALPHA, false));
     st.set_shortcut_enabled(!settings::get(settings::RACCOURCI).is_empty());
     st.set_rich(discord::active());
+    st.set_downloads(settings::telechargements() as f32);
 
     maj_textes(app);
+    calculer_depannage(app);
+}
+
+/// Nom de la langue en anglais, affiché en gris à côté de son nom.
+fn nom_anglais(code: &str) -> &'static str {
+    match code {
+        "fr" => "French",
+        "en" => "English",
+        "es" => "Spanish",
+        "it" => "Italian",
+        "ru" => "Russian",
+        _ => "",
+    }
 }
 
 /// Drapeau intégré (assets/flags/xx.png).

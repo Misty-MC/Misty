@@ -143,6 +143,27 @@ pub fn installer(app: &Rc<App>) {
     }));
     let a = app.clone();
     ui.global::<AppState>().on_minimize(move || fenetre(&a, |w| w.set_minimized(true)));
+    let a = app.clone();
+    ui.global::<AppState>().on_toggle_maximize(move || {
+        fenetre(&a, |w| w.set_maximized(!w.is_maximized()));
+        suivre_agrandissement(&a);
+    });
+    // La fenêtre peut aussi être agrandie ou restaurée par Windows (Win+flèches, glisser en haut de l’écran) :
+    // on suit son état pour arrondir ou non les coins.
+    let a = Rc::downgrade(app);
+    let minuterie = slint::Timer::default();
+    minuterie.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(300), move || {
+        if let Some(a) = a.upgrade() {
+            suivre_agrandissement(&a);
+        }
+    });
+    std::mem::forget(minuterie);
+
+    // Apparence enregistrée
+    let theme = ui.global::<crate::Theme>();
+    theme.set_mode(crate::services::settings::theme());
+    theme.set_particles(crate::services::settings::get_bool(crate::services::settings::PARTICULES, true));
+    theme.set_blur(crate::services::settings::get_bool(crate::services::settings::FLOU, true));
     ui.global::<AppState>().on_close(|| {
         let _ = slint::quit_event_loop();
     });
@@ -160,6 +181,16 @@ pub fn installer(app: &Rc<App>) {
     packs::installer(app);
     editor::installer(app);
     skin::installer(app);
+}
+
+/// Met à jour l’indicateur « fenêtre agrandie » (coins carrés, icône du bouton).
+fn suivre_agrandissement(app: &App) {
+    let mut agrandie = false;
+    fenetre(app, |w| agrandie = w.is_maximized());
+    let etat = app.ui.global::<AppState>();
+    if etat.get_maximized() != agrandie {
+        etat.set_maximized(agrandie);
+    }
 }
 
 /// Accès à la fenêtre winit (déplacement, réduction).
@@ -263,6 +294,12 @@ async fn verifier_mise_a_jour(app: &Rc<App>, manuel: bool) {
 // ───────────────────────── Navigation ─────────────────────────
 
 fn nav_clicked(app: &Rc<App>, i: i32) {
+    // Les options s’ouvrent dans une fenêtre par-dessus la page en cours
+    if i == page::OPTIONS {
+        settings::ouvrir(app);
+        return;
+    }
+
     let etat = app.ui.global::<AppState>();
     let page = etat.get_page();
 

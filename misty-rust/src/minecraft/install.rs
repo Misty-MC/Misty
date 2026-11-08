@@ -310,7 +310,7 @@ pub async fn telecharger_tout(taches: Vec<Tache>, progression: &FileProgress) ->
             Ok::<(), anyhow::Error>(())
         }
     }))
-    .buffer_unordered(16);
+    .buffer_unordered(crate::services::settings::telechargements());
     while let Some(r) = flux.next().await {
         r?;
     }

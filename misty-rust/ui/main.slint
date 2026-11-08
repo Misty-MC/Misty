@@ -1,4 +1,4 @@
-// Fenêtre principale : cadre, barre latérale, pages, boîte de dialogue.
+// Fenêtre principale : cadre, barre latérale, pages, fenêtre des options, boîte de dialogue.
 
 import { Theme, Tr, Assets, Bulle } from "theme.slint";
 import { AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState } from "state.slint";
@@ -6,16 +6,17 @@ import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, ChromeButton, MBu
 import { HomePage } from "home.slint";
 import { ProfilesPage, ProfileCreateOverlay, ProfileWaitOverlay } from "profiles.slint";
 import { InstancePage } from "instance.slint";
-import { SettingsPage, StorageOverlay } from "settings.slint";
+import { SettingsModal, StorageOverlay } from "settings.slint";
 import { ChangelogPage } from "changelog.slint";
 import { SkinState } from "skin.slint";
 import { PacksPage, PackCreateOverlay } from "packs.slint";
 import { EditorPage } from "editor.slint";
 import { ScrollView } from "std-widgets.slint";
 
-export { Theme, Tr, Assets, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState }
+export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState }
 
-/// Bouton de navigation de la barre latérale.
+/// Bouton de navigation de la barre latérale. Le fond de l'onglet actif est dessiné par la barre
+/// (un indicateur qui glisse d'un onglet à l'autre) : le bouton ne fait que l'icône et le survol.
 component NavButton inherits Rectangle {
     in property <string> icon;
     in property <string> tooltip;
@@ -25,15 +26,19 @@ component NavButton inherits Rectangle {
     width: 50px;
     height: 50px;
     border-radius: 15px;
-    background: root.checked ? white : touch.has-hover ? #FFFFFF26 : transparent;
-    border-width: root.checked ? 0px : 1.5px;
-    border-color: touch.has-hover ? #FFFFFF40 : transparent;
-    animate background { duration: 150ms; }
+    background: !root.checked && touch.has-hover ? #FFFFFF1F : transparent;
+    border-width: 1px;
+    border-color: !root.checked && touch.has-hover ? #FFFFFF33 : transparent;
+    animate background, border-color { duration: Theme.normal; }
 
     Icon {
         text: root.icon;
         font-size: 18px;
-        color: root.checked ? Theme.navy : white;
+        color: root.checked ? (Theme.dark ? Theme.on-fill : #1C2335) : white;
+        opacity: root.checked || touch.has-hover ? 1 : 0.82;
+        transform-scale: touch.pressed ? 0.86 : touch.has-hover ? 1.08 : 1;
+        animate color, opacity { duration: Theme.normal; }
+        animate transform-scale { duration: 160ms; easing: ease-out; }
     }
     touch := TouchArea {
         mouse-cursor: pointer;
@@ -61,8 +66,9 @@ component NavButton inherits Rectangle {
 /// Page qui apparaît en fondu en glissant vers le haut.
 component Apparition inherits Rectangle {
     opacity: 0;
-    property <length> decalage: 18px;
-    animate opacity, decalage { duration: 320ms; easing: ease-out; }
+    property <length> decalage: 14px;
+    animate opacity { duration: 280ms; easing: ease-out; }
+    animate decalage { duration: 380ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
     init => {
         self.opacity = 1;
         self.decalage = 0;
@@ -77,9 +83,13 @@ export component MainWindow inherits Window {
     title: "Misty";
     // Slint ne lit pas le format .ico : on utilise la version PNG
     icon: @image-url("../assets/icone.png");
-    width: 1180px;
-    height: 720px;
+    // Taille d'origine par défaut ; la fenêtre peut ensuite être agrandie ou redimensionnée
+    preferred-width: 1180px;
+    preferred-height: 720px;
+    min-width: 1040px;
+    min-height: 660px;
     no-frame: true;
+    resize-border-width: AppState.maximized ? 0px : 6px;
     // transparent : les coins arrondis du fond laissent voir le bureau
     background: transparent;
     default-font-family: Theme.ui-font;
@@ -89,11 +99,21 @@ export component MainWindow inherits Window {
     changed page => {
         Bulle.visible = false;
     }
+    changed height => {
+        Bulle.fenetre-hauteur = self.height;
+    }
+
+    // Position de l'indicateur de la barre latérale (onglets 0, 1, 3, 4 → cases 0 à 3)
+    property <int> case-nav: AppState.nav == 0 ? 0 : AppState.nav == 1 ? 1 : AppState.nav == 3 ? 2 : AppState.nav == 4 ? 3 : -1;
 
     clavier := FocusScope {
         key-pressed(e) => {
             if (DialogState.visible && e.text == Key.Escape) {
                 DialogState.cancel();
+                return accept;
+            }
+            if (SettingsState.open && e.text == Key.Escape) {
+                SettingsState.close();
                 return accept;
             }
             return reject;
@@ -102,13 +122,20 @@ export component MainWindow inherits Window {
         // Tout le contenu est découpé aux coins arrondis de la fenêtre
         Rectangle {
         clip: true;
-        border-radius: 18px;
+        border-radius: AppState.maximized ? 0px : 18px;
         background: Theme.sky;
 
-        // ═══ Fond : dégradé ciel ═══
+        // ═══ Fond : ciel de brume le jour, nuit étoilée le soir ═══
         Rectangle {
-            background: @linear-gradient(135deg, #BAD6F7 0%, #95B9E4 45%, #5B7FB0 100%);
             clip: true;
+            background: @linear-gradient(135deg, #BAD6F7 0%, #95B9E4 45%, #5B7FB0 100%);
+
+            // nuit : fond du site (dégradé bleu nuit)
+            Rectangle {
+                opacity: Theme.dark ? 1 : 0;
+                animate opacity { duration: 450ms; easing: ease-in-out; }
+                background: @linear-gradient(160deg, #0E1527 0%, #0A0F1D 55%, #070B16 100%);
+            }
 
             // vignette sombre en bas à droite
             Rectangle {
@@ -117,17 +144,16 @@ export component MainWindow inherits Window {
                 y: parent.height - self.r;
                 width: self.r * 2;
                 height: self.r * 2;
-                // le dégradé va jusqu'aux coins : transparent dès 70 % pour ne pas voir le bord du cercle
-                background: @radial-gradient(circle, #3F4A5EAA 0%, #3F4A5E00 60%);
+                background: Theme.dark ? @radial-gradient(circle, #16214099 0%, #16214000 60%) : @radial-gradient(circle, #3F4A5EAA 0%, #3F4A5E00 60%);
             }
-            // halo clair en haut
+            // halo en haut (lune la nuit)
             Rectangle {
                 property <length> r: 700px;
                 x: parent.width * 0.45 - self.r;
                 y: -self.r;
                 width: self.r * 2;
                 height: self.r * 2;
-                background: @radial-gradient(circle, #E4F1FF88 0%, #E4F1FF00 60%);
+                background: Theme.dark ? @radial-gradient(circle, #6F9CFF33 0%, #6F9CFF00 60%) : @radial-gradient(circle, #E4F1FF88 0%, #E4F1FF00 60%);
             }
             // bloc fantôme en bas à gauche
             Image {
@@ -137,18 +163,24 @@ export component MainWindow inherits Window {
                 height: 170px;
                 source: Assets.grass;
                 image-rendering: pixelated;
-                opacity: 0.13;
+                opacity: Theme.dark ? 0.06 : 0.13;
                 transform-rotation: -14deg;
             }
-            // carrés flottants
-            for p in AppState.particles: Rectangle {
-                x: p.x;
-                y: p.y + p.amp * sin((animation-tick() / p.period) * 360deg);
-                width: p.size;
-                height: p.size;
-                border-radius: p.size / 5;
-                background: white;
-                opacity: p.opacity;
+            // carrés flottants (étoiles la nuit)
+            if Theme.particles: Rectangle {
+                for p in AppState.particles: Rectangle {
+                    // la nuit, chaque carré devient une petite étoile qui scintille (comme sur le site)
+                    property <length> taille: Theme.dark ? max(2px, p.size * 0.22) : p.size;
+                    x: p.x * (root.width / 1180px) + (p.size - self.taille) / 2;
+                    y: p.y * (root.height / 720px) + p.amp * sin((animation-tick() / p.period) * 360deg) + (p.size - self.taille) / 2;
+                    width: self.taille;
+                    height: self.taille;
+                    border-radius: self.taille / 5;
+                    background: Theme.dark ? #DCE8FF : white;
+                    drop-shadow-blur: Theme.dark ? 6px : 0px;
+                    drop-shadow-color: #9CC0FF;
+                    opacity: Theme.dark ? 0.3 + 0.6 * abs(sin((animation-tick() / (p.period * 0.7)) * 180deg)) : p.opacity;
+                }
             }
         }
 
@@ -164,9 +196,10 @@ export component MainWindow inherits Window {
                     width: parent.width - 18px;
                     height: parent.height - 28px;
                     border-radius: 22px;
-                    background: #1C233559;
-                    border-width: 1.5px;
-                    border-color: #FFFFFF40;
+                    background: Theme.dark ? #FFFFFF0A : #1C233559;
+                    border-width: 1px;
+                    border-color: Theme.dark ? #FFFFFF14 : #FFFFFF40;
+                    animate background { duration: 450ms; }
 
                     VerticalLayout {
                         padding-top: 16px;
@@ -174,17 +207,17 @@ export component MainWindow inherits Window {
                         alignment: space-between;
 
                         VerticalLayout {
-                            spacing: 10px;
+                            spacing: 0px;
                             HorizontalLayout {
                                 alignment: center;
-                                padding-bottom: 16px;
+                                padding-bottom: 26px;
                                 Rectangle {
                                     width: 50px;
                                     height: 50px;
                                     border-radius: 15px;
-                                    background: Theme.navy;
+                                    background: Theme.dark ? #162140 : #1C2335;
                                     border-width: 2px;
-                                    border-color: #FFFFFF66;
+                                    border-color: Theme.dark ? #6F9CFF66 : #FFFFFF66;
                                     Image {
                                         width: 34px;
                                         height: 34px;
@@ -192,54 +225,81 @@ export component MainWindow inherits Window {
                                     }
                                 }
                             }
+                            // Onglets : l'indicateur glisse sous l'onglet actif
                             HorizontalLayout {
                                 alignment: center;
-                                NavButton {
-                                    icon: "\u{E80F}";
-                                    tooltip: Tr.t("Nav_Jouer");
-                                    checked: AppState.nav == 0;
-                                    clicked => { AppState.nav-clicked(0); }
-                                }
-                            }
-                            HorizontalLayout {
-                                alignment: center;
-                                NavButton {
-                                    icon: "\u{E8F1}";
-                                    tooltip: Tr.t("Nav_Profils");
-                                    checked: AppState.nav == 1;
-                                    clicked => { AppState.nav-clicked(1); }
-                                }
-                            }
-                            HorizontalLayout {
-                                alignment: center;
-                                NavButton {
-                                    icon: "\u{E81C}";
-                                    tooltip: Tr.t("Nav_Notes");
-                                    checked: AppState.nav == 3;
-                                    clicked => { AppState.nav-clicked(3); }
-                                }
-                            }
-                            HorizontalLayout {
-                                alignment: center;
-                                NavButton {
-                                    icon: "\u{E790}";
-                                    tooltip: Tr.t("Nav_Soon");
-                                    checked: AppState.nav == 4;
-                                    clicked => { AppState.nav-clicked(4); }
+                                Rectangle {
+                                    width: 50px;
+                                    height: 4 * 50px + 3 * 10px;
+
+                                    indicateur := Rectangle {
+                                        y: max(0, root.case-nav) * 60px;
+                                        width: 50px;
+                                        height: 50px;
+                                        border-radius: 15px;
+                                        opacity: root.case-nav >= 0 ? 1 : 0;
+                                        background: Theme.dark ? Theme.fill : white;
+                                        drop-shadow-blur: 14px;
+                                        drop-shadow-color: Theme.dark ? #6F9CFF80 : #FFFFFF90;
+                                        animate y { duration: 420ms; easing: cubic-bezier(0.34, 1.32, 0.64, 1); }
+                                        animate opacity { duration: Theme.normal; }
+                                    }
+
+                                    NavButton {
+                                        y: 0;
+                                        icon: "\u{E80F}";
+                                        tooltip: Tr.t("Nav_Jouer");
+                                        checked: AppState.nav == 0;
+                                        clicked => { AppState.nav-clicked(0); }
+                                    }
+                                    NavButton {
+                                        y: 60px;
+                                        icon: "\u{E8F1}";
+                                        tooltip: Tr.t("Nav_Profils");
+                                        checked: AppState.nav == 1;
+                                        clicked => { AppState.nav-clicked(1); }
+                                    }
+                                    NavButton {
+                                        y: 120px;
+                                        icon: "\u{E81C}";
+                                        tooltip: Tr.t("Nav_Notes");
+                                        checked: AppState.nav == 3;
+                                        clicked => { AppState.nav-clicked(3); }
+                                    }
+                                    NavButton {
+                                        y: 180px;
+                                        icon: "\u{E790}";
+                                        tooltip: Tr.t("Nav_Soon");
+                                        checked: AppState.nav == 4;
+                                        clicked => { AppState.nav-clicked(4); }
+                                    }
                                 }
                             }
                         }
 
-                        // bas : dossier + version
+                        // bas : options + dossier + version
                         VerticalLayout {
                             spacing: 12px;
                             HorizontalLayout {
                                 alignment: center;
-                                NavButton {
-                                    icon: "\u{E713}";
-                                    tooltip: Tr.t("Nav_Options");
-                                    checked: AppState.nav == 2;
-                                    clicked => { AppState.nav-clicked(2); }
+                                Rectangle {
+                                    width: 50px;
+                                    height: 50px;
+                                    // l'engrenage reste allumé tant que la fenêtre des options est ouverte
+                                    Rectangle {
+                                        border-radius: 15px;
+                                        background: Theme.dark ? Theme.fill : white;
+                                        opacity: SettingsState.open ? 1 : 0;
+                                        transform-scale: SettingsState.open ? 1 : 0.7;
+                                        animate opacity { duration: Theme.normal; }
+                                        animate transform-scale { duration: 300ms; easing: cubic-bezier(0.34, 1.32, 0.64, 1); }
+                                    }
+                                    NavButton {
+                                        icon: "\u{E713}";
+                                        tooltip: Tr.t("Nav_Options");
+                                        checked: SettingsState.open;
+                                        clicked => { AppState.nav-clicked(2); }
+                                    }
                                 }
                             }
                             HorizontalLayout {
@@ -247,8 +307,8 @@ export component MainWindow inherits Window {
                                 IconButton {
                                     icon: "\u{E8B7}";
                                     encre: white;
-                                    fond: #FFFFFF26;
-                                    bord: #FFFFFF40;
+                                    fond: #FFFFFF1A;
+                                    bord: #FFFFFF33;
                                     tooltip: Tr.t("Nav_Dossier");
                                     clicked => { AppState.open-data-folder(); }
                                 }
@@ -270,7 +330,8 @@ export component MainWindow inherits Window {
                 horizontal-stretch: 1;
                 spacing: 0px;
 
-                // Barre de titre : on peut y attraper la fenêtre pour la déplacer
+                // Barre de titre : on peut y attraper la fenêtre pour la déplacer,
+                // et double-cliquer pour l'agrandir
                 Rectangle {
                     height: 46px;
                     TouchArea {
@@ -279,6 +340,7 @@ export component MainWindow inherits Window {
                                 AppState.drag();
                             }
                         }
+                        double-clicked => { AppState.toggle-maximize(); }
                     }
                     HorizontalLayout {
                         alignment: end;
@@ -289,6 +351,10 @@ export component MainWindow inherits Window {
                         ChromeButton {
                             icon: "\u{E921}";
                             clicked => { AppState.minimize(); }
+                        }
+                        ChromeButton {
+                            icon: AppState.maximized ? "\u{E923}" : "\u{E922}";
+                            clicked => { AppState.toggle-maximize(); }
                         }
                         ChromeButton {
                             icon: "\u{E8BB}";
@@ -302,7 +368,6 @@ export component MainWindow inherits Window {
                     vertical-stretch: 1;
                     if AppState.page == 0: Apparition { HomePage { } }
                     if AppState.page == 1: Apparition { ProfilesPage { } }
-                    if AppState.page == 2: Apparition { SettingsPage { } }
                     if AppState.page == 3: Apparition { ChangelogPage { } }
                     if AppState.page == 4: Apparition { PacksPage { } }
                     if AppState.page == 5: Apparition { InstancePage { } }
@@ -310,6 +375,9 @@ export component MainWindow inherits Window {
                 }
             }
         }
+
+        // ═══ Fenêtre des options (toujours présente, pour pouvoir animer sa fermeture) ═══
+        SettingsModal { }
 
         // ═══ Bulle d'aide (au-dessus des pages) ═══
         if Bulle.visible && !DialogState.visible: Rectangle {
@@ -319,12 +387,14 @@ export component MainWindow inherits Window {
             x: clamp(Bulle.a-droite ? Bulle.x : Bulle.x - self.width / 2, 6px, root.width - self.width - 6px);
             y: Bulle.a-droite ? Bulle.y - self.height / 2 : Bulle.y;
             border-radius: 9px;
-            background: Theme.navy;
-            drop-shadow-blur: 8px;
-            drop-shadow-color: #1C233550;
+            background: Theme.dark ? #162140 : #1C2335;
+            border-width: 1px;
+            border-color: Theme.dark ? #FFFFFF1F : transparent;
+            drop-shadow-blur: 10px;
+            drop-shadow-color: Theme.shadow;
             opacity: 0;
             animate opacity { delay: 300ms; duration: 150ms; }
-            init => { self.opacity = 0.95; }
+            init => { self.opacity = 0.97; }
             bulle-texte := Text {
                 text: Bulle.texte;
                 color: white;
@@ -343,7 +413,7 @@ export component MainWindow inherits Window {
 
         // ═══ Boîte de dialogue ═══
         if DialogState.visible: Rectangle {
-            background: @linear-gradient(180deg, #14203A73 0%, #14203AA6 100%);
+            background: Theme.scrim;
             opacity: 0;
             animate opacity { duration: 200ms; }
             init => {
@@ -356,13 +426,13 @@ export component MainWindow inherits Window {
                 width: 440px;
                 height: contenu.preferred-height;
                 border-radius: 24px;
-                background: #F6FAFFF2;
-                border-width: 2px;
-                border-color: white;
-                drop-shadow-blur: 30px;
-                drop-shadow-color: #1C233560;
-                transform-scale: 0.92;
-                animate transform-scale { duration: 220ms; easing: ease-out-back; }
+                background: Theme.surface;
+                border-width: 1px;
+                border-color: Theme.glass-border;
+                drop-shadow-blur: 40px;
+                drop-shadow-color: Theme.shadow;
+                transform-scale: 0.94;
+                animate transform-scale { duration: 300ms; easing: cubic-bezier(0.34, 1.32, 0.64, 1); }
                 init => { self.transform-scale = 1; }
 
                 contenu := VerticalLayout {
@@ -400,12 +470,12 @@ export component MainWindow inherits Window {
                     }
                     // options (mode « choix dans une liste »)
                     if DialogState.choices.length > 0: ScrollView {
-                        height: min(260px, DialogState.choices.length * 46px);
-                        content-height: DialogState.choices.length * 46px;
+                        height: min(260px, DialogState.choices.length * 50px);
+                        content-height: DialogState.choices.length * 50px;
                         content-width: self.visible-width;
                         for c[i] in DialogState.choices: MButton {
                             x: 0;
-                            y: i * 46px;
+                            y: i * 50px;
                             width: parent.width - 12px;
                             text: c;
                             clicked => { DialogState.choose(i); }

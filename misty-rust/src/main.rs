@@ -90,15 +90,34 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
     ui::lancer(async move {
         attendre(6000).await;
         photo(&app, "0-accueil", &dossier);
+        if std::env::var("MISTY_CAPTURE_SOMBRE").is_ok() {
+            app.ui.global::<Theme>().set_mode(1);
+        }
         app.ui.global::<SkinState>().set_tab(1);
         attendre(1500).await;
         photo(&app, "0b-skin", &dossier);
         app.ui.global::<SkinState>().set_tab(0);
         let etat = app.ui.global::<AppState>();
-        for (page, nom) in [(1, "1-profils"), (2, "2-options"), (3, "3-notes"), (4, "4-packs")] {
+        // Fenêtre des options : chaque catégorie, en thème clair puis sombre (sans rien enregistrer)
+        let theme = app.ui.global::<Theme>();
+        let mode_avant = theme.get_mode();
+        for (mode, suffixe) in [(0, "clair"), (1, "sombre")] {
+            theme.set_mode(mode);
+            ui::settings::ouvrir(&app);
+            for section in 0..9 {
+                app.ui.global::<SettingsState>().set_section(section);
+                attendre(900).await;
+                photo(&app, &format!("2-options-{section}-{suffixe}"), &dossier);
+            }
+            ui::settings::fermer(&app);
+            attendre(600).await;
+            photo(&app, &format!("0-accueil-{suffixe}"), &dossier);
+        }
+        // MISTY_CAPTURE_SOMBRE : les autres pages aussi en thème sombre
+        theme.set_mode(if std::env::var("MISTY_CAPTURE_SOMBRE").is_ok() { 1 } else { mode_avant });
+        for (page, nom) in [(1, "1-profils"), (3, "3-notes"), (4, "4-packs")] {
             match page {
                 1 => ui::profiles::rafraichir(&app),
-                2 => ui::settings::rafraichir(&app),
                 4 => ui::packs::rafraichir(&app),
                 _ => {}
             }
@@ -123,6 +142,16 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             attendre(1500).await;
             photo(&app, "7-editeur", &dossier);
         }
+        // Fenêtre agrandie : la mise en page doit suivre
+        app.ui.global::<AppState>().set_page(0);
+        app.ui.global::<AppState>().set_nav(0);
+        app.ui.window().set_size(slint::LogicalSize::new(1600.0, 960.0));
+        attendre(1500).await;
+        photo(&app, "8-grand-accueil", &dossier);
+        ui::settings::ouvrir(&app);
+        attendre(900).await;
+        photo(&app, "8-grand-options", &dossier);
+        ui::settings::fermer(&app);
         let _ = slint::quit_event_loop();
     });
 }

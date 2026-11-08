@@ -7,7 +7,7 @@ import { ScrollView, ListView } from "std-widgets.slint";
 
 component PetitLabel inherits PixelLabel {
     font-size: 10px;
-    color: Theme.slate;
+    color: Theme.label;
 }
 
 component Pastille inherits Rectangle {
@@ -32,9 +32,10 @@ component OutilPill inherits Rectangle {
     callback clicked;
     height: 34px;
     border-radius: 10px;
-    background: root.checked ? Theme.navy : touch.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    background: root.checked ? Theme.fill : touch.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    animate background { duration: Theme.fast; }
     border-width: 1.5px;
-    border-color: root.checked ? Theme.navy : Theme.glass-border;
+    border-color: root.checked ? Theme.fill : Theme.glass-border;
     HorizontalLayout {
         padding-left: 8px;
         padding-right: 8px;
@@ -192,7 +193,7 @@ export component EditorPage inherits Rectangle {
                             for c[i] in EditorState.categories: Rectangle {
                                 height: 36px;
                                 border-radius: 10px;
-                                background: i == EditorState.category-index ? Theme.navy : cat.has-hover ? #FFFFFF59 : transparent;
+                                background: i == EditorState.category-index ? Theme.fill : cat.has-hover ? Theme.glass-hover : transparent;
                                 HorizontalLayout {
                                     padding-left: 10px;
                                     padding-right: 8px;
@@ -253,7 +254,7 @@ export component EditorPage inherits Rectangle {
                             width: 56px;
                             height: 56px;
                             border-radius: 10px;
-                            background: i == EditorState.selected ? Theme.navy : tuile.has-hover ? #FFFFFF99 : #FFFFFF59;
+                            background: i == EditorState.selected ? Theme.fill : tuile.has-hover ? Theme.panel-strong : Theme.glass;
                             border-width: 2px;
                             border-color: i == EditorState.selected ? Theme.blue : t.modified ? Theme.green : transparent;
                             if t.has-thumb: Image {
@@ -393,7 +394,7 @@ export component EditorPage inherits Rectangle {
                                 Icon {
                                     text: "\u{E71E}";
                                     font-size: 13px;
-                                    color: Theme.slate;
+                                    color: Theme.label;
                                 }
                                 GlassSlider {
                                     horizontal-stretch: 1;
