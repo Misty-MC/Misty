@@ -251,66 +251,30 @@ component VersionCard inherits Rectangle {
                     color: #FFFFFF99;
                     overflow: elide;
                 }
-                OutlinedText {
-                    text: HomeState.card-version;
-                    font-size: 34px;
-                    // contour toujours foncé : le chiffre reste net sur la carte, en clair comme en sombre
-                    stroke-color: #141B2B;
-                    shadow: #0A0E18;
-                    thickness: 3px;
-                    depth: 3px;
+                // numéro de version, puis le loader juste à côté (« 26.3 VANILLA »)
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: start;
+                    OutlinedText {
+                        text: HomeState.card-version;
+                        font-size: 34px;
+                        // contour toujours foncé : le chiffre reste net sur la carte, en clair comme en sombre
+                        stroke-color: #141B2B;
+                        shadow: #0A0E18;
+                        thickness: 3px;
+                        depth: 3px;
+                    }
+                    VerticalLayout {
+                        alignment: end;
+                        padding-bottom: 7px;
+                        PixelLabel {
+                            text: HomeState.card-loader;
+                            font-size: 15px;
+                            color: Theme.dark ? Theme.accent : #CFE0FF;
+                            overflow: elide;
+                        }
+                    }
                 }
-            }
-        }
-    }
-
-    // pastille du compte
-    Rectangle {
-        x: -16px;
-        y: 26px;
-        width: 54px;
-        height: 54px;
-        border-radius: 27px;
-        background: white;
-        drop-shadow-blur: 8px;
-        drop-shadow-color: Theme.shadow;
-        Rectangle {
-            x: 5px;
-            y: 5px;
-            width: 44px;
-            height: 44px;
-            border-radius: 22px;
-            background: HomeState.premium ? Theme.green : Theme.blue;
-            Icon {
-                text: HomeState.premium ? "\u{E73E}" : "\u{E77B}";
-                color: white;
-                font-size: 20px;
-            }
-        }
-    }
-
-    // loader
-    Rectangle {
-        x: parent.width - self.width + 14px;
-        y: parent.height - 76px - 42px;
-        height: 42px;
-        width: loader.preferred-width + 34px;
-        border-radius: 21px;
-        background: white;
-        drop-shadow-blur: 8px;
-        drop-shadow-color: Theme.shadow;
-        Rectangle {
-            x: 5px;
-            y: 5px;
-            width: parent.width - 10px;
-            height: 32px;
-            border-radius: 16px;
-            background: Theme.green;
-            loader := PixelLabel {
-                text: HomeState.card-loader;
-                color: white;
-                font-size: 13px;
-                horizontal-alignment: center;
             }
         }
     }

@@ -796,7 +796,7 @@ fn pose(anim: Anim, t: f32, b: f32) -> Pose {
         Anim::Salut => {
             // bras droit levé qui fait coucou
             p.bras_d.incline = -2.75;
-            p.bras_d.roulis = -0.35 + 0.35 * (t * TAU * 1.6).sin();
+            p.bras_d.roulis = 0.45 + 0.3 * (t * TAU * 1.6).sin();
         }
         Anim::Accroupi => {
             p.corps.incline = 0.5;
@@ -808,7 +808,8 @@ fn pose(anim: Anim, t: f32, b: f32) -> Pose {
             p.jambe_d.decale = [0.0, 0.0, -3.6];
             p.jambe_g.decale = [0.0, 0.0, -3.6];
             p.cape = CAPE_INCLINAISON + 0.5;
-            p.ailes.0 += 0.4;
+            // ailes plus écartées qu'en marchant, comme dans le jeu
+            p.ailes = (0.3, 0.9);
         }
     }
     p
@@ -919,10 +920,10 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
             return v;
         }
         if point {
-            let r = tourner_inverse([v[0] - taille[0], v[1] - taille[1], v[2] - taille[2]], -p.global, 0.0);
+            let r = tourner_inverse([v[0] - taille[0], v[1] - taille[1], v[2] - taille[2]], p.global, 0.0);
             [r[0] + taille[0], r[1] + taille[1], r[2] + taille[2]]
         } else {
-            tourner_inverse(v, -p.global, 0.0)
+            tourner_inverse(v, p.global, 0.0)
         }
     };
     let (o_m, d_m, h_m, r_m) = (vers_modele(origine, true), vers_modele(droite, false), vers_modele(haut, false), vers_modele(regard, false));
@@ -1009,5 +1010,28 @@ mod tests_live {
             assert_eq!(img.dimensions(), (LIVE, LIVE));
             assert!(img.pixels().any(|p| p[3] == 255), "animation {a} vide");
         }
+    }
+}
+
+/// Planche des poses, pour régler les animations : `MISTY_POSES=<dossier> cargo test planche_des_poses -- --ignored`.
+#[cfg(test)]
+mod tests_planche {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn planche_des_poses() {
+        let Ok(dossier) = std::env::var("MISTY_POSES") else { return };
+        let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
+        let cape = image::load_from_memory(texture_misty()).unwrap().to_rgba8();
+        let mut planche = RgbaImage::from_pixel(LIVE * 6, LIVE * 3, Rgba([30, 40, 70, 255]));
+        for a in 0..6 {
+            for (ligne, yaw) in [(0u32, 0.35f32), (1, std::f32::consts::FRAC_PI_2), (2, 2.6)] {
+                let elytres = a == 3 || a == 5;
+                let img = rendre_live(&steve, Some(&cape), false, elytres, Anim::depuis(a), 0.3, yaw, 0.15).unwrap();
+                imageops::overlay(&mut planche, &img, (a as u32 * LIVE) as i64, (ligne * LIVE) as i64);
+            }
+        }
+        planche.save(std::path::Path::new(&dossier).join("poses.png")).unwrap();
     }
 }
