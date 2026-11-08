@@ -561,7 +561,7 @@
   "Hz_Titre": "Minecraft: Java Edition 26.3, reescrito en Rust",
   "Hz_Puce_Officiel": "No oficial",
   "Hz_Puce_Java": "Sin Java",
-  "Hz_Texte": "Horizon es una reimplementación libre de Minecraft: Java Edition 26.3 en Rust: los mismos mundos y reglas, más FPS y cargas más rápidas, en un solo programa nativo. Se juega con tu propia copia de Java Edition: hace falta una cuenta de Microsoft que tenga el juego. Los mods de Java (Fabric, Forge…) no funcionan en Horizon. Misty usa el launcher de Horizon para instalarlo y abrirlo.",
+  "Hz_Texte": "Horizon es una reimplementación libre de Minecraft: Java Edition 26.3 en Rust. Misty descarga sus builds directamente de GitHub (guarda los que quieras), los prepara una vez desde Minecraft 26.3 y los inicia: no hace falta otro launcher. Se necesita una cuenta de Microsoft que tenga el juego, y los mods de Java no funcionan en Horizon.",
   "Hz_Verification": "Comprobando Horizon en este PC…",
   "Hz_Launcher": "Launcher de Horizon",
   "Hz_Jeu": "Juego",
@@ -580,5 +580,17 @@
   "Hz_ConnexionEnCours": "Introduce en el navegador el código de la ventana de Horizon y vuelve aquí.",
   "Hz_Lancement": "Iniciando Horizon…",
   "Hz_Ferme": "Horizon cerrado",
-  "Hz_Erreur": "Horizon no pudo iniciarse"
+  "Hz_Erreur": "Horizon no pudo iniciarse",
+  "Hz_Stable": "Estable",
+  "Hz_Stables": "Estables",
+  "Hz_Builds": "BUILDS",
+  "Hz_Installe": "Instalado",
+  "Hz_Supprimer": "Eliminar este build",
+  "Hz_Telecharger": "Descargar este build",
+  "Hz_CompteRequis": "Horizon necesita una cuenta de Microsoft que tenga Minecraft: Java Edition.",
+  "Hz_ChoisisBuild": "Descarga primero un build",
+  "Hz_TelechargementBuild": "Descargando {0}…",
+  "Hz_InstallationMinecraft": "Instalando Minecraft {0} para Horizon…",
+  "Hz_Preparation": "Preparando Horizon (solo la primera vez)…",
+  "Hz_ListeImpossible": "No se pudieron cargar los builds de GitHub."
 }

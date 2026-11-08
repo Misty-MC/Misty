@@ -529,7 +529,7 @@ export component HomePage inherits Rectangle {
                                         }
                                         Text {
                                             horizontal-stretch: 1;
-                                            text: HomeState.horizon-selected ? "HORIZON  ·  " + HomeState.horizon-game : HomeState.quick ? HomeState.card-version + "  ·  " + HomeState.card-loader : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
+                                            text: HomeState.horizon-selected ? "HORIZON  ·  " + HomeState.horizon-build : HomeState.quick ? HomeState.card-version + "  ·  " + HomeState.card-loader : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
                                             font-size: 14px;
                                             font-weight: 700;
                                             color: Theme.navy;

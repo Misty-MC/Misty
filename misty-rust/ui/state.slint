@@ -92,6 +92,15 @@ export struct ProfileItem {
     art: image,
 }
 
+/// Build d'Horizon publié sur GitHub.
+export struct HorizonBuild {
+    tag: string,
+    date: string,
+    size: string,
+    nightly: bool,
+    installed: bool,
+}
+
 /// Mise à jour de la fenêtre de choix (1.21 « Tricky Trials »…), avec son illustration.
 export struct VersionGroup {
     key: string,
@@ -115,24 +124,26 @@ export global HomeState {
     in-out property <int> picker-loader: 0;
     callback picker-group-selected(int);
 
-    // ── Horizon (Minecraft 26.3 en Rust, piloté par son launcher) ──
+    // ── Horizon (Minecraft 26.3 en Rust) : builds téléchargés depuis GitHub, lancés par Misty ──
     /// Horizon est choisi : la barre du bas et JOUER le lancent
     in-out property <bool> horizon-selected;
     /// L'entrée Horizon est ouverte dans la fenêtre de choix
     in-out property <bool> picker-horizon;
     in property <image> horizon-art;
-    in property <bool> horizon-checked;
-    in property <bool> horizon-installed;
-    in property <string> horizon-launcher-version;
-    in property <string> horizon-game;
-    in property <string> horizon-account;
-    in property <bool> horizon-account-ready;
+    /// Builds publiés (nightlies et versions stables), et celui qui sera lancé
+    in property <[HorizonBuild]> horizon-builds;
+    in property <string> horizon-build;
+    /// 0 tous · 1 nightlies · 2 versions stables
+    in-out property <int> horizon-filter: 0;
+    in property <bool> horizon-loading;
     in property <bool> horizon-busy;
+    in property <string> horizon-busy-tag;
+    in property <float> horizon-progress;
     in property <string> horizon-message;
     callback horizon-refresh();
-    callback horizon-install();
-    callback horizon-sign-in();
-    callback horizon-choose();
+    callback horizon-install(string);
+    callback horizon-remove(string);
+    callback horizon-select(string);
     callback horizon-play();
     callback horizon-link(int);
     in-out property <bool> picker-release: true;

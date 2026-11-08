@@ -561,7 +561,7 @@
   "Hz_Titre": "Minecraft : Java Edition 26.3, réécrit en Rust",
   "Hz_Puce_Officiel": "Non officiel",
   "Hz_Puce_Java": "Sans Java",
-  "Hz_Texte": "Horizon est une réécriture libre et open source de Minecraft : Java Edition 26.3 en Rust : mêmes mondes et mêmes règles, plus d'images par seconde et des chargements plus rapides, dans un seul programme natif. Tu y joues avec ta propre copie de Java Edition : il faut un compte Microsoft qui possède le jeu. Les mods Java (Fabric, Forge…) ne marchent pas dans Horizon. Misty utilise le launcher d'Horizon pour l'installer et le lancer.",
+  "Hz_Texte": "Horizon est une réécriture libre et open source de Minecraft : Java Edition 26.3 en Rust : mêmes mondes et mêmes règles, plus d'images par seconde et des chargements plus rapides. Misty télécharge ses builds directement depuis GitHub (garde-en autant que tu veux), les prépare une fois depuis Minecraft 26.3 et les lance : aucun autre launcher n'est nécessaire. Il faut un compte Microsoft qui possède le jeu, et les mods Java (Fabric, Forge…) ne marchent pas dans Horizon.",
   "Hz_Verification": "Vérification d'Horizon sur ce PC…",
   "Hz_Launcher": "Launcher Horizon",
   "Hz_Jeu": "Jeu",
@@ -580,5 +580,17 @@
   "Hz_ConnexionEnCours": "Saisis dans ton navigateur le code affiché dans la fenêtre d'Horizon, puis reviens ici.",
   "Hz_Lancement": "Lancement d'Horizon…",
   "Hz_Ferme": "Horizon fermé",
-  "Hz_Erreur": "Horizon n'a pas pu démarrer"
+  "Hz_Erreur": "Horizon n'a pas pu démarrer",
+  "Hz_Stable": "Stable",
+  "Hz_Stables": "Stables",
+  "Hz_Builds": "BUILDS",
+  "Hz_Installe": "Installé",
+  "Hz_Supprimer": "Supprimer ce build",
+  "Hz_Telecharger": "Télécharger ce build",
+  "Hz_CompteRequis": "Horizon a besoin d'un compte Microsoft qui possède Minecraft : Java Edition.",
+  "Hz_ChoisisBuild": "Télécharge d'abord un build",
+  "Hz_TelechargementBuild": "Téléchargement de {0}…",
+  "Hz_InstallationMinecraft": "Installation de Minecraft {0} pour Horizon…",
+  "Hz_Preparation": "Préparation d'Horizon (la première fois seulement)…",
+  "Hz_ListeImpossible": "Impossible de charger les builds depuis GitHub."
 }

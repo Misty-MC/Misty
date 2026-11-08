@@ -26,13 +26,15 @@ pub const FLOU: &str = "flou";
 pub const SAISON: &str = "saison";
 /// Flou du paysage en fond (0 = net, 10 = très flou)
 pub const FOND_FLOU: &str = "fondflou";
+/// Build d'Horizon lancé par JOUER (tag GitHub)
+pub const HORIZON_BUILD: &str = "horizonbuild";
 /// Nombre de fichiers téléchargés en même temps pendant l’installation du jeu
 pub const TELECHARGEMENTS: &str = "telechargements";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SNAPSHOT, BETA, ALPHA, SUPPR,
-    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, SAISON, FOND_FLOU, TELECHARGEMENTS,
+    DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, PARTICULES, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {
