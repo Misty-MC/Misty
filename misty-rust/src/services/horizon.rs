@@ -153,37 +153,71 @@ fn commande(exe: &Path) -> Command {
     c
 }
 
-/// Ce qu'un build sait préparer : la version de Minecraft dont il lit les fichiers (le Java qu'il lui
-/// faut est celui que Mojang fournit pour cette version, installé avec elle).
+/// Ce qu'un build attend : la version de Minecraft qu'il prépare (le Java qu'il lui faut est celui que
+/// Mojang fournit pour cette version, installé avec elle) et l'interface qu'il parle.
 #[derive(Debug, Clone)]
 pub struct Exigences {
     pub minecraft: String,
+    /// SHA-1 du JSON de version que le build attend (Mojang republie parfois 26.3.json)
+    pub manifeste_sha1: String,
+    /// API de lancement pour les launchers tiers (`--launch-api`, `--output`, `--session-stdin`…) :
+    /// les builds récents. Les plus anciens (v0.2.x) n'ont que `--prepare --root` et `--session-file`.
+    pub api: bool,
 }
 
-/// `horizon-prepare --launch-api`.
+/// Lit `research-lock.json` (la version épinglée, présente dans tous les builds) et demande au
+/// préparateur s'il connaît l'API de lancement.
 pub fn exigences(build: &Path) -> anyhow::Result<Exigences> {
-    let sortie = commande(&build.join(PREPARE)).arg("--launch-api").current_dir(build).output()?;
-    anyhow::ensure!(sortie.status.success(), "{}", String::from_utf8_lossy(&sortie.stderr).trim());
-    let v: serde_json::Value = serde_json::from_slice(&sortie.stdout)?;
-    let minecraft = match &v["minecraft"] {
-        serde_json::Value::String(s) => s.clone(),
-        o => o["version"].as_str().or_else(|| o["id"].as_str()).unwrap_or("26.3").to_string(),
-    };
-    Ok(Exigences { minecraft })
+    let verrou: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(build.join("research-lock.json"))?)?;
+    let minecraft = verrou["minecraft"]["version"].as_str().unwrap_or("26.3").to_string();
+    let manifeste_sha1 = verrou["minecraft"]["manifest_sha1"].as_str().unwrap_or("").to_string();
+    let api = commande(&build.join(PREPARE))
+        .arg("--launch-api")
+        .current_dir(build)
+        .output()
+        .is_ok_and(|s| s.status.success() && serde_json::from_slice::<serde_json::Value>(&s.stdout).is_ok());
+    Ok(Exigences { minecraft, manifeste_sha1, api })
 }
 
-fn dossier_prepare(build: &Path) -> PathBuf {
-    build.join("prepared")
+/// Ressources préparées que lit horizon-client.
+fn ressources(build: &Path, ex: &Exigences) -> PathBuf {
+    if ex.api {
+        build.join("prepared")
+    } else {
+        build.join(".local").join("horizon-client").join(&ex.minecraft)
+    }
 }
 
-/// Le build est-il prêt à jouer ? (`horizon-prepare --check`)
-pub fn est_prepare(build: &Path) -> bool {
+/// Marque posée par Misty quand un ancien build a été préparé jusqu'au bout.
+fn marque(build: &Path) -> PathBuf {
+    build.join(".misty-prepared")
+}
+
+/// Le build est-il prêt à jouer ?
+pub fn est_prepare(build: &Path, ex: &Exigences) -> bool {
+    if !ex.api {
+        return marque(build).is_file() && ressources(build, ex).is_dir();
+    }
     commande(&build.join(PREPARE))
         .args(["--check", "--output"])
-        .arg(dossier_prepare(build))
+        .arg(ressources(build, ex))
         .current_dir(build)
         .output()
         .is_ok_and(|s| s.status.success())
+}
+
+/// Le JSON de version exact que le build attend, à l'endroit où le préparateur le cherche avant celui
+/// du launcher : si Mojang a republié la version, celui de Misty n'a plus le SHA-1 épinglé.
+pub async fn manifeste_epingle(build: &Path, ex: &Exigences) -> anyhow::Result<PathBuf> {
+    let chemin = build.join(".local").join("minecraft").join(&ex.minecraft).join("manifest.json");
+    if chemin.is_file() || ex.manifeste_sha1.is_empty() {
+        return Ok(chemin);
+    }
+    let url = format!("https://piston-meta.mojang.com/v1/packages/{}/{}.json", ex.manifeste_sha1, ex.minecraft);
+    let octets = http::client().get(&url).send().await?.error_for_status()?.bytes().await?;
+    std::fs::create_dir_all(chemin.parent().unwrap_or(build))?;
+    std::fs::write(&chemin, &octets)?;
+    Ok(chemin)
 }
 
 /// Le server.jar de la version (downloads.server du JSON de version), gardé dans le dossier d'Horizon.
@@ -211,50 +245,100 @@ struct LigneProgression {
     error: Option<String>,
 }
 
-/// Prépare un build depuis Minecraft installé par Misty (`--progress json` : avancement en direct).
-pub fn preparer(build: &Path, minecraft: &Path, server_jar: &Path, java_home: &Path, avancement: impl Fn(f32, &str)) -> anyhow::Result<()> {
-    let mut enfant = commande(&build.join(PREPARE))
-        .args(["--prepare", "--complete", "--progress", "json", "--output"])
-        .arg(dossier_prepare(build))
-        .arg("--minecraft-dir")
-        .arg(minecraft)
-        .arg("--server-jar")
-        .arg(server_jar)
-        .arg("--java-home")
-        .arg(java_home)
-        .current_dir(build)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
+/// Les dernières lignes utiles d'une sortie d'erreur (pas l'aide complète du programme).
+fn resume_erreur(texte: &str, defaut: &str) -> String {
+    let lignes: Vec<&str> = texte.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    // « error: … » en premier s'il y en a un : c'est la cause
+    if let Some(e) = lignes.iter().find(|l| l.contains("error:") || l.starts_with("Error")) {
+        return e.to_string();
+    }
+    let fin = lignes.len().saturating_sub(4);
+    let r = lignes[fin..].join("\n");
+    if r.is_empty() { defaut.to_string() } else { r }
+}
+
+/// Lance le préparateur et suit sa sortie : JSON (`--progress json`) ou texte (anciens builds).
+fn executer_preparateur(mut c: Command, avancement: &dyn Fn(f32, &str)) -> anyhow::Result<()> {
+    let mut enfant = c.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
+    // la sortie d'erreur est lue à part : un tuyau plein bloquerait le préparateur
+    let lecteur_erreur = enfant.stderr.take().map(|mut e| {
+        std::thread::spawn(move || {
+            let mut s = String::new();
+            let _ = std::io::Read::read_to_string(&mut e, &mut s);
+            s
+        })
+    });
     let mut derniere_erreur = None;
     let mut fraction = 0.0;
+    let mut lignes_texte = 0u32;
     if let Some(sortie) = enfant.stdout.take() {
         for ligne in std::io::BufReader::new(sortie).lines().map_while(Result::ok) {
-            let Ok(l) = serde_json::from_str::<LigneProgression>(&ligne) else { continue };
-            if let Some(f) = l.fraction {
-                fraction = f;
-            }
-            if let Some(e) = l.error {
-                derniere_erreur = Some(e);
-            } else if let Some(m) = l.message {
-                avancement(fraction, &m);
-            } else {
-                avancement(fraction, "");
+            match serde_json::from_str::<LigneProgression>(&ligne) {
+                Ok(l) => {
+                    if let Some(f) = l.fraction {
+                        fraction = f;
+                    }
+                    if let Some(e) = l.error {
+                        derniere_erreur = Some(e);
+                    } else {
+                        avancement(fraction, l.message.as_deref().unwrap_or(""));
+                    }
+                }
+                Err(_) if !ligne.trim().is_empty() => {
+                    // texte : avancement estimé, qui ralentit sans jamais atteindre la fin
+                    lignes_texte += 1;
+                    let f = lignes_texte as f32 / (lignes_texte as f32 + 25.0);
+                    avancement(f.min(0.95), ligne.trim());
+                }
+                Err(_) => {}
             }
         }
     }
     let statut = enfant.wait()?;
+    let erreur = lecteur_erreur.and_then(|t| t.join().ok()).unwrap_or_default();
     if statut.success() {
         return Ok(());
     }
-    let mut erreur = String::new();
-    if let Some(mut e) = enfant.stderr.take() {
-        let _ = std::io::Read::read_to_string(&mut e, &mut erreur);
-    }
-    anyhow::bail!("{}", derniere_erreur.unwrap_or_else(|| erreur.lines().last().unwrap_or("horizon-prepare a échoué").to_string()))
+    anyhow::bail!("{}", derniere_erreur.unwrap_or_else(|| resume_erreur(&erreur, "horizon-prepare a échoué")))
 }
 
-/// Session du joueur, telle qu'Horizon la lit sur son entrée standard.
+/// Prépare un build depuis Minecraft installé par Misty (dossier `minecraft` : versions/, assets/…).
+pub fn preparer(build: &Path, ex: &Exigences, minecraft: &Path, server_jar: &Path, java_home: &Path, avancement: impl Fn(f32, &str)) -> anyhow::Result<()> {
+    let mut c = commande(&build.join(PREPARE));
+    c.current_dir(build).env("JAVA_HOME", java_home);
+    if ex.api {
+        c.args(["--prepare", "--complete", "--progress", "json", "--output"])
+            .arg(ressources(build, ex))
+            .arg("--minecraft-dir")
+            .arg(minecraft)
+            .arg("--server-jar")
+            .arg(server_jar)
+            .arg("--java-home")
+            .arg(java_home);
+        let manifeste = build.join(".local").join("minecraft").join(&ex.minecraft).join("manifest.json");
+        if manifeste.is_file() {
+            c.arg("--version-json").arg(manifeste);
+        }
+        return executer_preparateur(c, &avancement);
+    }
+    // ancien build : préparation, puis les sons (facultatifs : sans eux le jeu est muet)
+    let _ = std::fs::remove_file(marque(build));
+    c.arg("--prepare")
+        .arg("--server-jar")
+        .arg(server_jar)
+        .arg("--minecraft-dir")
+        .arg(minecraft)
+        .arg("--root")
+        .arg(build);
+    executer_preparateur(c, &avancement)?;
+    let mut sons = commande(&build.join(PREPARE));
+    sons.current_dir(build).env("JAVA_HOME", java_home).arg("sounds").arg("--minecraft-dir").arg(minecraft).arg("--root").arg(build);
+    let _ = executer_preparateur(sons, &avancement);
+    std::fs::write(marque(build), &ex.minecraft)?;
+    Ok(())
+}
+
+/// Session du joueur, telle qu'Horizon la lit.
 pub struct Session {
     pub pseudo: String,
     pub uuid: String,
@@ -264,39 +348,47 @@ pub struct Session {
 
 /// Lance horizon-client et attend la fin de la partie. Erreur : la dernière ligne de sa sortie
 /// d'erreur (qui nomme le rapport de plantage).
-pub fn jouer(build: &Path, session: &Session) -> anyhow::Result<()> {
+pub fn jouer(build: &Path, ex: &Exigences, session: &Session) -> anyhow::Result<()> {
     let jeu = dossier_jeu();
     std::fs::create_dir_all(&jeu)?;
-    let mut enfant = Command::new(build.join(CLIENT))
-        .arg("--resources")
-        .arg(dossier_prepare(build))
-        .arg("--game-dir")
-        .arg(&jeu)
-        .arg("--home")
-        .arg(&jeu)
-        .arg("--session-stdin")
-        .current_dir(build)
-        .stdin(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
     let json = serde_json::json!({
         "name": session.pseudo,
         "uuid": session.uuid,
         "access_token": session.jeton,
         "user_type": "msa",
         "xuid": session.xuid,
-    });
+    })
+    .to_string();
+    let mut c = Command::new(build.join(CLIENT));
+    c.arg("--resources").arg(ressources(build, ex)).current_dir(&jeu).env("HORIZON_HOME", &jeu).stderr(Stdio::piped());
+    // ancien build : la session passe par un fichier que le jeu supprime dès qu'il l'a lu
+    let mut fichier_session = None;
+    if ex.api {
+        c.arg("--game-dir").arg(&jeu).arg("--home").arg(&jeu).arg("--session-stdin").stdin(Stdio::piped());
+    } else {
+        let dossier = jeu.join("sessions");
+        std::fs::create_dir_all(&dossier)?;
+        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let f = dossier.join(format!("session-{nanos:x}.json"));
+        std::fs::write(&f, &json)?;
+        c.arg("--session-file").arg(&f);
+        fichier_session = Some(f);
+    }
+    let mut enfant = c.spawn()?;
     if let Some(mut entree) = enfant.stdin.take() {
-        entree.write_all(json.to_string().as_bytes())?;
+        entree.write_all(json.as_bytes())?;
     } // l'entrée est fermée ici, comme l'attend Horizon
     let mut erreur = String::new();
     if let Some(mut e) = enfant.stderr.take() {
         let _ = std::io::Read::read_to_string(&mut e, &mut erreur);
     }
     let statut = enfant.wait()?;
+    if let Some(f) = fichier_session {
+        let _ = std::fs::remove_file(f); // au cas où le jeu ne l'aurait pas lu
+    }
     if statut.success() {
         Ok(())
     } else {
-        anyhow::bail!("{}", erreur.lines().filter(|l| !l.trim().is_empty()).last().unwrap_or("horizon-client s'est arrêté").to_string())
+        anyhow::bail!("{}", resume_erreur(&erreur, "horizon-client s'est arrêté"))
     }
 }

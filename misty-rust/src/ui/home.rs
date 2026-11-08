@@ -971,16 +971,20 @@ async fn horizon_jouer(app: &Rc<App>) {
         let mc = exigences.minecraft.clone();
         let installee = app.bg(async move { install::installer(&McDirs::misty(), &mc, progression).await }).await?;
         let b = build.clone();
-        if !app.bloquant(move || horizon::est_prepare(&b)).await {
+        let ex = exigences.clone();
+        if !app.bloquant(move || horizon::est_prepare(&b, &ex)).await {
             let json = installee.json.clone();
             let mc = exigences.minecraft.clone();
             let jar = app.bg(async move { horizon::server_jar(&json, &mc).await }).await?;
+            let (b, ex) = (build.clone(), exigences.clone());
+            app.bg(async move { horizon::manifeste_epingle(&b, &ex).await }).await?;
             let java_home = installee.java.parent().and_then(|bin| bin.parent()).map(|p| p.to_path_buf()).unwrap_or_default();
             afficher_progression(app, 0.0, &loc::t("Hz_Preparation"));
             let fenetre = app.ui.as_weak();
             let b = build.clone();
+            let ex = exigences.clone();
             app.bloquant(move || {
-                horizon::preparer(&b, &crate::services::paths::data_dir(), &jar, &java_home, move |f, message| {
+                horizon::preparer(&b, &ex, &McDirs::misty().root, &jar, &java_home, move |f, message| {
                     let texte = if message.is_empty() { String::new() } else { message.to_string() };
                     let _ = fenetre.upgrade_in_event_loop(move |_| {
                         if let Some(a) = crate::APP.with(|a| a.borrow().clone()) {
@@ -998,7 +1002,8 @@ async fn horizon_jouer(app: &Rc<App>) {
         app.home.borrow_mut().jeu_en_cours = true;
         let session = horizon::Session { pseudo: compte.pseudo.clone(), uuid: compte.uuid.clone(), jeton: compte.jeton.clone(), xuid: compte.xuid.clone() };
         let b = build.clone();
-        let fin = app.bloquant(move || horizon::jouer(&b, &session)).await;
+        let ex = exigences.clone();
+        let fin = app.bloquant(move || horizon::jouer(&b, &ex, &session)).await;
         app.home.borrow_mut().jeu_en_cours = false;
         super::maj_discord(app, true);
         fin

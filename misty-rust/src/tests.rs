@@ -94,3 +94,27 @@ fn apercu_3d() {
     }
     feuille.save(std::env::var("MISTY_OUT").unwrap()).unwrap();
 }
+
+/// Prépare un build d'Horizon déjà installé par Misty (MISTY_HZ_TAG, sinon le premier) comme le fait
+/// JOUER : Minecraft et son Java, le server.jar, puis horizon-prepare. Ne lance pas le jeu.
+#[tokio::test]
+#[ignore]
+async fn horizon_preparation() {
+    use crate::services::horizon;
+    loc::initialiser();
+    let tag = std::env::var("MISTY_HZ_TAG").ok().or_else(|| horizon::installes().into_iter().next()).expect("aucun build installé");
+    let build = horizon::dossier_build(&tag).expect("dossier du build");
+    let ex = horizon::exigences(&build).unwrap();
+    println!("{tag} : {ex:?}");
+    let dirs = McDirs::misty();
+    let (prog, _) = compteur();
+    let v = install::installer(&dirs, &ex.minecraft, prog).await.unwrap_or_else(|e| panic!("{e:#}"));
+    let jar = horizon::server_jar(&v.json, &ex.minecraft).await.unwrap();
+    horizon::manifeste_epingle(&build, &ex).await.unwrap();
+    let java_home = v.java.parent().and_then(|b| b.parent()).unwrap().to_path_buf();
+    println!("java {}  server {}", java_home.display(), jar.display());
+    if !horizon::est_prepare(&build, &ex) {
+        horizon::preparer(&build, &ex, &dirs.root, &jar, &java_home, |f, m| println!("{:>3.0}% {m}", f * 100.0)).unwrap_or_else(|e| panic!("{e:#}"));
+    }
+    assert!(horizon::est_prepare(&build, &ex), "pas prêt après la préparation");
+}
