@@ -18,7 +18,20 @@ Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe
 
 [**Download**](https://misty-launcher.online/) · [**Docs**](https://misty-launcher.online/docs) · [**Patch notes**](https://misty-launcher.online/patch-notes) · [**Releases**](https://github.com/Misty-MC/Misty/releases) · [**Website source**](https://github.com/Misty-MC/Misty-Web)
 
-<img src="https://misty-launcher.online/assets/screens/en/home.png" alt="Misty home screen" width="800" />
+<img src="https://raw.githubusercontent.com/Misty-MC/Misty-Web/main/public/assets/screens/en/home.png" alt="Misty home screen" width="800" />
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/Misty-MC/Misty-Web/main/public/assets/screens/en/profiles.png" alt="Profiles" /></td>
+    <td><img src="https://raw.githubusercontent.com/Misty-MC/Misty-Web/main/public/assets/screens/en/textures.png" alt="Texture packs" /></td>
+    <td><img src="https://raw.githubusercontent.com/Misty-MC/Misty-Web/main/public/assets/screens/en/settings.png" alt="Settings" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Profiles · Modrinth &amp; CurseForge modpacks</sub></td>
+    <td align="center"><sub>Texture pack editor</sub></td>
+    <td align="center"><sub>Settings · Mist, Night &amp; seasonal themes</sub></td>
+  </tr>
+</table>
 
 </div>
 
@@ -32,6 +45,7 @@ Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe
 - **Skins and capes**: 3D preview (walk, elytra, front / side / back), cape switching, local cache that survives Mojang's rate limit
 - **Texture pack editor** (experimental): drawing tools, recent colors, pack icon, export, live reload from an external editor
 - **Accounts**: several Microsoft accounts and offline accounts
+- **Themes**: Mist (light), Night (dark) or synced with Windows, plus Halloween and Christmas themes that switch on by themselves
 - **Languages**: English, French, Spanish, Italian, Russian
 - **Storage manager**, adjustable RAM, **Discord Rich Presence**, **automatic updates** from GitHub releases
 
