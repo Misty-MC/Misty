@@ -4,8 +4,8 @@ fn main() {
     // Interface : ui/main.slint (et tous les fichiers qu'il importe)
     slint_build::compile("ui/main.slint").expect("compilation de l'interface Slint");
 
-    // Clé API CurseForge (privée, ignorée par git) : misty-rust/curseforge.key ou src/Misty/curseforge.key
-    for chemin in ["curseforge.key", "../src/Misty/curseforge.key"] {
+    // Clé API CurseForge (privée, ignorée par git) : misty-rust/curseforge.key
+    for chemin in ["curseforge.key"] {
         println!("cargo:rerun-if-changed={chemin}");
         if let Ok(cle) = std::fs::read_to_string(chemin) {
             let cle = cle.trim();

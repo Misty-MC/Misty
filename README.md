@@ -104,7 +104,6 @@ misty-rust/
     ├── minecraft/     game install and launch (versions, Java, loaders)
     └── services/      logic without UI (profiles, content, Modrinth, CurseForge,
                        modpacks, skins, storage, updates, settings, Discord…)
-src/Misty/             old C# / WPF version (kept for reference, no longer maintained)
 ```
 
 User data lives in `%LOCALAPPDATA%\Misty\` (`data.txt` settings, `msa.json` Microsoft account, `instances/<id>/` profiles, plus versions, libraries, assets and Java). When a key is added to or removed from `data.txt`, bump `DATA_VERSION` in `app_info.rs` and add the key to `services/settings.rs`.
