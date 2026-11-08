@@ -512,6 +512,7 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
             launch::Joueur { uuid: account::uuid_hors_ligne(&pseudo), pseudo, jeton: "0".into(), xuid: String::new(), type_compte: "legacy".into() }
         }
     };
+    let pseudo_joueur = joueur.pseudo.clone();
     // Un profil a son propre dossier de jeu (mods, options, mondes) ; le jeu rapide utilise le dossier principal
     let options = launch::Options {
         joueur,
@@ -533,7 +534,7 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         Some(i) => format!("{mode} · {}", i.nom),
         None => mode.to_string(),
     };
-    discord::definir(discord::Statut::EnJeu { version: version.to_string(), mode: detail });
+    discord::definir(discord::Statut::EnJeu { version: version.to_string(), mode: detail, pseudo: pseudo_joueur });
     app.home.borrow_mut().jeu_en_cours = true;
     statut(app, &loc::tf("Home_Lance", &[&instance.as_ref().map(|i| i.nom.clone()).unwrap_or_else(|| format!("Minecraft {version}"))]));
 
@@ -549,9 +550,8 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         let _ = faible.upgrade_in_event_loop(|_| {
             if let Some(a) = crate::APP.with(|a| a.borrow().clone()) {
                 a.home.borrow_mut().jeu_en_cours = false;
-                if a.ui.global::<AppState>().get_page() != super::page::PACKS {
-                    discord::definir(discord::Statut::Launcher);
-                }
+                // retour au statut de la page affichée
+                super::maj_discord(&a, true);
                 statut(&a, &loc::t("Home_Pret"));
                 let profil = a.home.borrow().profil.clone();
                 if let Some(p) = profil {

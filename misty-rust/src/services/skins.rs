@@ -396,48 +396,12 @@ pub fn rendre_tour_elytres(png: &[u8], fin: bool, cape: Option<&[u8]>, elytres: 
     rendre_vues_pose(png, fin, cape, &toutes, 0.0, elytres)
 }
 
-/// Texture d'élytres par défaut, quand le joueur n'a pas de cape : la vraie texture du jeu,
-/// lue dans une version de Minecraft déjà installée (puis gardée en cache), sinon une texture grise.
+/// Texture d'élytres quand le joueur n'a pas de cape : celle de Misty (nuit, plumes et croissant de lune).
 fn elytres_par_defaut() -> RgbaImage {
     static ELYTRES: std::sync::OnceLock<RgbaImage> = std::sync::OnceLock::new();
-    ELYTRES.get_or_init(|| elytres_du_jeu().unwrap_or_else(elytres_grises)).clone()
-}
-
-fn elytres_du_jeu() -> Option<RgbaImage> {
-    let cache = super::paths::data_dir().join("cache").join("elytra.png");
-    if let Some(img) = std::fs::read(&cache).ok().and_then(|b| image::load_from_memory(&b).ok()) {
-        return Some(img.to_rgba8());
-    }
-    const CHEMINS: [&str; 2] = ["assets/minecraft/textures/entity/equipment/wings/elytra.png", "assets/minecraft/textures/entity/elytra.png"];
-    let versions = super::paths::data_dir().join("versions");
-    for entree in std::fs::read_dir(versions).ok()?.flatten() {
-        let nom = entree.file_name().to_string_lossy().to_string();
-        let Ok(fichier) = std::fs::File::open(entree.path().join(format!("{nom}.jar"))) else { continue };
-        let Ok(mut zip) = zip::ZipArchive::new(fichier) else { continue };
-        for chemin in CHEMINS {
-            let Ok(mut f) = zip.by_name(chemin) else { continue };
-            let mut octets = Vec::new();
-            if std::io::Read::read_to_end(&mut f, &mut octets).is_err() {
-                continue;
-            }
-            if let Ok(img) = image::load_from_memory(&octets) {
-                let img = img.to_rgba8();
-                if img.width() == 64 && img.height() == 32 {
-                    let _ = std::fs::create_dir_all(cache.parent()?);
-                    let _ = std::fs::write(&cache, &octets);
-                    return Some(img);
-                }
-            }
-        }
-    }
-    None
-}
-
-fn elytres_grises() -> RgbaImage {
-    RgbaImage::from_fn(64, 32, |x, y| {
-        let n = ((x * 7 + y * 13 + (x * y) % 5 * 3) % 19) as u8;
-        Rgba([104 + n, 106 + n, 120 + n, 255])
-    })
+    ELYTRES
+        .get_or_init(|| image::load_from_memory(texture_misty()).map(|i| i.to_rgba8()).unwrap_or_else(|_| RgbaImage::from_pixel(64, 32, Rgba([60, 80, 140, 255]))))
+        .clone()
 }
 
 /// Poses de la marche : nombre d'images du cycle, et nombre d'angles de vue (un tous les 30°).
@@ -522,6 +486,7 @@ pub fn rendre_vues_pose(png: &[u8], fin: bool, cape: Option<&[u8]>, indices: &[u
             aile.incline = 0.26;
             aile.roulis = 0.38 * cote;
             aile.pivot = [5.0 * cote, 24.0, -2.0];
+            aile.faces[0] = aile.faces[1];
             boites.push(aile);
         }
     } else if cape_img.is_some() {
@@ -778,9 +743,6 @@ fn pose(anim: Anim, t: f32, b: f32) -> Pose {
             // la cape se soulève avec la vitesse et bat au rythme des pas
             let vitesse = if anim == Anim::Course { 0.85 } else { 0.4 };
             p.cape = CAPE_INCLINAISON + vitesse + 0.08 * (t * TAU * freq * 2.0).sin();
-            if anim == Anim::Course {
-                p.global = 0.12;
-            }
         }
         Anim::Vol => {
             // à l'horizontale, bras le long du corps, jambes serrées, ailes grandes ouvertes
@@ -799,17 +761,20 @@ fn pose(anim: Anim, t: f32, b: f32) -> Pose {
             p.bras_d.roulis = 0.45 + 0.3 * (t * TAU * 1.6).sin();
         }
         Anim::Accroupi => {
-            p.corps.incline = 0.5;
-            p.bras_d.incline = 0.4;
-            p.bras_g.incline = 0.4;
+            // k : 0 debout, 1 accroupi ; on reste un peu dans chaque position (cycle de 2,4 s)
+            let k = ((t * TAU / 2.4).sin() * 0.7 + 0.5).clamp(0.0, 1.0);
+            let k = k * k * (3.0 - 2.0 * k);
+            p.corps.incline = 0.5 * k;
+            p.bras_d.incline = 0.4 * k;
+            p.bras_g.incline = 0.4 * k;
             for haut in [&mut p.tete, &mut p.corps, &mut p.bras_d, &mut p.bras_g] {
-                haut.decale = [0.0, -2.6, 0.0];
+                haut.decale = [0.0, -2.6 * k, 0.0];
             }
-            p.jambe_d.decale = [0.0, 0.0, -3.6];
-            p.jambe_g.decale = [0.0, 0.0, -3.6];
-            p.cape = CAPE_INCLINAISON + 0.5;
-            // ailes plus écartées qu'en marchant, comme dans le jeu
-            p.ailes = (0.3, 0.9);
+            p.jambe_d.decale = [0.0, 0.0, -3.6 * k];
+            p.jambe_g.decale = [0.0, 0.0, -3.6 * k];
+            p.cape += 0.5 * k;
+            // ailes plus écartées accroupi, comme dans le jeu
+            p.ailes = (0.26 + 0.04 * k, 0.38 + 0.52 * k);
         }
     }
     p
@@ -890,6 +855,7 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
             aile.roulis = p.ailes.1 * cote;
             aile.pivot = [5.0 * cote, 24.0, -2.0];
             aile.decale = p.corps.decale;
+            aile.faces[0] = aile.faces[1];
             boites.push((aile, 1));
         }
     } else if cape_img.is_some() {

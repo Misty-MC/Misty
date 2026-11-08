@@ -65,8 +65,8 @@
   "Maj_Nettoyage": "Pulizia non riuscita",
   "Maj_Nettoyage_Texte": "Errore durante l'eliminazione della vecchia versione: {0}",
 
-  "Discord_Launcher": "Nel launcher",
-  "Discord_Pack": "Modifica di un pacchetto di texture",
+  "Discord_Launcher": "Nel launcher Misty",
+  "Discord_Pack": "Modifica un pacchetto di texture",
   "Discord_Jeu": "Sta giocando a Minecraft",
 
   "Home_Badge": "LAUNCHER DI MINECRAFT",
@@ -526,5 +526,14 @@
   "Skin_Course": "Corsa",
   "Skin_Vol": "Volo",
   "Skin_Salut": "Saluto",
-  "Skin_Accroupi": "Accovacciato"
+  "Skin_Accroupi": "Accovacciato",
+  "Discord_Accueil": "Nella home",
+  "Discord_Skin": "Personalizza la skin",
+  "Discord_Profils": "Sfoglia i profili",
+  "Discord_Notes": "Legge le note di versione",
+  "Discord_Packs": "Sfoglia i pacchetti di texture",
+  "Discord_Options": "Nelle impostazioni",
+  "Discord_JoueEnTantQue": "Gioca come {0}",
+  "Discord_Bouton": "Scarica Misty",
+  "Nav_Skin": "Skin"
 }

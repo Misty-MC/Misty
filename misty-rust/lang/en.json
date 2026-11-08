@@ -65,7 +65,7 @@
   "Maj_Nettoyage": "Cleanup failed",
   "Maj_Nettoyage_Texte": "Error while deleting the old version: {0}",
 
-  "Discord_Launcher": "In the launcher",
+  "Discord_Launcher": "In the Misty launcher",
   "Discord_Pack": "Editing a texture pack",
   "Discord_Jeu": "Playing Minecraft",
 
@@ -526,5 +526,14 @@
   "Skin_Course": "Run",
   "Skin_Vol": "Fly",
   "Skin_Salut": "Wave",
-  "Skin_Accroupi": "Crouch"
+  "Skin_Accroupi": "Crouch",
+  "Discord_Accueil": "On the home page",
+  "Discord_Skin": "Customizing their skin",
+  "Discord_Profils": "Browsing profiles",
+  "Discord_Notes": "Reading the patch notes",
+  "Discord_Packs": "Browsing texture packs",
+  "Discord_Options": "In the settings",
+  "Discord_JoueEnTantQue": "Playing as {0}",
+  "Discord_Bouton": "Get Misty",
+  "Nav_Skin": "Skin"
 }

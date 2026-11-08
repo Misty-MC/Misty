@@ -1,7 +1,7 @@
 // Page d'accueil : choix du compte, du profil (ou jeu rapide : version + mod loader) et lancement du jeu.
 
 import { Theme, Tr, Assets } from "theme.slint";
-import { HomeState } from "state.slint";
+import { HomeState, AppState } from "state.slint";
 import { Icon, PixelLabel, BodyText, OutlinedText, GlassCard, Thumb, IconButton, PlayButton, GlassCombo, SlimProgress } from "widgets.slint";
 import { SkinState, SkinPanel } from "skin.slint";
 
@@ -384,13 +384,17 @@ export component HomePage inherits Rectangle {
                         VTab {
                             text: Tr.t("Home_Bouton_Jouer");
                             active: SkinState.tab == 0;
-                            clicked => { SkinState.tab = 0; }
+                            clicked => {
+                                SkinState.tab = 0;
+                                AppState.nav = 0;
+                            }
                         }
                         VTab {
                             text: Tr.t("Skin_Onglet");
                             active: SkinState.tab == 1;
                             clicked => {
                                 SkinState.tab = 1;
+                                AppState.nav = 7;
                                 SkinState.open();
                             }
                         }

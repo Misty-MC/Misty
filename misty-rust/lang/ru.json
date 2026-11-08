@@ -65,7 +65,7 @@
   "Maj_Nettoyage": "Не удалось выполнить очистку",
   "Maj_Nettoyage_Texte": "Ошибка при удалении старой версии: {0}",
 
-  "Discord_Launcher": "В лаунчере",
+  "Discord_Launcher": "В лаунчере Misty",
   "Discord_Pack": "Редактирует набор текстур",
   "Discord_Jeu": "Играет в Minecraft",
 
@@ -526,5 +526,14 @@
   "Skin_Course": "Бег",
   "Skin_Vol": "Полёт",
   "Skin_Salut": "Привет",
-  "Skin_Accroupi": "Присесть"
+  "Skin_Accroupi": "Присесть",
+  "Discord_Accueil": "На главной",
+  "Discord_Skin": "Настраивает скин",
+  "Discord_Profils": "Смотрит профили",
+  "Discord_Notes": "Читает список изменений",
+  "Discord_Packs": "Смотрит наборы текстур",
+  "Discord_Options": "В настройках",
+  "Discord_JoueEnTantQue": "Играет как {0}",
+  "Discord_Bouton": "Скачать Misty",
+  "Nav_Skin": "Скин"
 }

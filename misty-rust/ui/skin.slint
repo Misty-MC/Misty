@@ -34,6 +34,8 @@ export global SkinState {
     callback look-changed();
     /// Animation du studio : 0 repos · 1 marche · 2 course · 3 vol · 4 salut · 5 accroupi
     in-out property <int> anim: 0;
+    /// Élytres sorties automatiquement pour le vol
+    in-out property <bool> elytra-auto: false;
     /// Image du rendu en direct (fil du studio)
     in property <image> live;
     in property <bool> live-ready;
@@ -212,41 +214,13 @@ component Scene3D inherits Rectangle {
         background: @radial-gradient(circle, Theme.accent.with-alpha(0.32) 0%, Theme.accent.with-alpha(0.08) 45%, Theme.accent.with-alpha(0) 70%);
     }
 
-    // socle : lueur aplatie, anneau pointillé qui tourne, anneau intérieur
+    // repère du sol (sans décor : seulement l'ombre du personnage, plus bas)
     socle := Rectangle {
         property <length> d: min(300px, parent.width * 0.78);
         x: (parent.width - self.d) / 2;
         y: parent.height - 122px - self.d * 0.13;
         width: self.d;
         height: self.d * 0.26;
-        Rectangle {
-            border-radius: self.height / 2;
-            background: @radial-gradient(circle, Theme.accent.with-alpha(0.45) 0%, Theme.accent.with-alpha(0.12) 45%, Theme.accent.with-alpha(0) 70%);
-        }
-        // anneau pointillé (28 traits sur l'ellipse, qui tournent en 26 s)
-        for k in 28: Rectangle {
-            property <angle> a: k * (360deg / 28) + (animation-tick() / 26000ms) * 360deg;
-            x: parent.width / 2 + parent.width * 0.44 * cos(self.a) - self.width / 2;
-            y: parent.height / 2 + parent.height * 0.44 * sin(self.a) - self.height / 2;
-            width: 9px;
-            height: 3px;
-            border-radius: 1.5px;
-            transform-rotation: self.a + 90deg;
-            background: #CFE0FF;
-            // l'arrière de l'anneau est plus discret (effet de perspective)
-            opacity: 0.35 + 0.35 * (1 + sin(self.a)) / 2;
-        }
-        // anneau intérieur, plus fin, qui tourne dans l'autre sens (18 s)
-        for k in 40: Rectangle {
-            property <angle> a: k * (360deg / 40) - (animation-tick() / 18000ms) * 360deg;
-            x: parent.width / 2 + parent.width * 0.28 * cos(self.a) - 1.5px;
-            y: parent.height / 2 + parent.height * 0.28 * sin(self.a) - 1.5px;
-            width: 3px;
-            height: 3px;
-            border-radius: 1.5px;
-            background: #CFE0FF;
-            opacity: 0.2 + 0.25 * (1 + sin(self.a)) / 2;
-        }
     }
 
     // lucioles qui montent (deux chaudes, comme sur le site)
@@ -273,10 +247,10 @@ component Scene3D inherits Rectangle {
         property <float> s: 0.95 + 0.15 * root.onde;
         x: (parent.width - self.width) / 2;
         y: socle.y + socle.height / 2 - self.height / 2;
-        width: 110px * self.s;
-        height: 14px * self.s;
+        width: 120px * self.s;
+        height: 16px * self.s;
         border-radius: self.height / 2;
-        background: #00000059;
+        background: @radial-gradient(circle, #00000073 0%, #00000000 70%);
     }
 
     // personnage : rendu en direct (sinon, en attendant, les vues pré-calculées)
@@ -393,9 +367,14 @@ component Scene3D inherits Rectangle {
         current: SkinState.anim;
         choisi(i) => {
             SkinState.anim = i;
-            // en vol, on sort les élytres
+            // en vol, on sort les élytres ; on les range en quittant le vol si c'est nous qui les avions sorties
             if (i == 3 && !SkinState.elytra && SkinState.misty-equip != 2) {
                 SkinState.elytra = true;
+                SkinState.elytra-auto = true;
+                SkinState.elytra-toggled();
+            } else if (i != 3 && SkinState.elytra-auto) {
+                SkinState.elytra = false;
+                SkinState.elytra-auto = false;
                 SkinState.elytra-toggled();
             }
         }
@@ -427,6 +406,7 @@ component Scene3D inherits Rectangle {
                 } else {
                     SkinState.elytra = !SkinState.elytra;
                 }
+                SkinState.elytra-auto = false;
                 SkinState.elytra-toggled();
             }
         }
@@ -508,73 +488,70 @@ component CaseBientot inherits Rectangle {
     }
 }
 
-/// Article Misty à essayer (cape ou élytres) : aperçu, nom, bouton Équiper / Retirer.
+/// Article Misty à essayer (cape ou élytres) : une case comme les capes Mojang. Un clic l'essaie,
+/// un second clic le retire.
 component CaseMisty inherits Rectangle {
     in property <string> text;
     in property <int> genre;
     property <bool> equipe: SkinState.misty-equip == root.genre;
     border-radius: 12px;
-    background: Theme.glass-strong;
+    background: root.equipe ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
     border-width: root.equipe ? 2px : 1px;
-    border-color: root.equipe ? Theme.accent : Theme.accent.with-alpha(0.45);
-    drop-shadow-blur: root.equipe ? 20px : 0px;
-    drop-shadow-color: Theme.accent.with-alpha(0.5);
-    animate drop-shadow-blur, border-color { duration: Theme.normal; }
-    // lueur derrière l'article
+    border-color: root.equipe ? Theme.accent : Theme.glass-border;
+    transform-scale: zone.pressed ? 0.96 : 1;
+    animate background, border-color { duration: Theme.normal; }
+    animate transform-scale { duration: 140ms; easing: ease-out; }
+    // aperçu, à la même place que l'image des capes Mojang
     Rectangle {
-        border-radius: 12px;
-        background: @radial-gradient(circle, Theme.accent.with-alpha(0.28) 0%, Theme.accent.with-alpha(0) 70%);
-    }
-    VerticalLayout {
-        padding: 8px;
-        spacing: 6px;
-        // aperçu : cape (rectangle au dégradé nuit avec un nuage) ou paire d'ailes
-        Rectangle {
-            vertical-stretch: 1;
-            if root.genre == 1: Rectangle {
-                width: min(parent.width * 0.42, parent.height * 0.62);
-                height: self.width * 1.6;
-                border-radius: 3px;
-                background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
-                drop-shadow-blur: 10px;
-                drop-shadow-color: #00000080;
-                Image {
-                    y: parent.height * 0.22;
-                    width: parent.width * 0.7;
-                    height: self.width * 0.6;
-                    source: Assets.logo;
-                    image-fit: contain;
-                }
+        y: 10px;
+        height: parent.height - 40px;
+        if root.genre == 1: Rectangle {
+            width: min(root.width * 0.42, (root.height - 40px) * 0.62);
+            height: self.width * 1.6;
+            border-radius: 2px;
+            background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
+            Image {
+                y: parent.height * 0.22;
+                width: parent.width * 0.7;
+                height: self.width * 0.6;
+                source: Assets.logo;
+                image-fit: contain;
             }
-            if root.genre == 2: HorizontalLayout {
+        }
+        if root.genre == 2: HorizontalLayout {
+            alignment: center;
+            spacing: 3px;
+            for c in 2: VerticalLayout {
                 alignment: center;
-                spacing: 2px;
-                for c in 2: Rectangle {
-                    width: min(parent.width * 0.22, 30px);
+                Rectangle {
+                    width: min(root.width * 0.2, 26px);
+                    height: (root.height - 40px) * 0.8;
                     border-radius: 3px;
                     background: @linear-gradient(180deg, #1A284D 0%, #6F9CFF 100%);
-                    drop-shadow-blur: 10px;
-                    drop-shadow-color: #00000080;
                     transform-rotation: c == 0 ? 8deg : -8deg;
                 }
             }
         }
-        Text {
-            text: root.text;
-            font-size: 12px;
-            font-weight: 700;
-            color: Theme.navy;
-            horizontal-alignment: center;
-            overflow: elide;
-        }
-        MButton {
-            height: 34px;
-            kind: root.equipe ? 0 : 1;
-            text: root.equipe ? Tr.t("Skin_Retirer") : Tr.t("Skin_Equiper");
-            clicked => {
-                SkinState.misty-equip = root.equipe ? 0 : root.genre;
-                SkinState.look-changed();
+    }
+    Text {
+        x: 6px;
+        y: parent.height - 24px;
+        width: parent.width - 12px;
+        text: root.text;
+        font-size: 11px;
+        font-weight: 600;
+        color: root.equipe ? Theme.accent : Theme.navy;
+        horizontal-alignment: center;
+        overflow: elide;
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            SkinState.misty-equip = root.equipe ? 0 : root.genre;
+            if (root.genre == 1) {
+                SkinState.show-cape = true;
             }
+            SkinState.look-changed();
         }
     }
 }

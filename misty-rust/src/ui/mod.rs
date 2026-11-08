@@ -34,11 +34,12 @@ pub mod page {
     pub const ACCUEIL: i32 = 0;
     pub const PROFILS: i32 = 1;
     pub const OPTIONS: i32 = 2;
-    #[allow(dead_code)]
     pub const NOTES: i32 = 3;
     pub const PACKS: i32 = 4;
     pub const INSTANCE: i32 = 5;
     pub const EDITEUR: i32 = 6;
+    /// Onglet de la barre latérale (pas une page) : l'accueil, sur le studio du skin
+    pub const SKIN: i32 = 7;
 }
 
 /// L'application : la fenêtre, le runtime et l'état de chaque page.
@@ -169,6 +170,7 @@ pub fn installer(app: &Rc<App>) {
     minuterie.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(300), move || {
         if let Some(a) = a.upgrade() {
             suivre_agrandissement(&a);
+            maj_discord(&a, false);
         }
     });
     std::mem::forget(minuterie);
@@ -244,6 +246,37 @@ pub fn appliquer_saison(app: &App) {
         saison = force.trim().parse().unwrap_or(saison);
     }
     app.ui.global::<crate::Theme>().set_event(saison);
+}
+
+thread_local! {
+    /// Dernière page envoyée à Discord (on n'envoie qu'un changement)
+    static PAGE_DISCORD: std::cell::Cell<Option<discord::Page>> = const { std::cell::Cell::new(None) };
+}
+
+/// Statut Discord de la page affichée (accueil, skin, profils, notes, packs, éditeur, options).
+/// Rien n'est envoyé pendant une partie : le statut « en jeu » reste. `force` : renvoyer même sans changement.
+pub fn maj_discord(app: &App, force: bool) {
+    if app.home.borrow().jeu_en_cours {
+        PAGE_DISCORD.with(|p| p.set(None));
+        return;
+    }
+    let page = if app.ui.global::<SettingsState>().get_open() {
+        discord::Page::Options
+    } else {
+        match app.ui.global::<AppState>().get_page() {
+            page::ACCUEIL if app.ui.global::<SkinState>().get_tab() == 1 => discord::Page::Skin,
+            page::ACCUEIL => discord::Page::Accueil,
+            page::PROFILS | page::INSTANCE => discord::Page::Profils,
+            page::NOTES => discord::Page::Notes,
+            page::PACKS => discord::Page::Packs,
+            page::EDITEUR => discord::Page::Editeur,
+            _ => discord::Page::Accueil,
+        }
+    };
+    if force || PAGE_DISCORD.with(|p| p.get()) != Some(page) {
+        PAGE_DISCORD.with(|p| p.set(Some(page)));
+        discord::definir(discord::Statut::Launcher(page));
+    }
 }
 
 /// Met à jour l’indicateur « fenêtre agrandie » (coins carrés, icône du bouton).
@@ -364,6 +397,26 @@ fn nav_clicked(app: &Rc<App>, i: i32) {
         settings::ouvrir(app);
         return;
     }
+    // Skin (barre latérale) : l'accueil, sur le studio ; Jouer : l'accueil, sur la carte de version
+    if i == page::SKIN || i == page::ACCUEIL {
+        let skin = app.ui.global::<SkinState>();
+        let voulu = if i == page::SKIN { 1 } else { 0 };
+        if skin.get_tab() != voulu {
+            skin.set_tab(voulu);
+            if voulu == 1 {
+                skin.invoke_open();
+            }
+        }
+        if i == page::SKIN {
+            app.ui.global::<AppState>().set_nav(page::SKIN);
+            if app.ui.global::<AppState>().get_page() != page::ACCUEIL {
+                naviguer(app, page::ACCUEIL);
+            }
+            app.ui.global::<AppState>().set_nav(page::SKIN);
+            maj_discord(app, false);
+            return;
+        }
+    }
 
     let etat = app.ui.global::<AppState>();
     let page = etat.get_page();
@@ -394,11 +447,8 @@ fn nav_clicked(app: &Rc<App>, i: i32) {
 
     if i == page::PACKS {
         packs::rafraichir(app); // après naviguer : l'éditeur a pu enregistrer une texture
-        discord::definir(discord::Statut::PackEditeur);
-
-    } else if !app.home.borrow().jeu_en_cours {
-        discord::definir(discord::Statut::Launcher);
     }
+    maj_discord(app, false);
 }
 
 /// Affiche une page (et la barre latérale correspondante).

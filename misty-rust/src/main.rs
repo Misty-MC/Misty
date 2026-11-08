@@ -38,7 +38,7 @@ fn main() {
 
     let _ = std::fs::create_dir_all(services::paths::data_dir());
     loc::initialiser();
-    discord::definir(discord::Statut::Launcher);
+    discord::definir(discord::Statut::Launcher(discord::Page::Accueil));
 
     let fenetre = MainWindow::new().expect("création de la fenêtre");
     let app = ui::App::new(fenetre, runtime.handle().clone());
