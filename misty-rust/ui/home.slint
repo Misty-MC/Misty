@@ -54,6 +54,128 @@ component Chip inherits Rectangle {
     }
 }
 
+/// Carte « Dernières news » : une seule actualité, sous le titre (là où l'œil va après MISTY).
+component NewsCard inherits Rectangle {
+    property <bool> survol: touch.has-hover;
+    height: 92px;
+    min-width: 380px;
+    max-width: 460px;
+
+    carte := Rectangle {
+        y: root.survol ? -2px : 0px;
+        height: parent.height;
+        border-radius: 18px;
+        background: root.survol ? Theme.panel-strong : Theme.panel;
+        border-width: 1px;
+        border-color: root.survol ? Theme.accent.with-alpha(0.7) : Theme.glass-border;
+        drop-shadow-blur: root.survol ? 22px : 0px;
+        drop-shadow-offset-y: 6px;
+        drop-shadow-color: Theme.accent.with-alpha(0.22);
+        transform-scale: touch.pressed ? 0.98 : 1;
+        animate y, drop-shadow-blur { duration: 220ms; easing: ease-out; }
+        animate background, border-color { duration: Theme.normal; }
+        animate transform-scale { duration: 140ms; easing: ease-out; }
+
+        HorizontalLayout {
+            padding: 12px;
+            padding-right: 14px;
+            spacing: 14px;
+
+            // vignette : le nuage sur un dégradé de l'accent
+            Rectangle {
+                width: 68px;
+                height: 68px;
+                border-radius: 14px;
+                background: Theme.dark ? @linear-gradient(145deg, Theme.fill-hover 0%, Theme.fill-lip 100%) : @linear-gradient(145deg, #2A3347 0%, #1C2335 100%);
+                clip: true;
+                // reflet qui passe au survol
+                Rectangle {
+                    x: root.survol ? 80px : -40px;
+                    width: 24px;
+                    background: #FFFFFF26;
+                    transform-rotation: 20deg;
+                    animate x { duration: 600ms; easing: ease-out; }
+                }
+                Image {
+                    width: 42px;
+                    height: 42px;
+                    source: Assets.logo;
+                    image-fit: contain;
+                }
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 3px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        // point qui « pulse » : il y a du nouveau
+                        Rectangle {
+                            width: 7px;
+                            height: 7px;
+                            border-radius: 3.5px;
+                            background: Theme.accent;
+                            opacity: 0.55 + 0.45 * sin((animation-tick() / 1600ms) * 360deg);
+                        }
+                    }
+                    PixelLabel {
+                        text: Tr.t("Home_News");
+                        font-size: 10px;
+                        color: Theme.accent;
+                    }
+                    Text {
+                        horizontal-stretch: 1;
+                        text: HomeState.news-date;
+                        font-size: 11px;
+                        color: Theme.text-muted;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                Text {
+                    text: HomeState.news-title;
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: Theme.navy;
+                    overflow: elide;
+                }
+                Text {
+                    text: HomeState.news-text;
+                    font-size: 12.5px;
+                    color: Theme.text-muted;
+                    overflow: elide;
+                }
+            }
+
+            // flèche qui avance au survol
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 15px;
+                    background: root.survol ? Theme.fill : Theme.glass-strong;
+                    animate background { duration: Theme.normal; }
+                    Icon {
+                        x: (parent.width - self.width) / 2 + (root.survol ? 2px : 0px);
+                        text: "\u{E72A}";
+                        font-size: 11px;
+                        color: root.survol ? Theme.on-fill : Theme.navy;
+                        animate x { duration: 220ms; easing: ease-out; }
+                    }
+                }
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { HomeState.news-open(); }
+    }
+}
+
 component Label inherits PixelLabel {
     font-size: 10px;
     x: 4px;
@@ -254,6 +376,17 @@ export component HomePage inherits Rectangle {
                     Chip { text: "FABRIC"; }
                     Chip { text: "OPTIFINE"; }
                     Chip { text: "LITELOADER"; }
+                }
+                if HomeState.news-visible: HorizontalLayout {
+                    alignment: start;
+                    padding-left: 6px;
+                    padding-top: 22px;
+                    NewsCard {
+                        width: 440px;
+                        opacity: 0;
+                        animate opacity { duration: 500ms; easing: ease-out; }
+                        init => { self.opacity = 1; }
+                    }
                 }
             }
 

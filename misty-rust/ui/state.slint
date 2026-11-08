@@ -6,6 +6,19 @@ import { LangItem } from "widgets.slint";
 // ───────────────────────── Fenêtre ─────────────────────────
 
 /// Petit carré blanc qui flotte en fond.
+/// Nappe de brume du paysage (coordonnées en pixels de la scène 1600 × 440).
+export struct ScenePuff {
+    image: image,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    layer: int,
+    period: duration,
+    phase: float,
+    opacity: float,
+}
+
 export struct Particle {
     x: length,
     y: length,
@@ -26,6 +39,15 @@ export global AppState {
     in property <bool> maximized;
     /// Premier affichage prêt (cache l'écran de chargement)
     in property <bool> ready;
+    /// Paysage du site (masques fournis par Rust)
+    in property <[image]> scene-ridges;
+    in property <image> scene-stars;
+    in property <image> scene-twinkle;
+    in property <image> scene-moon;
+    in property <float> moon-x;
+    in property <float> moon-y;
+    in property <float> moon-size;
+    in property <[ScenePuff]> scene-puffs;
     callback toggle-maximize();
     callback nav-clicked(int);
     callback open-data-folder();
@@ -55,6 +77,12 @@ export global DialogState {
 // ───────────────────────── Accueil ─────────────────────────
 
 export global HomeState {
+    /// Dernière news (dernière release GitHub, ou notes de version intégrées hors ligne)
+    in property <bool> news-visible;
+    in property <string> news-title;
+    in property <string> news-text;
+    in property <string> news-date;
+    callback news-open();
     in property <[string]> accounts;
     in-out property <int> account-index;
     in property <bool> premium;
@@ -265,6 +293,8 @@ export global SettingsState {
     /// Capture floutée de la fenêtre, posée derrière la fenêtre des options
     in property <image> backdrop;
     in property <bool> has-backdrop;
+    /// Capture du fond en cours : la fenêtre des options se cache le temps d'une image
+    in property <bool> capturing;
     /// « Windows 10.0.19045 », affiché sous la version de Misty
     in property <string> system-text;
     in-out property <float> downloads: 16;

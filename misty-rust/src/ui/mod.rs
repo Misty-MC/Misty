@@ -13,8 +13,10 @@ pub mod editor;
 pub mod home;
 pub mod images;
 pub mod instance;
+pub mod news;
 pub mod packs;
 pub mod profiles;
+pub mod scene;
 pub mod settings;
 pub mod skin;
 
@@ -52,6 +54,8 @@ pub struct App {
     pub packs: RefCell<packs::Etat>,
     pub editor: RefCell<editor::Etat>,
     pub skin: RefCell<skin::Etat>,
+    /// Lien de la news affichée sur l'accueil (vide = notes de version du launcher)
+    pub news_url: RefCell<String>,
 }
 
 impl App {
@@ -68,6 +72,7 @@ impl App {
             settings: RefCell::default(),
             packs: RefCell::default(),
             editor: RefCell::default(),
+            news_url: RefCell::default(),
             skin: RefCell::default(),
         })
     }
@@ -136,6 +141,18 @@ pub fn installer(app: &Rc<App>) {
     ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).into());
     ui.global::<AppState>().set_particles(modele(particules()));
 
+    // Paysage du site en fond
+    let paysage = scene::generer();
+    let etat = ui.global::<AppState>();
+    etat.set_scene_ridges(modele(paysage.cretes));
+    etat.set_scene_stars(paysage.etoiles);
+    etat.set_scene_twinkle(paysage.etoiles_scintillantes);
+    etat.set_scene_moon(paysage.lune);
+    etat.set_moon_x(paysage.lune_x);
+    etat.set_moon_y(paysage.lune_y);
+    etat.set_moon_size(paysage.lune_taille);
+    etat.set_scene_puffs(modele(paysage.nappes));
+
     // Fenêtre
     let a = app.clone();
     ui.global::<AppState>().on_drag(move || fenetre(&a, |w| {
@@ -182,6 +199,7 @@ pub fn installer(app: &Rc<App>) {
     packs::installer(app);
     editor::installer(app);
     skin::installer(app);
+    news::installer(app);
 }
 
 /// Thème de saison (Halloween, Noël) si on est à ±3 jours de la fête et que l'option est active.
@@ -250,6 +268,7 @@ pub async fn demarrer(app: Rc<App>) {
 
     crate::services::settings::initialiser();
     crate::services::pseudos::initialiser();
+    news::charger(&app);
 
     verifier_mise_a_jour(&app, false).await;
     match app.bg(crate::services::update::finaliser()).await {

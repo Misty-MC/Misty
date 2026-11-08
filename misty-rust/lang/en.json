@@ -474,5 +474,18 @@
   "Param_Saison": "Seasonal themes",
   "Param_Saison_Texte": "Halloween (Oct 28 – Nov 3) and Christmas (Dec 22 – 28) switch on by themselves.",
   "Param_Saison_Halloween": "Halloween theme is on until November 3.",
-  "Param_Saison_Noel": "Christmas theme is on until December 28."
+  "Param_Saison_Noel": "Christmas theme is on until December 28.",
+  "Home_News": "LATEST NEWS",
+  "Mois_1": "Jan",
+  "Mois_2": "Feb",
+  "Mois_3": "Mar",
+  "Mois_4": "Apr",
+  "Mois_5": "May",
+  "Mois_6": "Jun",
+  "Mois_7": "Jul",
+  "Mois_8": "Aug",
+  "Mois_9": "Sep",
+  "Mois_10": "Oct",
+  "Mois_11": "Nov",
+  "Mois_12": "Dec"
 }

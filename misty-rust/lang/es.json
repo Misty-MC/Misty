@@ -474,5 +474,18 @@
   "Param_Saison": "Temas de temporada",
   "Param_Saison_Texte": "Halloween (28 oct. – 3 nov.) y Navidad (22 – 28 dic.) se activan solos.",
   "Param_Saison_Halloween": "El tema de Halloween está activo hasta el 3 de noviembre.",
-  "Param_Saison_Noel": "El tema de Navidad está activo hasta el 28 de diciembre."
+  "Param_Saison_Noel": "El tema de Navidad está activo hasta el 28 de diciembre.",
+  "Home_News": "ÚLTIMAS NOTICIAS",
+  "Mois_1": "ene.",
+  "Mois_2": "feb.",
+  "Mois_3": "mar.",
+  "Mois_4": "abr.",
+  "Mois_5": "may.",
+  "Mois_6": "jun.",
+  "Mois_7": "jul.",
+  "Mois_8": "ago.",
+  "Mois_9": "sept.",
+  "Mois_10": "oct.",
+  "Mois_11": "nov.",
+  "Mois_12": "dic."
 }

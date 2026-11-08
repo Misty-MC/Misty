@@ -569,7 +569,7 @@ export component SettingsModal inherits Rectangle {
     property <[length]> positions: [26px, 68px, 136px, 178px, 246px, 288px, 356px, 398px, 440px];
 
     opacity: root.ouvert ? 1 : 0;
-    visible: self.opacity > 0.01;
+    visible: self.opacity > 0.01 && !SettingsState.capturing;
     animate opacity { duration: root.ouvert ? 220ms : 160ms; easing: ease-out; }
 
     // Fond : capture floutée de la fenêtre + voile
@@ -579,6 +579,9 @@ export component SettingsModal inherits Rectangle {
         source: SettingsState.backdrop;
         image-fit: fill;
         image-rendering: smooth;
+        opacity: 0;
+        animate opacity { duration: 300ms; easing: ease-out; }
+        init => { self.opacity = 1; }
     }
     Rectangle {
         background: Theme.scrim;

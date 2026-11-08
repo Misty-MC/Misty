@@ -12,6 +12,7 @@ import { SkinState } from "skin.slint";
 import { PacksPage, PackCreateOverlay } from "packs.slint";
 import { EditorPage } from "editor.slint";
 import { ScrollView } from "std-widgets.slint";
+import { Paysage } from "scene.slint";
 
 export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState }
 
@@ -229,17 +230,8 @@ export component MainWindow inherits Window {
                 height: self.r * 2;
                 background: Theme.halloween ? @radial-gradient(circle, #FF8A3D40 0%, #FF8A3D00 60%) : Theme.noel ? @radial-gradient(circle, #DCEBFF30 0%, #DCEBFF00 60%) : Theme.dark ? @radial-gradient(circle, #6F9CFF33 0%, #6F9CFF00 60%) : @radial-gradient(circle, #E4F1FF88 0%, #E4F1FF00 60%);
             }
-            // nuage fantôme en bas à gauche
-            Image {
-                x: 30px;
-                y: parent.height - 150px;
-                width: 200px;
-                height: 200px;
-                source: Assets.logo;
-                image-fit: contain;
-                opacity: Theme.dark ? 0.05 : 0.22;
-                transform-rotation: -8deg;
-            }
+            // paysage du site : montagnes, sapins, lune, brume qui dérive
+            Paysage { }
             // carrés flottants (étoiles la nuit)
             if Theme.particles: Rectangle {
                 for p[i] in AppState.particles: Rectangle {

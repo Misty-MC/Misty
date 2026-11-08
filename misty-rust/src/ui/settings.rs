@@ -227,8 +227,7 @@ pub fn installer(app: &Rc<App>) {
     st.on_theme_selected(move |mode| {
         settings::set(settings::THEME, &mode.to_string());
         a.ui.global::<crate::Theme>().set_mode(mode);
-        // La capture floutée montre encore l'ancien thème : on garde seulement le voile
-        s(&a).set_has_backdrop(false);
+        recapturer_fond(&a);
     });
     let a = app.clone();
     st.on_particles_toggled(move |actif| {
@@ -245,7 +244,7 @@ pub fn installer(app: &Rc<App>) {
     st.on_seasonal_toggled(move |actif| {
         settings::set_bool(settings::SAISON, actif);
         super::appliquer_saison(&a);
-        s(&a).set_has_backdrop(false);
+        recapturer_fond(&a);
     });
 
     // Ressources
@@ -311,6 +310,29 @@ pub fn fermer(app: &Rc<App>) {
     if consommer_changement_types(app) {
         super::home::rafraichir(app, true);
     }
+}
+
+/// Après un changement de thème : le fond flouté montre encore l'ancien thème. On le retire, on attend
+/// la fin du fondu entre les thèmes, puis on refait la capture en masquant la fenêtre des options.
+fn recapturer_fond(app: &Rc<App>) {
+    s(app).set_has_backdrop(false);
+    if !app.ui.global::<crate::Theme>().get_blur() {
+        return;
+    }
+    let a = app.clone();
+    slint::Timer::single_shot(std::time::Duration::from_millis(520), move || {
+        let st = s(&a);
+        if !st.get_open() {
+            return;
+        }
+        st.set_capturing(true);
+        let fond = capture_floutee(&a);
+        st.set_capturing(false);
+        if let Some(image) = fond {
+            st.set_backdrop(image);
+            st.set_has_backdrop(true);
+        }
+    });
 }
 
 /// Capture de la fenêtre, réduite puis floutée (le fond « verre dépoli » de la fenêtre des options).

@@ -1,0 +1,121 @@
+// Paysage du site misty-launcher.online en fond du launcher : étoiles qui scintillent, lune qui
+// flotte, crêtes et sapins en pixel art, bandes et nappes de brume qui dérivent.
+// Les masques (blancs) viennent de Rust (ui/scene.rs) ; ici on les place, les colore et les anime.
+
+import { Theme } from "theme.slint";
+import { AppState } from "state.slint";
+
+export component Paysage inherits Rectangle {
+    // Comme le site (« slice ») : la scène couvre la largeur, et au moins 74 % de la hauteur
+    property <float> s: max(root.width / 1600px, root.height * 0.74 / 440px);
+    property <length> sw: 1600px * root.s;
+    property <length> sh: 440px * root.s;
+    property <length> x0: (root.width - root.sw) / 2;
+    property <length> y0: root.height - root.sh;
+
+    // Couleurs des crêtes (de l'arrière vers l'avant) selon le thème
+    property <[color]> cretes: Theme.halloween ? [#3B2160, #2E184C, #22103A, #170A28]
+        : Theme.noel ? [#2C527F, #214166, #18314F, #10233B]
+        : Theme.dark ? [#24345A, #1A2748, #121C36, #0D1528]
+        : [#B7CDEB, #A0BBE2, #8BA9D7, #7896CA];
+    property <color> brume: Theme.halloween ? #E2C8FF : Theme.dark ? #D6E4FF : #FFFFFF;
+    property <color> bas: Theme.halloween ? #0A0612 : Theme.noel ? #060D18 : Theme.dark ? #070B16 : #6D8EC2;
+    property <bool> nuit: Theme.dark;
+
+    // ── Étoiles (la nuit seulement) ──
+    if root.nuit: Image {
+        x: root.x0;
+        y: root.y0;
+        width: root.sw;
+        height: root.sh;
+        source: AppState.scene-stars;
+        image-rendering: pixelated;
+        image-fit: fill;
+        colorize: #DBE7FF;
+    }
+    if root.nuit: Image {
+        x: root.x0;
+        y: root.y0;
+        width: root.sw;
+        height: root.sh;
+        source: AppState.scene-twinkle;
+        image-rendering: pixelated;
+        image-fit: fill;
+        colorize: white;
+        // scintillement : 4 s aller-retour, entre 25 % et 100 %
+        opacity: 0.25 + 0.75 * (0.5 + 0.5 * sin((animation-tick() / 8000ms) * 360deg));
+    }
+
+    // ── Lune et son halo (la nuit seulement) ──
+    if root.nuit: Rectangle {
+        property <float> respire: 0.5 + 0.5 * sin((animation-tick() / 12000ms) * 360deg);
+        property <length> r: AppState.moon-size * 2.5 * root.s * (0.9 + 0.2 * self.respire) * 1px;
+        x: root.x0 + (AppState.moon-x + AppState.moon-size / 2) * root.s * 1px - self.r;
+        y: root.y0 + (AppState.moon-y + AppState.moon-size / 2) * root.s * 1px - self.r;
+        width: self.r * 2;
+        height: self.r * 2;
+        // disque : le dégradé ne déborde jamais en carré
+        border-radius: self.r;
+        opacity: 0.6 + 0.4 * self.respire;
+        background: Theme.halloween ? @radial-gradient(circle, #FFB46B66 0%, #FF8A3D1A 35%, #FF8A3D00 70%)
+            : @radial-gradient(circle, #BCD4FF66 0%, #8FB3FF1A 35%, #8FB3FF00 70%);
+    }
+    if root.nuit: Image {
+        x: root.x0 + AppState.moon-x * root.s * 1px;
+        // flotte de 10 px en 9 s
+        y: root.y0 + AppState.moon-y * root.s * 1px - 5px * root.s * (1 - cos((animation-tick() / 9000ms) * 360deg));
+        width: AppState.moon-size * root.s * 1px;
+        height: self.width;
+        source: AppState.scene-moon;
+        image-rendering: pixelated;
+        image-fit: fill;
+        colorize: Theme.halloween ? #FFC27A : #EAF1FF;
+    }
+
+    // ── Crêtes, nappes et bandes de brume, de l'arrière vers l'avant ──
+    for crete[i] in AppState.scene-ridges: Rectangle {
+        x: root.x0;
+        y: root.y0;
+        width: root.sw;
+        height: root.sh;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: crete;
+            image-rendering: pixelated;
+            image-fit: fill;
+            colorize: root.cretes[i];
+        }
+        // nappes de cette couche : traversent toute la scène (de -2000 à +2000 px) très lentement
+        for n in AppState.scene-puffs: Image {
+            visible: n.layer == i;
+            property <float> t: Math.mod(animation-tick() / n.period + n.phase, 1);
+            x: (n.x + self.t * 4000 - 2000) * root.s * 1px;
+            y: n.y * root.s * 1px;
+            width: n.w * root.s * 1px;
+            height: n.h * root.s * 1px;
+            source: n.image;
+            image-rendering: pixelated;
+            image-fit: fill;
+            colorize: root.brume;
+            opacity: n.opacity * (Theme.dark ? 1 : 2.2);
+        }
+        // bande de brume douce qui va et vient (3 premières couches)
+        if i < 3: Rectangle {
+            property <duration> periode: i == 0 ? 56000ms : i == 1 ? 72000ms : 44000ms;
+            x: -200px * root.s + 90px * root.s * sin((animation-tick() / self.periode) * 360deg);
+            y: (30 + i * 7) * 8px * root.s;
+            width: 2000px * root.s;
+            height: 64px * root.s;
+            background: @linear-gradient(180deg, root.brume.with-alpha(0) 0%, root.brume.with-alpha(Theme.dark ? 0.16 : 0.3) 50%, root.brume.with-alpha(0) 100%);
+        }
+    }
+
+    // ── Fondu vers le bas (sous la barre de lancement) ──
+    Rectangle {
+        x: 0;
+        y: root.height - 96px * root.s;
+        height: 96px * root.s;
+        background: @linear-gradient(180deg, root.bas.with-alpha(0) 0%, root.bas 100%);
+    }
+}
