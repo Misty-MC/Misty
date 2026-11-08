@@ -135,6 +135,10 @@ export global HomeState {
     in property <string> horizon-build;
     /// 0 tous · 1 nightlies · 2 versions stables
     in-out property <int> horizon-filter: 0;
+    /// Place de chaque build dans la grille selon le filtre (-1 : masqué), et nombre de builds affichés
+    in property <[int]> horizon-ranks;
+    in property <int> horizon-visibles;
+    callback horizon-filter-changed();
     in property <bool> horizon-loading;
     in property <bool> horizon-busy;
     in property <string> horizon-busy-tag;

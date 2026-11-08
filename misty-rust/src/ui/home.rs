@@ -90,6 +90,8 @@ pub fn installer(app: &Rc<App>) {
         lancer(async move { horizon_rafraichir(&a).await });
     });
     let a = app.clone();
+    s.on_horizon_filter_changed(move || horizon_afficher(&a));
+    let a = app.clone();
     s.on_horizon_install(move |tag| {
         let a = a.clone();
         lancer(async move { horizon_installer(&a, tag.to_string()).await });
@@ -846,7 +848,23 @@ fn horizon_afficher(app: &App) {
         settings::set(settings::HORIZON_BUILD, &nouveau);
         s.set_horizon_build(nouveau.into());
     }
+    // place de chaque build dans la grille selon le filtre (Tous, Nightly, Stables)
+    let filtre = s.get_horizon_filter();
+    let mut n = 0;
+    let rangs: Vec<i32> = lignes
+        .iter()
+        .map(|l| {
+            if filtre == 0 || (filtre == 1) == l.nightly {
+                n += 1;
+                n - 1
+            } else {
+                -1
+            }
+        })
+        .collect();
     s.set_horizon_builds(modele(lignes));
+    s.set_horizon_ranks(modele(rangs));
+    s.set_horizon_visibles(n);
 }
 
 async fn horizon_rafraichir(app: &Rc<App>) {
