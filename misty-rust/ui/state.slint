@@ -449,6 +449,8 @@ export global SettingsState {
 export struct ChangelogSection {
     title: string,
     lines: [string],
+    /// Pour chaque ligne : intertitre (« ### … ») ou non
+    heads: [bool],
     recent: bool,
 }
 

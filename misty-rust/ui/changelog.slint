@@ -1,4 +1,4 @@
-// Notes de version, lues depuis CHANGELOG.md (intégré à l'exe).
+// Notes de version : les releases GitHub du launcher (voir src/ui/changelog.rs).
 
 import { Theme, Tr } from "theme.slint";
 import { ChangelogState } from "state.slint";
@@ -64,9 +64,11 @@ export component ChangelogPage inherits Rectangle {
                             horizontal-stretch: 1;
                             padding-top: 4px;
                             spacing: 6px;
-                            for ligne in s.lines: Rectangle {
-                                height: t.preferred-height;
+                            for ligne[i] in s.lines: Rectangle {
+                                property <bool> intertitre: i < s.heads.length && s.heads[i];
+                                height: t.preferred-height + (self.intertitre && i > 0 ? 8px : 0px);
                                 Rectangle {
+                                    visible: !parent.intertitre;
                                     x: 0;
                                     y: 7px;
                                     width: 6px;
@@ -75,13 +77,13 @@ export component ChangelogPage inherits Rectangle {
                                     background: Theme.green;
                                 }
                                 t := Text {
-                                    x: 16px;
-                                    y: 0;
+                                    x: parent.intertitre ? 0px : 16px;
+                                    y: parent.intertitre && i > 0 ? 8px : 0px;
                                     width: liste.largeur-texte;
                                     text: ligne;
-                                    font-family: Theme.ui-font;
-                                    font-size: 13.5px;
-                                    color: Theme.navy2;
+                                    font-family: parent.intertitre ? Theme.pixel-font : Theme.ui-font;
+                                    font-size: parent.intertitre ? 12px : 13.5px;
+                                    color: parent.intertitre ? Theme.green : Theme.navy2;
                                     wrap: word-wrap;
                                 }
                             }
