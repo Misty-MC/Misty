@@ -259,7 +259,7 @@ thread_local! {
 /// Statut Discord de la page affichée (accueil, skin, profils, notes, packs, éditeur, options).
 /// Rien n'est envoyé pendant une partie : le statut « en jeu » reste. `force` : renvoyer même sans changement.
 pub fn maj_discord(app: &App, force: bool) {
-    if app.home.borrow().jeu_en_cours {
+    if app.home.borrow().jeux_en_cours > 0 {
         PAGE_DISCORD.with(|p| p.set(None));
         return;
     }

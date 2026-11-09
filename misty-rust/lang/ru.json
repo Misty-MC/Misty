@@ -632,7 +632,7 @@
   "Console_Avertissements": "Предупреждения",
   "Console_Erreurs": "Ошибки",
   "Console_Rechercher": "Поиск по логам…",
-  "Console_Vide": "Запустите игру, чтобы увидеть здесь её логи.",
+  "Console_Vide": "Запустите игру, чтобы увидеть здесь её логи. Запустите несколько — они будут рядом.",
   "Console_Suivre": "Следить",
   "Console_Envoye": "Отправлено! Код отчёта {0} (скопирован): сообщите его в Discord, чтобы получить помощь.",
   "Console_EnvoiImpossible": "Не удалось отправить логи",
@@ -645,5 +645,13 @@
   "Telemetrie_Question_Texte": "Misty может отправлять анонимные данные, чтобы быстрее исправлять ошибки: версия Misty, версия Windows, ОЗУ, запуски игры и при сбое — последние строки логов (ник и папки удаляются).\nНикогда — аккаунт, пароль или почта. Это можно изменить в любой момент в настройках.",
   "Telemetrie_Accepter": "Разрешить",
   "Telemetrie_Refuser": "Нет, спасибо",
-  "Home_Bouton_Logs": "Логи"
+  "Home_Bouton_Logs": "Логи",
+  "Console_Aucune": "Пока нет игр",
+  "Console_AucuneEnCours": "Нет запущенных игр",
+  "Console_UneEnCours": "Запущена 1 игра",
+  "Console_PlusieursEnCours": "Запущено игр: {0}",
+  "Console_RienTrouve": "Нет строк, подходящих под фильтр.",
+  "Console_Attente": "Ожидание игры…",
+  "Home_Compte_HorsLigne": "ОФЛАЙН",
+  "Home_AjouterMicrosoft": "Добавить ещё один аккаунт Microsoft"
 }

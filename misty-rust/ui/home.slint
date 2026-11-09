@@ -447,23 +447,25 @@ export component HomePage inherits Rectangle {
                             VerticalLayout {
                                 alignment: end;
                                 spacing: 6px;
-                                Label { text: Tr.t("Home_Compte"); }
+                                Label { text: Tr.t("Home_Compte") + "  ·  " + (HomeState.premium ? "MICROSOFT" : Tr.t("Home_Compte_HorsLigne")); }
                                 HorizontalLayout {
                                     spacing: 8px;
                                     Rectangle {
                                         width: 140px;
                                         height: 44px;
-                                        if !HomeState.premium: GlassCombo {
+                                        // comptes Microsoft et hors ligne dans la même liste : on choisit, on joue
+                                        if HomeState.all-accounts.length > 1: GlassCombo {
+                                            model: HomeState.all-accounts;
+                                            current-index <=> HomeState.all-index;
+                                            enabled: !HomeState.ms-busy;
+                                            selected(i) => { HomeState.all-selected(i); }
+                                        }
+                                        if HomeState.all-accounts.length <= 1 && !HomeState.premium: GlassCombo {
                                             model: HomeState.accounts;
                                             current-index <=> HomeState.account-index;
                                             selected(i) => { HomeState.account-selected(i); }
                                         }
-                                        if HomeState.premium && HomeState.ms-names.length > 1: GlassCombo {
-                                            model: HomeState.ms-names;
-                                            current-index <=> HomeState.ms-index;
-                                            selected(i) => { HomeState.ms-selected(i); }
-                                        }
-                                        if HomeState.premium && HomeState.ms-names.length <= 1: Rectangle {
+                                        if HomeState.all-accounts.length <= 1 && HomeState.premium: Rectangle {
                                             border-radius: 12px;
                                             background: Theme.dark ? #162140 : #1C2335;
                                             HorizontalLayout {
@@ -490,8 +492,8 @@ export component HomePage inherits Rectangle {
                                     IconButton {
                                         width: 44px;
                                         height: 44px;
-                                        icon: HomeState.premium ? "\u{E7E8}" : "\u{E8FA}";
-                                        tooltip: HomeState.premium ? Tr.t("Compte_SeDeconnecter") : Tr.t("Home_ConnecterMicrosoft");
+                                        icon: "\u{E8FA}";
+                                        tooltip: HomeState.ms-names.length > 0 ? Tr.t("Home_AjouterMicrosoft") : Tr.t("Home_ConnecterMicrosoft");
                                         enabled: !HomeState.ms-busy;
                                         clicked => { HomeState.ms-clicked(); }
                                     }
@@ -604,7 +606,7 @@ export component HomePage inherits Rectangle {
                         text: Tr.t("Home_Bouton_Logs");
                         font-size: 13px;
                         clicked => {
-                            ConsoleState.report-text = "";
+                            ConsoleState.focused = -1;
                             ConsoleState.open = true;
                         }
                     }

@@ -349,10 +349,11 @@ pub struct Session {
 /// Lance horizon-client et attend la fin de la partie. Avec une session Microsoft, le joueur est
 /// connecté (serveurs en ligne) ; sans, il joue hors ligne sous `pseudo`. Erreur : la dernière ligne
 /// de sa sortie d'erreur (qui nomme le rapport de plantage).
-pub fn jouer(build: &Path, ex: &Exigences, session: Option<&Session>, pseudo: &str) -> anyhow::Result<()> {
+pub fn jouer(partie: u64, build: &Path, ex: &Exigences, session: Option<&Session>, pseudo: &str) -> anyhow::Result<()> {
     let jeu = dossier_jeu();
     std::fs::create_dir_all(&jeu)?;
-    let mut c = Command::new(build.join(CLIENT));
+    // sans console noire (CREATE_NO_WINDOW), comme horizon-prepare : la sortie va dans la console de Misty
+    let mut c = commande(&build.join(CLIENT));
     c.arg("--resources").arg(ressources(build, ex)).current_dir(&jeu).env("HORIZON_HOME", &jeu).stderr(Stdio::piped());
     if ex.api {
         c.arg("--game-dir").arg(&jeu).arg("--home").arg(&jeu);
@@ -397,8 +398,8 @@ pub fn jouer(build: &Path, ex: &Exigences, session: Option<&Session>, pseudo: &s
     let mut enfant = match c.spawn() {
         Ok(e) => e,
         Err(e) => {
-            super::journal::ajouter(&format!("horizon-client : {e}"), super::journal::ERREUR);
-            super::journal::fin(Some(-1));
+            super::journal::ajouter(partie, &format!("horizon-client : {e}"), super::journal::ERREUR);
+            super::journal::fin(partie, Some(-1));
             return Err(e.into());
         }
     };
@@ -407,12 +408,12 @@ pub fn jouer(build: &Path, ex: &Exigences, session: Option<&Session>, pseudo: &s
     } // l'entrée est fermée ici, comme l'attend Horizon
     // la sortie va dans la console ; celle d'erreur est aussi gardée pour résumer un échec
     let copie = super::journal::Copie::default();
-    let fils = super::journal::suivre(&mut enfant, Some(copie.clone()));
+    let fils = super::journal::suivre(partie, &mut enfant, Some(copie.clone()));
     let statut = enfant.wait()?;
     for f in fils {
         let _ = f.join();
     }
-    super::journal::fin(statut.code());
+    super::journal::fin(partie, statut.code());
     let erreur = copie.lock().map(|c| c.clone()).unwrap_or_default();
     if let Some(f) = fichier_session {
         let _ = std::fs::remove_file(f); // au cas où le jeu ne l'aurait pas lu

@@ -1,7 +1,8 @@
-//! Journaux : celui du launcher (`logs/misty/launcher.log`) et la console du jeu en cours.
+//! Journaux : celui du launcher (`logs/misty/launcher.log`) et la console des parties.
 //!
-//! La console garde les dernières lignes de la partie en mémoire (affichées par la fenêtre
-//! Console) et les écrit aussi dans `logs/misty/game-<date>.log` (les 10 dernières parties).
+//! Plusieurs parties peuvent tourner en même temps : chacune a sa console (ses dernières lignes
+//! en mémoire, affichées côte à côte par la fenêtre Console) et son fichier
+//! `logs/misty/game-<date>.log` (les 10 derniers sont gardés).
 //! Minecraft écrit ses journaux au format XML de log4j (argument `logging` de la version) :
 //! chaque événement est remis en une ligne lisible « [12:34:56] [Render thread/INFO]: … ».
 
@@ -30,13 +31,16 @@ pub struct Ligne {
     pub niveau: i32,
 }
 
-/// État de la partie suivie par la console.
-#[derive(Clone, Default)]
+/// Parties gardées dans la console (au-delà, les plus anciennes finies sortent en premier).
+pub const MAX_PARTIES: usize = 6;
+
+/// État d'une partie.
+#[derive(Clone, Default, PartialEq)]
 pub struct Etat {
+    /// Numéro de la partie (unique pendant que Misty tourne)
+    pub id: u64,
     /// Lignes reçues depuis le début de la partie (sert à savoir ce qui est nouveau)
     pub total: u64,
-    /// Numéro de la partie (change à chaque lancement)
-    pub session: u64,
     pub titre: String,
     pub en_cours: bool,
     /// Code de sortie, une fois la partie finie
@@ -46,30 +50,26 @@ pub struct Etat {
     pub erreurs: u64,
 }
 
-struct Console {
-    lignes: VecDeque<Ligne>,
+struct Partie {
     etat: Etat,
-    debut: Option<Instant>,
+    lignes: VecDeque<Ligne>,
+    debut: Instant,
     fichier: Option<fs::File>,
     pid: Option<u32>,
 }
 
-static CONSOLE: Mutex<Console> = Mutex::new(Console {
-    lignes: VecDeque::new(),
-    etat: Etat {
-        total: 0,
-        session: 0,
-        titre: String::new(),
-        en_cours: false,
-        code: None,
-        duree: Duration::ZERO,
-        avertissements: 0,
-        erreurs: 0,
-    },
-    debut: None,
-    fichier: None,
-    pid: None,
-});
+struct Console {
+    parties: Vec<Partie>,
+    prochain: u64,
+}
+
+static CONSOLE: Mutex<Console> = Mutex::new(Console { parties: Vec::new(), prochain: 1 });
+
+/// Agit sur une partie (None si elle n'est plus dans la console).
+fn avec<R>(id: u64, f: impl FnOnce(&mut Partie) -> R) -> Option<R> {
+    let mut c = CONSOLE.lock().unwrap();
+    c.parties.iter_mut().find(|p| p.etat.id == id).map(f)
+}
 
 /// Dossier des journaux de Misty (à côté de ceux de Minecraft, sans s'y mêler).
 pub fn dossier() -> PathBuf {
@@ -128,78 +128,90 @@ pub fn capturer_paniques() {
 
 // ───────────────────────── Console du jeu ─────────────────────────
 
-/// Commence une nouvelle partie : vide la console et ouvre son fichier.
-pub fn nouvelle_partie(titre: &str) {
+/// Commence une nouvelle partie : sa console et son fichier. Renvoie son numéro.
+pub fn nouvelle_partie(titre: &str) -> u64 {
     let d = dossier();
     let _ = fs::create_dir_all(&d);
     menage(&d);
-    let nom = format!("game-{}.log", chrono::Local::now().format("%Y-%m-%d_%H-%M-%S"));
-    let fichier = fs::File::create(d.join(nom)).ok();
-    {
+    let id = {
         let mut c = CONSOLE.lock().unwrap();
-        let session = c.etat.session + 1;
-        c.lignes.clear();
-        c.etat = Etat { session, titre: titre.to_string(), en_cours: true, ..Etat::default() };
-        c.debut = Some(Instant::now());
-        c.fichier = fichier;
-        c.pid = None;
-    }
+        let id = c.prochain;
+        c.prochain += 1;
+        // le nom du fichier porte aussi le numéro : deux parties lancées dans la même seconde
+        let nom = format!("game-{}-{id}.log", chrono::Local::now().format("%Y-%m-%d_%H-%M-%S"));
+        let fichier = fs::File::create(d.join(nom)).ok();
+        if c.parties.len() >= MAX_PARTIES {
+            let i = c.parties.iter().position(|p| !p.etat.en_cours).unwrap_or(0);
+            c.parties.remove(i);
+        }
+        c.parties.push(Partie {
+            etat: Etat { id, titre: titre.to_string(), en_cours: true, ..Etat::default() },
+            lignes: VecDeque::new(),
+            debut: Instant::now(),
+            fichier,
+            pid: None,
+        });
+        id
+    };
     info(&format!("Lancement : {titre}"));
-    ajouter(&format!("[{}] [Misty] {}", heure(), super::loc::tf("Console_Lancement", &[&titre])), MISTY);
+    ajouter(id, &format!("[{}] [Misty] {}", heure(), super::loc::tf("Console_Lancement", &[&titre])), MISTY);
+    id
 }
 
 /// Garde les MAX_FICHIERS journaux de partie les plus récents.
 fn menage(d: &std::path::Path) {
     let Ok(lecture) = fs::read_dir(d) else { return };
-    let mut parties: Vec<PathBuf> = lecture
+    let mut parties: Vec<(std::time::SystemTime, PathBuf)> = lecture
         .flatten()
-        .map(|e| e.path())
-        .filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("game-")))
+        .filter(|e| e.file_name().to_string_lossy().starts_with("game-"))
+        .map(|e| (e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH), e.path()))
         .collect();
     parties.sort();
     let trop = parties.len().saturating_sub(MAX_FICHIERS - 1);
-    for p in parties.into_iter().take(trop) {
+    for (_, p) in parties.into_iter().take(trop) {
         let _ = fs::remove_file(p);
     }
 }
 
-/// Ajoute une ligne à la console (et au fichier de la partie).
-pub fn ajouter(texte: &str, niveau: i32) {
-    let mut c = CONSOLE.lock().unwrap();
-    if let Some(f) = c.fichier.as_mut() {
-        let _ = writeln!(f, "{texte}");
-    }
-    c.etat.total += 1;
-    match niveau {
-        AVERT => c.etat.avertissements += 1,
-        ERREUR => c.etat.erreurs += 1,
-        _ => {}
-    }
-    if c.lignes.len() >= MAX_LIGNES {
-        c.lignes.pop_front();
-    }
-    c.lignes.push_back(Ligne { texte: texte.to_string(), niveau });
+/// Ajoute une ligne à la console d'une partie (et à son fichier).
+pub fn ajouter(id: u64, texte: &str, niveau: i32) {
+    avec(id, |p| {
+        if let Some(f) = p.fichier.as_mut() {
+            let _ = writeln!(f, "{texte}");
+        }
+        p.etat.total += 1;
+        match niveau {
+            AVERT => p.etat.avertissements += 1,
+            ERREUR => p.etat.erreurs += 1,
+            _ => {}
+        }
+        if p.lignes.len() >= MAX_LIGNES {
+            p.lignes.pop_front();
+        }
+        p.lignes.push_back(Ligne { texte: texte.to_string(), niveau });
+    });
 }
 
 /// Copie brute de la sortie d'erreur (pour résumer une erreur au joueur).
 pub type Copie = std::sync::Arc<Mutex<String>>;
 
-/// Suit la sortie du jeu (stdout et stderr), chacune sur son fil. `copie` reçoit aussi la
+/// Suit la sortie d'une partie (stdout et stderr), chacune sur son fil. `copie` reçoit aussi la
 /// sortie d'erreur telle quelle. Renvoie les fils, à attendre après la fin du processus.
-pub fn suivre(enfant: &mut std::process::Child, copie: Option<Copie>) -> Vec<std::thread::JoinHandle<()>> {
-    CONSOLE.lock().unwrap().pid = Some(enfant.id());
+pub fn suivre(id: u64, enfant: &mut std::process::Child, copie: Option<Copie>) -> Vec<std::thread::JoinHandle<()>> {
+    let pid = enfant.id();
+    avec(id, |p| p.pid = Some(pid));
     let mut fils = Vec::new();
     if let Some(sortie) = enfant.stdout.take() {
-        fils.push(lire_flux(sortie, false, None));
+        fils.push(lire_flux(id, sortie, false, None));
     }
     if let Some(erreurs) = enfant.stderr.take() {
-        fils.push(lire_flux(erreurs, true, copie));
+        fils.push(lire_flux(id, erreurs, true, copie));
     }
     fils
 }
 
-/// Lit un flux ligne par ligne dans la console, sur un fil à part.
-fn lire_flux(flux: impl Read + Send + 'static, erreurs: bool, copie: Option<Copie>) -> std::thread::JoinHandle<()> {
+/// Lit un flux ligne par ligne dans la console d'une partie, sur un fil à part.
+fn lire_flux(id: u64, flux: impl Read + Send + 'static, erreurs: bool, copie: Option<Copie>) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let mut lecteur = BufReader::new(flux);
         let mut analyseur = Analyseur::default();
@@ -223,7 +235,7 @@ fn lire_flux(flux: impl Read + Send + 'static, erreurs: bool, copie: Option<Copi
                         }
                     }
                     for (texte, niveau) in analyseur.ligne(ligne.trim_end_matches(['\r', '\n']), erreurs) {
-                        ajouter(&texte, niveau);
+                        ajouter(id, &texte, niveau);
                     }
                 }
             }
@@ -231,64 +243,74 @@ fn lire_flux(flux: impl Read + Send + 'static, erreurs: bool, copie: Option<Copi
     })
 }
 
-/// Fin de la partie.
-pub fn fin(code: Option<i32>) {
-    let titre;
-    {
-        let mut c = CONSOLE.lock().unwrap();
-        c.etat.en_cours = false;
-        c.etat.code = code;
-        c.etat.duree = c.debut.map(|d| d.elapsed()).unwrap_or_default();
-        c.pid = None;
-        titre = c.etat.titre.clone();
-    }
+/// Fin d'une partie.
+pub fn fin(id: u64, code: Option<i32>) {
+    let titre = avec(id, |p| {
+        p.etat.en_cours = false;
+        p.etat.code = code;
+        p.etat.duree = p.debut.elapsed();
+        p.pid = None;
+        p.etat.titre.clone()
+    })
+    .unwrap_or_default();
     let texte = match code {
         Some(0) | None => super::loc::t("Console_Ferme"),
         Some(n) => super::loc::tf("Console_Plantage", &[&n.to_string()]),
     };
-    ajouter(&format!("[{}] [Misty] {texte}", heure()), if matches!(code, Some(n) if n != 0) { ERREUR } else { MISTY });
-    let mut c = CONSOLE.lock().unwrap();
-    c.fichier = None;
-    drop(c);
+    ajouter(id, &format!("[{}] [Misty] {texte}", heure()), if matches!(code, Some(n) if n != 0) { ERREUR } else { MISTY });
+    avec(id, |p| p.fichier = None);
     info(&format!("Fin : {titre} (code {})", code.map(|n| n.to_string()).unwrap_or_else(|| "?".into())));
 }
 
-/// État de la partie (durée à jour si elle tourne).
-pub fn etat() -> Etat {
-    let c = CONSOLE.lock().unwrap();
-    let mut e = c.etat.clone();
+fn etat_a_jour(p: &Partie) -> Etat {
+    let mut e = p.etat.clone();
     if e.en_cours {
-        e.duree = c.debut.map(|d| d.elapsed()).unwrap_or_default();
+        e.duree = p.debut.elapsed();
     }
     e
 }
 
-/// Lignes arrivées après les `deja` premières de la partie `session`. Renvoie aussi si la console
-/// doit tout réafficher (nouvelle partie, ou lignes déjà sorties de la mémoire).
-pub fn nouvelles(session: u64, deja: u64) -> (Vec<Ligne>, bool) {
-    let c = CONSOLE.lock().unwrap();
-    let premier = c.etat.total - c.lignes.len() as u64;
-    if session != c.etat.session || deja < premier || deja > c.etat.total {
-        return (c.lignes.iter().cloned().collect(), true);
-    }
-    (c.lignes.iter().skip((deja - premier) as usize).cloned().collect(), false)
+/// État d'une partie (durée à jour si elle tourne).
+pub fn etat(id: u64) -> Option<Etat> {
+    avec(id, |p| etat_a_jour(p))
 }
 
-/// Les `n` dernières lignes (pour un rapport).
-pub fn dernieres(n: usize) -> Vec<String> {
-    let c = CONSOLE.lock().unwrap();
-    c.lignes.iter().skip(c.lignes.len().saturating_sub(n)).map(|l| l.texte.clone()).collect()
+/// Les parties de la console, de la plus ancienne à la plus récente.
+pub fn parties() -> Vec<Etat> {
+    CONSOLE.lock().unwrap().parties.iter().map(etat_a_jour).collect()
 }
 
-/// Toute la console, en texte.
-pub fn texte() -> String {
-    dernieres(MAX_LIGNES).join("\n")
+/// Lignes d'une partie arrivées après les `deja` premières. Renvoie aussi s'il faut tout
+/// réafficher (lignes déjà sorties de la mémoire). None si la partie n'est plus là.
+pub fn nouvelles(id: u64, deja: u64) -> Option<(Vec<Ligne>, bool)> {
+    avec(id, |p| {
+        let premier = p.etat.total - p.lignes.len() as u64;
+        if deja < premier || deja > p.etat.total {
+            return (p.lignes.iter().cloned().collect(), true);
+        }
+        (p.lignes.iter().skip((deja - premier) as usize).cloned().collect(), false)
+    })
 }
 
-/// Arrête le jeu de force (et ses sous-processus).
-pub fn arreter() {
-    let pid = CONSOLE.lock().unwrap().pid;
-    let Some(pid) = pid else { return };
+/// Les `n` dernières lignes d'une partie (pour un rapport).
+pub fn dernieres(id: u64, n: usize) -> Vec<String> {
+    avec(id, |p| p.lignes.iter().skip(p.lignes.len().saturating_sub(n)).map(|l| l.texte.clone()).collect()).unwrap_or_default()
+}
+
+/// Toute la console d'une partie, en texte.
+pub fn texte(id: u64) -> String {
+    dernieres(id, MAX_LIGNES).join("\n")
+}
+
+/// Retire une partie finie de la console (son fichier reste).
+pub fn fermer(id: u64) {
+    let mut c = CONSOLE.lock().unwrap();
+    c.parties.retain(|p| p.etat.id != id || p.etat.en_cours);
+}
+
+/// Arrête une partie de force (et ses sous-processus).
+pub fn arreter(id: u64) {
+    let Some(Some(pid)) = avec(id, |p| p.pid) else { return };
     avert(&format!("Arrêt forcé du jeu (PID {pid})"));
     #[cfg(windows)]
     {

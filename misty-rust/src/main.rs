@@ -108,7 +108,12 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             photo(&app, "r1-versions-etroit", &dossier);
             accueil.set_picker_open(false);
             use services::journal;
-            journal::nouvelle_partie("Minecraft 1.21.4 · fabric");
+            let parties = [
+                journal::nouvelle_partie("Minecraft 1.21.4 · fabric"),
+                journal::nouvelle_partie("Survie · 1.20.1 forge"),
+                journal::nouvelle_partie("Horizon nightly · Minecraft 26.3"),
+                journal::nouvelle_partie("Minecraft 1.8.9 · vanilla"),
+            ];
             for (t, n) in [
                 ("[10:42:01] [main/INFO]: Loading Minecraft 1.21.4 with Fabric Loader 0.16.9", 0),
                 ("[10:42:02] [main/WARN]: Mod 'sodium' uses a deprecated API", 1),
@@ -118,7 +123,9 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                 ("	at net.minecraft.class_1060.method_4625(class_1060.java:85)", 2),
                 ("[10:42:09] [Render thread/INFO]: Sound engine started", 0),
             ] {
-                journal::ajouter(t, n);
+                for p in parties {
+                    journal::ajouter(p, t, n);
+                }
             }
             ui::console::ouvrir(&app);
             attendre(1200).await;
@@ -127,13 +134,19 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             attendre(800).await;
             photo(&app, "r2b-console-sombre", &dossier);
             app.ui.global::<Theme>().set_mode(0);
-            journal::fin(Some(1));
+            journal::fin(parties[1], Some(1));
+            journal::fin(parties[3], Some(0));
             attendre(800).await;
             photo(&app, "r3-console-plante", &dossier);
             app.ui.global::<ConsoleState>().set_filter(2);
             app.ui.global::<ConsoleState>().invoke_filter_changed();
             attendre(600).await;
             photo(&app, "r4-console-erreurs", &dossier);
+            app.ui.global::<ConsoleState>().set_filter(0);
+            app.ui.global::<ConsoleState>().invoke_filter_changed();
+            app.ui.global::<ConsoleState>().set_focused(1);
+            attendre(800).await;
+            photo(&app, "r5-console-agrandie", &dossier);
             let _ = slint::quit_event_loop();
             return;
         }

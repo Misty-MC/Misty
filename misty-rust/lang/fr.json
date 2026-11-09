@@ -632,7 +632,7 @@
   "Console_Avertissements": "Avertissements",
   "Console_Erreurs": "Erreurs",
   "Console_Rechercher": "Rechercher dans les logs…",
-  "Console_Vide": "Lance une partie pour voir ses logs ici.",
+  "Console_Vide": "Lance une partie pour voir ses logs ici. Lances-en plusieurs pour les voir côte à côte.",
   "Console_Suivre": "Suivre",
   "Console_Envoye": "Envoyé ! Code du rapport {0} (copié) : donne-le sur Discord pour avoir de l'aide.",
   "Console_EnvoiImpossible": "Envoi des logs impossible",
@@ -645,5 +645,13 @@
   "Telemetrie_Question_Texte": "Misty peut envoyer des données anonymes pour corriger les bugs plus vite : version de Misty, version de Windows, RAM, parties lancées et, quand le jeu plante, ses dernières lignes de logs (ton pseudo et tes dossiers sont retirés).\nJamais ton compte, ton mot de passe ou ton e-mail. Tu peux changer d'avis à tout moment dans les paramètres.",
   "Telemetrie_Accepter": "Autoriser",
   "Telemetrie_Refuser": "Non merci",
-  "Home_Bouton_Logs": "Logs"
+  "Home_Bouton_Logs": "Logs",
+  "Console_Aucune": "Aucune partie pour l'instant",
+  "Console_AucuneEnCours": "Aucune partie en cours",
+  "Console_UneEnCours": "1 partie en cours",
+  "Console_PlusieursEnCours": "{0} parties en cours",
+  "Console_RienTrouve": "Aucune ligne ne correspond au filtre.",
+  "Console_Attente": "En attente du jeu…",
+  "Home_Compte_HorsLigne": "HORS LIGNE",
+  "Home_AjouterMicrosoft": "Ajouter un autre compte Microsoft"
 }

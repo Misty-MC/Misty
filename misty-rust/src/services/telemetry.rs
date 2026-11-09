@@ -79,10 +79,10 @@ pub fn evenement(nom: &str, donnees: Value) {
 }
 
 /// Envoie les dernières lignes de la console. Renvoie le code du rapport.
-pub async fn rapport(raison: &str, lignes: Vec<String>, pseudo: &str) -> anyhow::Result<String> {
+pub async fn rapport(raison: &str, jeu: &str, lignes: Vec<String>, pseudo: &str) -> anyhow::Result<String> {
     let mut corps = contexte();
     corps["reason"] = json!(raison);
-    corps["game"] = json!(journal::etat().titre);
+    corps["game"] = json!(jeu);
     corps["log"] = json!(nettoyer(&lignes.join("\n"), pseudo));
     let reponse: Value = http::client()
         .post(format!("{SITE}/api/telemetry/report"))
@@ -102,15 +102,16 @@ pub async fn rapport(raison: &str, lignes: Vec<String>, pseudo: &str) -> anyhow:
 }
 
 /// Après une partie plantée : rapport automatique si la télémétrie est active.
-pub fn plantage(pseudo: &str) {
+pub fn plantage(partie: u64, pseudo: &str) {
     if !active() {
         return;
     }
     let Some(rt) = RUNTIME.get() else { return };
-    let lignes = journal::dernieres(400);
+    let lignes = journal::dernieres(partie, 400);
+    let jeu = journal::etat(partie).map(|e| e.titre).unwrap_or_default();
     let pseudo = pseudo.to_string();
     rt.spawn(async move {
-        let _ = rapport("crash", lignes, &pseudo).await;
+        let _ = rapport("crash", &jeu, lignes, &pseudo).await;
     });
 }
 

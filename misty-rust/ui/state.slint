@@ -201,6 +201,10 @@ export global HomeState {
     callback mode-selected(int);
     callback ms-clicked();
     callback ms-selected(int);
+    /// Tous les comptes : Microsoft d'abord, puis hors ligne
+    in property <[string]> all-accounts;
+    in-out property <int> all-index: -1;
+    callback all-selected(int);
     callback reload();
     callback manage();
     callback play();

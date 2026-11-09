@@ -16,8 +16,8 @@ pub struct Etat {
     version_choisie: String,
     modes_charges: bool,
     installation_en_cours: bool,
-    /// Minecraft a été lancé depuis Misty et tourne encore.
-    pub jeu_en_cours: bool,
+    /// Parties lancées depuis Misty qui tournent encore (plusieurs à la fois possible).
+    pub jeux_en_cours: u32,
     profil: Option<Instance>,
     /// Profils de la liste déroulante (None = jeu rapide).
     profils: Vec<Option<Instance>>,
@@ -56,13 +56,36 @@ pub fn installer(app: &Rc<App>) {
     s.on_ms_clicked(move || {
         let a = a.clone();
         lancer(async move {
-            if account::session().is_none() {
+            if account::comptes().is_empty() {
                 se_connecter(&a).await;
             } else {
-                account::deconnecter();
-                session_changee(&a);
+                ajouter_compte_microsoft(&a).await;
             }
         });
+    });
+    // liste unique : un compte Microsoft (on s'y connecte) ou un pseudo hors ligne
+    let a = app.clone();
+    s.on_all_selected(move |i| {
+        let ms = account::comptes();
+        let i = i.max(0) as usize;
+        if let Some(c) = ms.get(i) {
+            if account::session().is_some_and(|s| s.uuid == c.uuid) {
+                return;
+            }
+            let (a, uuid) = (a.clone(), c.uuid.clone());
+            lancer(async move { changer_compte_microsoft(&a, uuid).await });
+            return;
+        }
+        let pseudo = a.home.borrow().pseudos.get(i - ms.len()).cloned();
+        if let Some(p) = pseudo {
+            settings::set(settings::LAST_PSEUDO, &p);
+            h(&a).set_account_index((i - ms.len()) as i32);
+            // hors ligne : la session Microsoft se ferme (le compte reste enregistré)
+            if account::session().is_some() {
+                account::deconnecter();
+            }
+            session_changee(&a);
+        }
     });
     // Liste des comptes Microsoft de l'accueil : on change de compte
     let a = app.clone();
@@ -230,7 +253,42 @@ fn charger_pseudos(app: &Rc<App>) {
     h(app).set_accounts(modele_textes(&liste));
     h(app).set_account_index(index);
     app.home.borrow_mut().pseudos = liste;
+    maj_liste_comptes(app);
     maj_avatar(app);
+}
+
+/// La liste unique de l'accueil : comptes Microsoft, puis pseudos hors ligne (un pseudo qui existe
+/// aussi en compte Microsoft est marqué « hors ligne » pour les distinguer).
+fn maj_liste_comptes(app: &Rc<App>) {
+    let ms = account::comptes();
+    let hors_ligne = app.home.borrow().pseudos.clone();
+    let mut noms: Vec<String> = ms.iter().map(|c| c.pseudo.clone()).collect();
+    for p in &hors_ligne {
+        if ms.iter().any(|c| c.pseudo.eq_ignore_ascii_case(p)) {
+            noms.push(format!("{p} ({})", loc::t("Home_Compte_HorsLigne").to_lowercase()));
+        } else {
+            noms.push(p.clone());
+        }
+    }
+    let index = match account::session() {
+        Some(s) => ms.iter().position(|c| c.uuid == s.uuid).map(|i| i as i32).unwrap_or(-1),
+        None if hors_ligne.is_empty() => -1,
+        None => ms.len() as i32 + h(app).get_account_index().max(0),
+    };
+    h(app).set_all_accounts(modele_textes(&noms));
+    h(app).set_all_index(index);
+}
+
+/// Ajoute un compte Microsoft de plus (fenêtre de connexion), qui devient le compte utilisé.
+async fn ajouter_compte_microsoft(app: &Rc<App>) {
+    h(app).set_ms_busy(true);
+    super::settings::occupe_microsoft(app, true);
+    if let Err(e) = app.bg(account::ajouter()).await {
+        dialogs::erreur(app, &loc::t("Compte_ConnexionImpossible"), &e.to_string()).await;
+    }
+    h(app).set_ms_busy(false);
+    super::settings::occupe_microsoft(app, false);
+    session_changee(app);
 }
 
 async fn se_connecter(app: &Rc<App>) {
@@ -275,6 +333,7 @@ fn maj_compte(app: &Rc<App>) {
     h(app).set_ms_index(comptes.iter().position(|c| c.uuid == courant).map(|i| i as i32).unwrap_or(-1));
     let noms: Vec<String> = comptes.into_iter().map(|c| c.pseudo).collect();
     h(app).set_ms_names(modele_textes(&noms));
+    maj_liste_comptes(app);
     maj_avatar(app);
 }
 
@@ -385,7 +444,7 @@ fn charger_profils(app: &Rc<App>) {
 fn maj_mode_profil(app: &Rc<App>) {
     let (profil, version, modes_charges, installation, jeu) = {
         let e = app.home.borrow();
-        (e.profil.clone(), e.version_choisie.clone(), e.modes_charges, e.installation_en_cours, e.jeu_en_cours)
+        (e.profil.clone(), e.version_choisie.clone(), e.modes_charges, e.installation_en_cours, e.jeux_en_cours > 0)
     };
     let s = h(app);
     s.set_quick(profil.is_none());
@@ -679,6 +738,7 @@ async fn jouer(app: &Rc<App>) {
         return;
     }
 
+    let joueur = joueur_actuel(app);
     app.home.borrow_mut().installation_en_cours = true;
     h(app).set_play_enabled(false);
     h(app).set_selectors_enabled(false);
@@ -699,7 +759,7 @@ async fn jouer(app: &Rc<App>) {
     match resultat {
         Ok(installee) => {
             afficher_progression(app, 100.0, &loc::t("Home_Lancement"));
-            lancer_jeu(app, &version, &mode, installee, instance).await;
+            lancer_jeu(app, &version, &mode, installee, instance, joueur).await;
         }
         Err(e) => {
             statut(app, &loc::t("Home_EchecTelechargement"));
@@ -716,14 +776,18 @@ async fn jouer(app: &Rc<App>) {
     s.set_percent_text("".into());
 }
 
-async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install::VersionInstallee, instance: Option<Instance>) {
-    let joueur = match account::session() {
+/// Le compte choisi maintenant : la session Microsoft, sinon le pseudo hors ligne.
+fn joueur_actuel(app: &App) -> launch::Joueur {
+    match account::session() {
         Some(s) => launch::Joueur { pseudo: s.pseudo, uuid: s.uuid, jeton: s.jeton, xuid: s.xuid, type_compte: "msa".into() },
         None => {
             let pseudo = pseudo_actuel(app);
             launch::Joueur { uuid: account::uuid_hors_ligne(&pseudo), pseudo, jeton: "0".into(), xuid: String::new(), type_compte: "legacy".into() }
         }
-    };
+    }
+}
+
+async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install::VersionInstallee, instance: Option<Instance>, joueur: launch::Joueur) {
     let pseudo_joueur = joueur.pseudo.clone();
     // Un profil a son propre dossier de jeu (mods, options, mondes) ; le jeu rapide utilise le dossier principal
     let options = launch::Options {
@@ -736,7 +800,7 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         Some(i) => format!("{} · {version} {mode}", i.nom),
         None => format!("Minecraft {version} · {mode}"),
     };
-    journal::nouvelle_partie(&titre);
+    let partie = journal::nouvelle_partie(&titre);
     if super::console::auto() {
         super::console::ouvrir(app);
     }
@@ -744,14 +808,14 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
     let mut processus = match resultat {
         Ok(p) => p,
         Err(e) => {
-            journal::ajouter(&format!("{e:#}"), journal::ERREUR);
-            journal::fin(Some(-1));
+            journal::ajouter(partie, &format!("{e:#}"), journal::ERREUR);
+            journal::fin(partie, Some(-1));
             statut(app, &loc::t("Home_EchecLancement"));
             dialogs::erreur(app, &loc::t("Home_LancementImpossible"), &format!("{e:#}")).await;
             return;
         }
     };
-    let fils = journal::suivre(&mut processus, None);
+    let fils = journal::suivre(partie, &mut processus, None);
     telemetry::evenement("game_start", serde_json::json!({ "minecraft": version, "loader": mode, "profile": instance.is_some() }));
     let (v_tel, m_tel, pseudo_tel) = (version.to_string(), mode.to_string(), pseudo_joueur.clone());
 
@@ -760,7 +824,7 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         None => mode.to_string(),
     };
     discord::definir(discord::Statut::EnJeu { version: version.to_string(), mode: detail, pseudo: pseudo_joueur });
-    app.home.borrow_mut().jeu_en_cours = true;
+    app.home.borrow_mut().jeux_en_cours += 1;
     statut(app, &loc::tf("Home_Lance", &[&instance.as_ref().map(|i| i.nom.clone()).unwrap_or_else(|| format!("Minecraft {version}"))]));
 
     if let Some(mut i) = instance {
@@ -775,21 +839,27 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         for f in fils {
             let _ = f.join();
         }
-        journal::fin(code);
-        let etat = journal::etat();
+        journal::fin(partie, code);
+        let etat = journal::etat(partie).unwrap_or_default();
         let plante = matches!(code, Some(n) if n != 0);
         telemetry::evenement(
             "game_end",
             serde_json::json!({ "minecraft": v_tel, "loader": m_tel, "code": code, "seconds": etat.duree.as_secs(), "crashed": plante, "errors": etat.erreurs }),
         );
         if plante {
-            telemetry::plantage(&pseudo_tel);
+            telemetry::plantage(partie, &pseudo_tel);
         }
         let _ = faible.upgrade_in_event_loop(|_| {
             if let Some(a) = crate::APP.with(|a| a.borrow().clone()) {
-                a.home.borrow_mut().jeu_en_cours = false;
-                // retour au statut de la page affichée
-                super::maj_discord(&a, true);
+                let reste = {
+                    let mut e = a.home.borrow_mut();
+                    e.jeux_en_cours = e.jeux_en_cours.saturating_sub(1);
+                    e.jeux_en_cours
+                };
+                // retour au statut de la page affichée (quand plus aucune partie ne tourne)
+                if reste == 0 {
+                    super::maj_discord(&a, true);
+                }
                 statut(&a, &loc::t("Home_Pret"));
                 let profil = a.home.borrow().profil.clone();
                 if let Some(p) = profil {
@@ -1028,28 +1098,37 @@ async fn horizon_jouer(app: &Rc<App>) {
         // la partie
         afficher_progression(app, 100.0, &loc::t("Hz_Lancement"));
         discord::definir(discord::Statut::EnJeu { version: exigences.minecraft.clone(), mode: format!("Horizon {tag}"), pseudo: pseudo.clone() });
-        app.home.borrow_mut().jeu_en_cours = true;
+        app.home.borrow_mut().jeux_en_cours += 1;
         let session = compte.as_ref().map(|c| horizon::Session { pseudo: c.pseudo.clone(), uuid: c.uuid.clone(), jeton: c.jeton.clone(), xuid: c.xuid.clone() });
         let b = build.clone();
         let ex = exigences.clone();
         let p = pseudo.clone();
-        journal::nouvelle_partie(&format!("Horizon {tag} · Minecraft {}", exigences.minecraft));
+        let partie = journal::nouvelle_partie(&format!("Horizon {tag} · Minecraft {}", exigences.minecraft));
         if super::console::auto() {
             super::console::ouvrir(app);
         }
         telemetry::evenement("game_start", serde_json::json!({ "minecraft": exigences.minecraft, "loader": "horizon", "build": tag }));
-        let fin = app.bloquant(move || horizon::jouer(&b, &ex, session.as_ref(), &p)).await;
-        let etat = journal::etat();
+        // une autre partie peut être lancée pendant que celle-ci tourne
+        s.set_play_enabled(true);
+        s.set_selectors_enabled(true);
+        let fin = app.bloquant(move || horizon::jouer(partie, &b, &ex, session.as_ref(), &p)).await;
+        let etat = journal::etat(partie).unwrap_or_default();
         let plante = matches!(etat.code, Some(n) if n != 0);
         telemetry::evenement(
             "game_end",
             serde_json::json!({ "minecraft": exigences.minecraft, "loader": "horizon", "build": tag, "code": etat.code, "seconds": etat.duree.as_secs(), "crashed": plante, "errors": etat.erreurs }),
         );
         if plante {
-            telemetry::plantage(&pseudo);
+            telemetry::plantage(partie, &pseudo);
         }
-        app.home.borrow_mut().jeu_en_cours = false;
-        super::maj_discord(app, true);
+        let reste = {
+            let mut e = app.home.borrow_mut();
+            e.jeux_en_cours = e.jeux_en_cours.saturating_sub(1);
+            e.jeux_en_cours
+        };
+        if reste == 0 {
+            super::maj_discord(app, true);
+        }
         fin
     }
     .await;

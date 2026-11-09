@@ -632,7 +632,7 @@
   "Console_Avertissements": "Avvisi",
   "Console_Erreurs": "Errori",
   "Console_Rechercher": "Cerca nei log…",
-  "Console_Vide": "Avvia una partita per vedere qui i suoi log.",
+  "Console_Vide": "Avvia una partita per vedere qui i suoi log. Avviane diverse per vederle affiancate.",
   "Console_Suivre": "Segui",
   "Console_Envoye": "Inviato! Codice del rapporto {0} (copiato): dallo su Discord per ricevere aiuto.",
   "Console_EnvoiImpossible": "Impossibile inviare i log",
@@ -645,5 +645,13 @@
   "Telemetrie_Question_Texte": "Misty può inviare dati anonimi per correggere i bug più in fretta: versione di Misty, versione di Windows, RAM, partite avviate e, quando il gioco crasha, le ultime righe di log (nome e cartelle vengono rimossi).\nMai il tuo account, la password o l'e-mail. Puoi cambiare idea in qualsiasi momento nelle impostazioni.",
   "Telemetrie_Accepter": "Consenti",
   "Telemetrie_Refuser": "No, grazie",
-  "Home_Bouton_Logs": "Log"
+  "Home_Bouton_Logs": "Log",
+  "Console_Aucune": "Ancora nessuna partita",
+  "Console_AucuneEnCours": "Nessuna partita in corso",
+  "Console_UneEnCours": "1 partita in corso",
+  "Console_PlusieursEnCours": "{0} partite in corso",
+  "Console_RienTrouve": "Nessuna riga corrisponde al filtro.",
+  "Console_Attente": "In attesa del gioco…",
+  "Home_Compte_HorsLigne": "OFFLINE",
+  "Home_AjouterMicrosoft": "Aggiungi un altro account Microsoft"
 }

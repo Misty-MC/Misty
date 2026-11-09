@@ -632,7 +632,7 @@
   "Console_Avertissements": "Warnings",
   "Console_Erreurs": "Errors",
   "Console_Rechercher": "Search the logs…",
-  "Console_Vide": "Start a game to see its logs here.",
+  "Console_Vide": "Start a game to see its logs here. Start several to see them side by side.",
   "Console_Suivre": "Follow",
   "Console_Envoye": "Sent! Report code {0} (copied): give it on Discord to get help.",
   "Console_EnvoiImpossible": "Could not send the logs",
@@ -645,5 +645,13 @@
   "Telemetrie_Question_Texte": "Misty can send anonymous data to fix bugs faster: Misty version, Windows version, RAM, games started, and when a game crashes, its last log lines (your username and folders are removed).\nNever your account, password or email. You can change this anytime in the settings.",
   "Telemetrie_Accepter": "Allow",
   "Telemetrie_Refuser": "No thanks",
-  "Home_Bouton_Logs": "Logs"
+  "Home_Bouton_Logs": "Logs",
+  "Console_Aucune": "No game yet",
+  "Console_AucuneEnCours": "No game running",
+  "Console_UneEnCours": "1 game running",
+  "Console_PlusieursEnCours": "{0} games running",
+  "Console_RienTrouve": "No line matches the filter.",
+  "Console_Attente": "Waiting for the game…",
+  "Home_Compte_HorsLigne": "OFFLINE",
+  "Home_AjouterMicrosoft": "Add another Microsoft account"
 }
