@@ -2,7 +2,7 @@
 
 import { Theme, Tr, Assets, Bulle } from "theme.slint";
 import { AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState } from "state.slint";
-import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, ChromeButton, MButton } from "widgets.slint";
+import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, ChromeButton, MButton, SlimProgress, Spinner } from "widgets.slint";
 import { HomePage } from "home.slint";
 import { ProfilesPage, ProfileCreateOverlay, ProfileWaitOverlay } from "profiles.slint";
 import { InstancePage } from "instance.slint";
@@ -483,6 +483,64 @@ export component MainWindow inherits Window {
         if ProfilesState.waiting: ProfileWaitOverlay { }
         if PacksState.creating: PackCreateOverlay { }
         if SettingsState.storage-open: StorageOverlay { }
+
+        // ═══ Mise à jour : avancement (bloque la fenêtre jusqu'au redémarrage) ═══
+        if AppState.updating: Rectangle {
+            background: Theme.scrim;
+            TouchArea { }
+            Rectangle {
+                width: 420px;
+                height: maj.preferred-height;
+                border-radius: 24px;
+                background: Theme.surface;
+                border-width: 1px;
+                border-color: Theme.glass-border;
+                drop-shadow-blur: 40px;
+                drop-shadow-color: Theme.shadow;
+                maj := VerticalLayout {
+                    padding: 28px;
+                    spacing: 14px;
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Rectangle {
+                            width: 34px;
+                            height: 34px;
+                            border-radius: 10px;
+                            background: Theme.blue;
+                            Icon {
+                                text: "\u{E896}";
+                                color: white;
+                            }
+                        }
+                        SectionTitle {
+                            horizontal-stretch: 1;
+                            text: AppState.update-title;
+                            vertical-alignment: center;
+                            wrap: word-wrap;
+                        }
+                        if AppState.update-progress >= 0: Text {
+                            text: Math.floor(AppState.update-progress * 100) + " %";
+                            font-family: Theme.ui-font;
+                            font-size: 20px;
+                            font-weight: 800;
+                            color: Theme.green-dark;
+                            vertical-alignment: center;
+                        }
+                    }
+                    if AppState.update-progress >= 0: SlimProgress {
+                        progress: AppState.update-progress;
+                    }
+                    if AppState.update-progress < 0: Spinner { }
+                    Text {
+                        text: AppState.update-status;
+                        font-family: Theme.ui-font;
+                        font-size: 13px;
+                        color: Theme.text-muted;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
 
         // ═══ Boîte de dialogue ═══
         if DialogState.visible: Rectangle {

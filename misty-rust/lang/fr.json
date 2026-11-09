@@ -605,5 +605,13 @@
   "Amis_Chat_Sous": "Choisis un ami pour discuter",
   "Amis_Chat_Titre": "Le chat arrive bientôt",
   "Amis_Chat_Texte": "Discute avec tes amis directement dans Misty et invite-les à rejoindre ta partie en un clic.",
-  "Amis_Message": "Écris un message…"
+  "Amis_Message": "Écris un message…",
+  "Maj_EnCours": "Mise à jour vers la {0}",
+  "Maj_Connexion": "Connexion…",
+  "Maj_Telechargement": "Téléchargement : {0} / {1} Mo depuis {2}",
+  "Maj_Telechargement_Inconnu": "Téléchargement : {0} Mo depuis {1}",
+  "Maj_Source_GitHub": "GitHub",
+  "Maj_Source_Site": "le site de Misty",
+  "Maj_Extraction": "Installation de la nouvelle version…",
+  "Maj_Lancement": "Redémarrage de Misty…"
 }

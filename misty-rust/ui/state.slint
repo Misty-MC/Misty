@@ -38,6 +38,12 @@ export global AppState {
     in property <float> moon-y;
     in property <float> moon-size;
     in property <[ScenePuff]> scene-puffs;
+    /// Mise à jour en cours : fenêtre d'avancement
+    in property <bool> updating;
+    in property <string> update-title;
+    in property <string> update-status;
+    /// 0 à 1 ; négatif tant que la taille est inconnue
+    in property <float> update-progress: -1;
     callback toggle-maximize();
     callback nav-clicked(int);
     callback open-data-folder();

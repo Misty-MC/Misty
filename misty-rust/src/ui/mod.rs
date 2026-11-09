@@ -363,11 +363,49 @@ async fn verifier_mise_a_jour(app: &Rc<App>, manuel: bool) {
     if !installer {
         return;
     }
-    match app.bg(async move { crate::services::update::installer(&release).await }).await {
+    {
+        let st = app.ui.global::<AppState>();
+        st.set_update_title(loc::tf("Maj_EnCours", &[&release.version]).into());
+        st.set_update_status(loc::t("Maj_Connexion").into());
+        st.set_update_progress(-1.0);
+        st.set_updating(true);
+    }
+    let faible = app.ui.as_weak();
+    // au plus un rafraîchissement par point de pourcentage (le flux arrive par petits morceaux)
+    let dernier = std::sync::Arc::new(std::sync::atomic::AtomicI64::new(-2));
+    let avancement = move |etape: crate::services::update::Etape| {
+        use crate::services::update::Etape;
+        let (progres, texte) = match etape {
+            Etape::Telechargement { recu, total, site } => {
+                let mo = |o: u64| format!("{:.1}", o as f64 / 1_048_576.0);
+                let source = loc::t(if site { "Maj_Source_Site" } else { "Maj_Source_GitHub" });
+                if total > 0 {
+                    (recu as f32 / total as f32, loc::tf("Maj_Telechargement", &[&mo(recu), &mo(total), &source]))
+                } else {
+                    (-1.0, loc::tf("Maj_Telechargement_Inconnu", &[&mo(recu), &source]))
+                }
+            }
+            Etape::Extraction => (1.0, loc::t("Maj_Extraction")),
+            Etape::Lancement => (1.0, loc::t("Maj_Lancement")),
+        };
+        let cle = if progres < 0.0 { -1 } else { (progres * 100.0) as i64 };
+        if cle >= 0 && cle < 100 && dernier.swap(cle, std::sync::atomic::Ordering::Relaxed) == cle {
+            return;
+        }
+        let _ = faible.upgrade_in_event_loop(move |ui| {
+            let st = ui.global::<AppState>();
+            st.set_update_progress(progres);
+            st.set_update_status(texte.into());
+        });
+    };
+    match app.bg(async move { crate::services::update::installer(&release, avancement).await }).await {
         Ok(()) => {
             let _ = slint::quit_event_loop();
         }
-        Err(e) => dialogs::erreur(app, &loc::t("Maj_Impossible"), &e.to_string()).await,
+        Err(e) => {
+            app.ui.global::<AppState>().set_updating(false);
+            dialogs::erreur(app, &loc::t("Maj_Impossible"), &format!("{e:#}")).await
+        }
     }
 }
 

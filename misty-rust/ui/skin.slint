@@ -35,7 +35,7 @@ export global SkinState {
     callback elytra-toggled();
     callback walk-toggled();
     callback look-changed();
-    /// Animation du studio : 0 repos · 1 marche · 2 course · 3 vol · 4 salut · 5 accroupi
+    /// Animation du studio : 0 repos · 1 marche · 2 course · 3 vol · 4 accroupi
     in-out property <int> anim: 0;
     /// Élytres sorties automatiquement pour le vol
     in-out property <bool> elytra-auto: false;
@@ -460,7 +460,7 @@ component Scene3D inherits Rectangle {
     if SkinState.has-figure || SkinState.live-ready: Seg {
         x: 14px;
         y: parent.height - self.height - 14px;
-        items: [Tr.t("Skin_Repos"), Tr.t("Skin_Vue_Marche"), Tr.t("Skin_Course"), Tr.t("Skin_Vol"), Tr.t("Skin_Salut"), Tr.t("Skin_Accroupi")];
+        items: [Tr.t("Skin_Repos"), Tr.t("Skin_Vue_Marche"), Tr.t("Skin_Course"), Tr.t("Skin_Vol"), Tr.t("Skin_Accroupi")];
         current: SkinState.anim;
         choisi(i) => {
             SkinState.anim = i;

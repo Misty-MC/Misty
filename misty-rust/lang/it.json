@@ -605,5 +605,13 @@
   "Amis_Chat_Sous": "Scegli un amico per parlare",
   "Amis_Chat_Titre": "La chat arriva presto",
   "Amis_Chat_Texte": "Parla con i tuoi amici direttamente in Misty e invitali nella tua partita con un clic.",
-  "Amis_Message": "Scrivi un messaggio…"
+  "Amis_Message": "Scrivi un messaggio…",
+  "Maj_EnCours": "Aggiornamento alla {0}",
+  "Maj_Connexion": "Connessione…",
+  "Maj_Telechargement": "Download: {0} / {1} MB da {2}",
+  "Maj_Telechargement_Inconnu": "Download: {0} MB da {1}",
+  "Maj_Source_GitHub": "GitHub",
+  "Maj_Source_Site": "il sito di Misty",
+  "Maj_Extraction": "Installazione della nuova versione…",
+  "Maj_Lancement": "Riavvio di Misty…"
 }

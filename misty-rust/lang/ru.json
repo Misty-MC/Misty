@@ -605,5 +605,13 @@
   "Amis_Chat_Sous": "Выберите друга, чтобы начать общение",
   "Amis_Chat_Titre": "Чат скоро появится",
   "Amis_Chat_Texte": "Общайтесь с друзьями прямо в Misty и приглашайте их в свою игру в один клик.",
-  "Amis_Message": "Напишите сообщение…"
+  "Amis_Message": "Напишите сообщение…",
+  "Maj_EnCours": "Обновление до {0}",
+  "Maj_Connexion": "Подключение…",
+  "Maj_Telechargement": "Загрузка: {0} / {1} МБ с {2}",
+  "Maj_Telechargement_Inconnu": "Загрузка: {0} МБ с {1}",
+  "Maj_Source_GitHub": "GitHub",
+  "Maj_Source_Site": "сайта Misty",
+  "Maj_Extraction": "Установка новой версии…",
+  "Maj_Lancement": "Перезапуск Misty…"
 }

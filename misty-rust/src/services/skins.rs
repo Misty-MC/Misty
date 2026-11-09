@@ -680,7 +680,6 @@ pub enum Anim {
     Marche,
     Course,
     Vol,
-    Salut,
     Accroupi,
 }
 
@@ -690,8 +689,7 @@ impl Anim {
             1 => Anim::Marche,
             2 => Anim::Course,
             3 => Anim::Vol,
-            4 => Anim::Salut,
-            5 => Anim::Accroupi,
+            4 => Anim::Accroupi,
             _ => Anim::Repos,
         }
     }
@@ -768,11 +766,6 @@ fn pose(anim: Anim, t: f32, b: f32) -> Pose {
             p.tete.incline = -0.9;
             p.cape = 1.2 + 0.1 * (t * TAU * 1.8).sin();
             p.ailes = (0.45, 0.7 + 0.08 * (t * TAU * 0.9).sin());
-        }
-        Anim::Salut => {
-            // bras droit levé qui fait coucou
-            p.bras_d.incline = -2.75;
-            p.bras_d.roulis = 0.45 + 0.3 * (t * TAU * 1.6).sin();
         }
         Anim::Accroupi => {
             // k : 0 debout, 1 accroupi ; on reste un peu dans chaque position (cycle de 2,4 s)
@@ -985,7 +978,7 @@ mod tests_live {
     #[test]
     fn toutes_les_animations_se_dessinent() {
         let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
-        for a in 0..6 {
+        for a in 0..5 {
             let img = rendre_live(&steve, None, false, a == 3, Anim::depuis(a), 0.4, 0.5, 0.3).unwrap();
             assert_eq!(img.dimensions(), (LIVE, LIVE));
             assert!(img.pixels().any(|p| p[3] == 255), "animation {a} vide");
@@ -1004,10 +997,10 @@ mod tests_planche {
         let Ok(dossier) = std::env::var("MISTY_POSES") else { return };
         let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
         let cape = image::load_from_memory(texture_misty()).unwrap().to_rgba8();
-        let mut planche = RgbaImage::from_pixel(LIVE * 6, LIVE * 3, Rgba([30, 40, 70, 255]));
-        for a in 0..6 {
+        let mut planche = RgbaImage::from_pixel(LIVE * 5, LIVE * 3, Rgba([30, 40, 70, 255]));
+        for a in 0..5 {
             for (ligne, yaw) in [(0u32, 0.35f32), (1, std::f32::consts::FRAC_PI_2), (2, 2.6)] {
-                let elytres = a == 3 || a == 5;
+                let elytres = a == 3 || a == 4;
                 let img = rendre_live(&steve, Some(&cape), false, elytres, Anim::depuis(a), 0.3, yaw, 0.15).unwrap();
                 imageops::overlay(&mut planche, &img, (a as u32 * LIVE) as i64, (ligne * LIVE) as i64);
             }
