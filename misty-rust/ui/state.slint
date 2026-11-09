@@ -429,6 +429,8 @@ export global SettingsState {
     callback console-auto-toggled(bool);
     in-out property <bool> telemetry;
     callback telemetry-toggled(bool);
+    in-out property <bool> prerelease;
+    callback prerelease-toggled(bool);
     callback open-launcher-log();
     callback github();
     callback check-update();

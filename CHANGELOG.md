@@ -1,5 +1,21 @@
 # Changelog
 ## 0.3.7
+### Game console
+- New console over the launcher, like PvP launchers: the game's logs live, colored by level (info, warnings, errors, Misty's own messages), for Minecraft and Horizon
+- Minecraft's XML logs are turned into readable lines (`[12:34:56] [Render thread/INFO]: …`), with the full stack trace of each error
+- Filters (All / Warnings / Errors) with counters, search, auto-scroll that stops when you scroll up and a "Follow" button to come back down
+- Copy the logs, open the logs folder, or stop a game that froze
+- "Send logs": sends the last lines of the game and gives you a report code (copied for you) to share on Discord to get help
+- Opens when a game starts (can be turned off in the settings), and on its own when a game crashes
+- New LOGS button next to PLAY, in the same style, to open it anytime
+- Follows the theme: light with the light theme, dark with the dark theme
+
+### Several games at once
+- PLAY is available again as soon as a game starts: run several Minecraft versions, profiles or Horizon builds at the same time
+- The console splits the screen: one panel per game (side by side, 2 × 2 for 4 games, up to 3 × 2), each with its own state, counters and buttons. Maximize one panel with a double-click or its button
+- Each game keeps the account that was picked when PLAY was clicked, even if you switch accounts while it downloads
+- Microsoft and offline accounts are now in a single list on the home page: pick one, play, pick another, play again. The button next to it adds another Microsoft account
+
 ### Quilt
 - New mod loader: Quilt can now be picked in the version picker and in the profile creation, for every Minecraft version from 1.14 on that Quilt supports
 - Quilt modpacks are now supported: Modrinth modpacks (`quilt-loader`) and CurseForge modpacks install and launch with the right Quilt version. Before, CurseForge Quilt modpacks were refused as an unsupported loader
@@ -7,10 +23,26 @@
 - Quilt profiles also load Fabric mods, so Modrinth and CurseForge searches show both
 - Fix: Quilt crashed on recent Minecraft versions because an old loader was picked. Misty now picks the highest stable Quilt loader
 
-### Modpacks
+### Modpacks and profiles
 - New "Import a modpack" button on the Profiles page: pick a Modrinth `.mrpack` or a CurseForge `.zip` file and Misty creates a profile from it, with its mods, configs and the right mod loader
 - The profile takes the name written in the modpack. Mods that CurseForge authors don't allow apps to download are listed so you can get them by hand
 - A clear error message when the file is not a modpack, and a half-created profile is removed if the import fails
+- Mods, resource packs, shaders and datapacks added by hand to a profile's folders now show up right away in the profile, without reopening it
+
+### Updates
+- New update window with a progress bar: percentage, MB downloaded and the source, then unpacking and restart
+- If GitHub is down or out of quota, updates now come from the Misty website, which keeps a copy of the latest version
+- The downloaded update is checked (complete file, right version) before it is installed
+- New setting "Pre-release updates" (Settings › Troubleshooting): also get the beta and pre-release versions published on GitHub
+
+### Logs and telemetry
+- Misty now keeps its own log (`logs/misty/launcher.log`) and a log file for each of the last 10 games, with a "Misty log" button in Settings › Troubleshooting
+- Optional anonymous telemetry, asked once and switchable in the settings: Misty version, Windows, RAM, games started, crashes with their last log lines (username, folders and tokens removed). Never your account, password or email
+
+### Fixes and changes
+- Horizon no longer opens a black console window on some PCs
+- Version picker: the mod loader row no longer overflows the window on small screens, and the Done button stays inside
+- Skin studio: removed the "Wave" animation
 
 ## 0.3.6
 ### Horizon

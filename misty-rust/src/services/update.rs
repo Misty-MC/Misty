@@ -18,6 +18,8 @@ const SITE: &str = "https://misty-launcher.online";
 
 pub struct ReleaseInfo {
     pub version: String,
+    /// Pré-release (bêta) de GitHub
+    pub prerelease: bool,
     /// Adresses du zip, essayées dans l'ordre (GitHub puis le site)
     pub sources: Vec<String>,
     /// Taille du zip annoncée par GitHub ou le site (0 si inconnue)
@@ -56,13 +58,32 @@ async fn verifier_site() -> anyhow::Result<Option<ReleaseInfo>> {
         anyhow::bail!("{SITE}/api/latest : version absente");
     }
     let taille = doc["portableSize"].as_u64().unwrap_or(0);
-    Ok(est_plus_recente(&version, app_info::VERSION).then(|| ReleaseInfo { version, sources: vec![url_site()], taille }))
+    Ok(est_plus_recente(&version, app_info::VERSION).then(|| ReleaseInfo { version, prerelease: false, sources: vec![url_site()], taille }))
 }
 
 async fn verifier_github() -> anyhow::Result<Option<ReleaseInfo>> {
     // GitHub refuse les requêtes sans User-Agent (le client partagé en a un)
-    let doc: serde_json::Value =
-        http::get_json(&format!("https://api.github.com/repos/{}/releases/latest", app_info::GITHUB_REPO)).await?;
+    let doc: serde_json::Value = if super::settings::get_bool(super::settings::MAJ_PRERELEASE, false) {
+        // canal pré-release : la plus haute version parmi les releases publiées, bêtas comprises
+        let liste: serde_json::Value =
+            http::get_json(&format!("https://api.github.com/repos/{}/releases?per_page=30", app_info::GITHUB_REPO)).await?;
+        let mut candidates: Vec<serde_json::Value> = liste
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|r| !r["draft"].as_bool().unwrap_or(false) && r["tag_name"].as_str().is_some_and(|t| !t.is_empty()))
+            .cloned()
+            .collect();
+        let tag = |r: &serde_json::Value| r["tag_name"].as_str().unwrap_or("").trim_start_matches('v').to_string();
+        candidates.sort_by(|a, b| comparer_versions(&tag(a), &tag(b)));
+        match candidates.pop() {
+            Some(r) => r,
+            None => return Ok(None),
+        }
+    } else {
+        http::get_json(&format!("https://api.github.com/repos/{}/releases/latest", app_info::GITHUB_REPO)).await?
+    };
+    let prerelease = doc["prerelease"].as_bool().unwrap_or(false);
 
     let version = doc["tag_name"].as_str().unwrap_or("").trim_start_matches('v').to_string();
     // Le zip "Misty-x.y.zip" (la release peut aussi contenir l'installateur .exe)
@@ -81,26 +102,79 @@ async fn verifier_github() -> anyhow::Result<Option<ReleaseInfo>> {
         return Ok(None);
     }
     // sans zip sur GitHub (pas encore envoyé), le site peut quand même l'avoir
-    let sources = url.into_iter().chain([url_site()]).collect();
-    Ok(Some(ReleaseInfo { version, sources, taille }))
+    // (le site ne garde que la dernière version stable : pas de secours pour une pré-release)
+    let sources = if prerelease { url.into_iter().collect() } else { url.into_iter().chain([url_site()]).collect() };
+    Ok(Some(ReleaseInfo { version, prerelease, sources, taille }))
 }
 
-/// Compare deux versions segment par segment ("0.2.3.9.5.1" > "0.2.3.9.5").
+/// Vrai si `distante` est plus récente que `locale` ("0.2.3.9.5.1" > "0.2.3.9.5",
+/// "0.3.7" > "0.3.7-beta.2" > "0.3.7-beta.1" > "0.3.6").
 pub fn est_plus_recente(distante: &str, locale: &str) -> bool {
-    // "3v2" -> 3 : on ne garde que les chiffres de tête de chaque segment
-    let segments = |v: &str| -> Vec<u64> {
-        v.split('.')
-            .map(|s| s.chars().take_while(char::is_ascii_digit).collect::<String>().parse().unwrap_or(0))
-            .collect()
+    comparer_versions(distante, locale) == std::cmp::Ordering::Greater
+}
+
+/// Ordre des versions : les nombres d'abord ("0.3.7"), puis le suffixe de pré-release ("-beta.1",
+/// "b2", "-rc1"…) : une version sans suffixe passe après ses pré-releases.
+pub fn comparer_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    // "0.3.7-beta.1" -> ([0, 3, 7], "beta.1")
+    let decouper = |v: &str| -> (Vec<u64>, String) {
+        let v = v.trim().trim_start_matches(['v', 'V']);
+        let fin = v.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(v.len());
+        let nombres = v[..fin].split('.').filter(|s| !s.is_empty()).map(|s| s.parse().unwrap_or(0)).collect();
+        (nombres, v[fin..].trim_start_matches(['-', '.', '_', '+']).to_lowercase())
     };
-    let (a, b) = (segments(distante), segments(locale));
-    for i in 0..a.len().max(b.len()) {
-        let (x, y) = (a.get(i).copied().unwrap_or(0), b.get(i).copied().unwrap_or(0));
+    // "beta.10" -> ["beta", 10] : les nombres se comparent comme des nombres
+    let morceaux = |s: &str| -> Vec<Result<u64, String>> {
+        let mut liste = Vec::new();
+        let mut courant = String::new();
+        for c in s.chars() {
+            let change = !courant.is_empty() && courant.chars().last().is_some_and(|d| d.is_ascii_digit()) != c.is_ascii_digit();
+            if !c.is_ascii_alphanumeric() || change {
+                if !courant.is_empty() {
+                    liste.push(courant.parse::<u64>().map_err(|_| courant.clone()));
+                    courant.clear();
+                }
+            }
+            if c.is_ascii_alphanumeric() {
+                courant.push(c);
+            }
+        }
+        if !courant.is_empty() {
+            liste.push(courant.parse::<u64>().map_err(|_| courant.clone()));
+        }
+        liste
+    };
+    let ((na, sa), (nb, sb)) = (decouper(a), decouper(b));
+    for i in 0..na.len().max(nb.len()) {
+        let (x, y) = (na.get(i).copied().unwrap_or(0), nb.get(i).copied().unwrap_or(0));
         if x != y {
-            return x > y;
+            return x.cmp(&y);
         }
     }
-    false
+    match (sa.is_empty(), sb.is_empty()) {
+        (true, true) => return Ordering::Equal,
+        (true, false) => return Ordering::Greater,
+        (false, true) => return Ordering::Less,
+        _ => {}
+    }
+    let (ma, mb) = (morceaux(&sa), morceaux(&sb));
+    for i in 0..ma.len().max(mb.len()) {
+        let ordre = match (ma.get(i), mb.get(i)) {
+            (Some(Ok(x)), Some(Ok(y))) => x.cmp(y),
+            (Some(Err(x)), Some(Err(y))) => x.cmp(y),
+            // un nombre passe avant un mot ("1" < "beta")
+            (Some(Ok(_)), Some(Err(_))) => Ordering::Less,
+            (Some(Err(_)), Some(Ok(_))) => Ordering::Greater,
+            (Some(_), None) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less,
+            (None, None) => Ordering::Equal,
+        };
+        if ordre != Ordering::Equal {
+            return ordre;
+        }
+    }
+    Ordering::Equal
 }
 
 /// Dossier qui contient les dossiers "Misty-{version}".
@@ -288,6 +362,20 @@ fn copier_dossier(source: &Path, destination: &Path) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ordre_des_versions() {
+        assert!(est_plus_recente("0.3.7", "0.3.6"));
+        assert!(est_plus_recente("0.2.3.9.5.1", "0.2.3.9.5"));
+        assert!(!est_plus_recente("0.3.6", "0.3.6"));
+        assert!(est_plus_recente("0.3.7-beta.1", "0.3.6"));
+        assert!(est_plus_recente("0.3.7", "0.3.7-beta.2"));
+        assert!(est_plus_recente("0.3.7-beta.2", "0.3.7-beta.1"));
+        assert!(est_plus_recente("0.3.7-beta.10", "0.3.7-beta.9"));
+        assert!(est_plus_recente("0.3.7-rc1", "0.3.7-beta3"));
+        assert!(!est_plus_recente("0.3.7-beta.1", "0.3.7"));
+        assert!(est_plus_recente("v0.3.8", "0.3.7"));
+    }
 
     /// Secours par le site (réseau) : `cargo test secours_site -- --ignored`.
     #[tokio::test]

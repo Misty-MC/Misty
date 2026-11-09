@@ -18,6 +18,10 @@ pub struct Etat {
     filtre_type: String,
     types: Vec<String>,
     modele: Option<ModelRc<ContentItem>>,
+    /// Empreinte des dossiers au dernier chargement (voir surveiller)
+    empreinte: u64,
+    /// Chargement de la liste en cours
+    chargement: bool,
 }
 
 fn s(app: &App) -> InstanceState<'_> {
@@ -107,6 +111,38 @@ pub fn installer(app: &Rc<App>) {
     st.on_remove(move |i| {
         let a = a.clone();
         lancer(async move { supprimer_contenu(&a, i as usize).await });
+    });
+
+    // Fichiers ajoutés à la main (glissés dans le dossier mods, etc.) : la liste se recharge seule
+    let a = Rc::downgrade(app);
+    let minuterie = slint::Timer::default();
+    minuterie.start(slint::TimerMode::Repeated, std::time::Duration::from_secs(2), move || {
+        if let Some(a) = a.upgrade() {
+            surveiller(&a);
+        }
+    });
+    std::mem::forget(minuterie);
+}
+
+/// Page du profil ouverte sur son contenu : recharge la liste si les dossiers ont changé.
+fn surveiller(app: &Rc<App>) {
+    if app.ui.global::<crate::AppState>().get_page() != super::page::INSTANCE || s(app).get_tab() != 0 {
+        return;
+    }
+    let Some(inst) = instance(app) else { return };
+    if app.instance.borrow().chargement {
+        return;
+    }
+    app.instance.borrow_mut().chargement = true;
+    let a = app.clone();
+    lancer(async move {
+        let i = inst.clone();
+        let empreinte = a.bloquant(move || content::empreinte(&i)).await;
+        let change = instance(&a).map(|x| x.id) == Some(inst.id.clone()) && empreinte != a.instance.borrow().empreinte;
+        a.instance.borrow_mut().chargement = false;
+        if change {
+            charger_contenu(&a).await;
+        }
     });
 }
 
@@ -198,7 +234,13 @@ fn construire_filtres(app: &Rc<App>) {
 async fn charger_contenu(app: &Rc<App>) {
     let Some(i) = instance(app) else { return };
     let inst = i.clone();
-    let contenus = app.bloquant(move || content::lister(&inst)).await;
+    app.instance.borrow_mut().chargement = true;
+    let (contenus, empreinte) = app.bloquant(move || (content::lister(&inst), content::empreinte(&inst))).await;
+    {
+        let mut e = app.instance.borrow_mut();
+        e.empreinte = empreinte;
+        e.chargement = false;
+    }
     let a_identifier = contenus.iter().any(|c| c.meta.is_none());
     app.instance.borrow_mut().contenus = contenus.clone();
     appliquer_filtre(app);

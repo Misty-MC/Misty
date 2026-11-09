@@ -653,5 +653,8 @@
   "Console_RienTrouve": "No line matches the filter.",
   "Console_Attente": "Waiting for the game…",
   "Home_Compte_HorsLigne": "OFFLINE",
-  "Home_AjouterMicrosoft": "Add another Microsoft account"
+  "Home_AjouterMicrosoft": "Add another Microsoft account",
+  "Param_PreRelease": "Pre-release updates",
+  "Param_PreRelease_Texte": "Also offer the beta and pre-release versions published on GitHub. They bring new features first, but can have bugs.",
+  "Maj_PreRelease_Texte": "This is a pre-release (beta): it can still have bugs. You can turn pre-release updates off in the settings."
 }

@@ -2,9 +2,9 @@
 
 /// Version du launcher. Doit correspondre au tag de la release GitHub (sans le "v")
 /// et au nom du dossier d'installation "Misty-{VERSION}".
-pub const VERSION: &str = "0.3.6";
+pub const VERSION: &str = "0.3.7";
 /// Version du format de data.txt. À incrémenter quand on ajoute/retire une clé.
-pub const DATA_VERSION: &str = "1.2.8";
+pub const DATA_VERSION: &str = "1.2.9";
 pub const GITHUB_REPO: &str = "Misty-MC/Misty";
 pub const DISCORD_APP_ID: &str = "1536551827640680528";
 pub const RAM_PAR_DEFAUT_MO: u32 = 4096;

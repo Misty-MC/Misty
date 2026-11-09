@@ -653,5 +653,8 @@
   "Console_RienTrouve": "Nessuna riga corrisponde al filtro.",
   "Console_Attente": "In attesa del gioco…",
   "Home_Compte_HorsLigne": "OFFLINE",
-  "Home_AjouterMicrosoft": "Aggiungi un altro account Microsoft"
+  "Home_AjouterMicrosoft": "Aggiungi un altro account Microsoft",
+  "Param_PreRelease": "Aggiornamenti pre-release",
+  "Param_PreRelease_Texte": "Proponi anche le versioni beta e pre-release pubblicate su GitHub. Hanno le novità per prime, ma possono avere bug.",
+  "Maj_PreRelease_Texte": "È una pre-release (beta): può ancora avere bug. Puoi disattivare gli aggiornamenti pre-release nelle impostazioni."
 }

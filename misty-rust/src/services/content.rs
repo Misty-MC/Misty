@@ -245,6 +245,38 @@ pub fn lister(instance: &Instance) -> Vec<ContenuInstalle> {
     resultat
 }
 
+/// Empreinte des dossiers de contenu (noms, tailles, dates) : elle change dès qu'un fichier est
+/// ajouté, retiré, renommé ou remplacé à la main, sans rien lire des fichiers eux-mêmes.
+pub fn empreinte(instance: &Instance) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    let base = instance.dossier();
+    let mut dossiers = vec![base.join("mods"), base.join("resourcepacks"), base.join("shaderpacks")];
+    for monde in mondes(instance) {
+        dossiers.push(base.join("saves").join(monde).join("datapacks"));
+    }
+    for d in dossiers {
+        d.hash(&mut h);
+        let Ok(entrees) = fs::read_dir(&d) else { continue };
+        let mut fichiers: Vec<(String, u64, u128)> = entrees
+            .flatten()
+            .map(|e| {
+                let m = e.metadata().ok();
+                let date = m
+                    .as_ref()
+                    .and_then(|m| m.modified().ok())
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|t| t.as_millis())
+                    .unwrap_or(0);
+                (e.file_name().to_string_lossy().to_string(), m.map(|m| m.len()).unwrap_or(0), date)
+            })
+            .collect();
+        fichiers.sort();
+        fichiers.hash(&mut h);
+    }
+    h.finish()
+}
+
 /// Indique si un projet (d'une source donnée) est présent dans la liste.
 pub fn est_installe(contenus: &[ContenuInstalle], source: &str, id: &str) -> bool {
     contenus.iter().any(|c| c.meta.as_ref().is_some_and(|m| m.correspond(source, id)))

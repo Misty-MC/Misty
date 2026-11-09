@@ -32,12 +32,14 @@ pub const CONSOLE: &str = "console";
 pub const TELEMETRIE: &str = "telemetrie";
 /// Identifiant d'installation aléatoire, envoyé avec la télémétrie
 pub const TELEMETRIE_ID: &str = "telemetrieid";
+/// Mises à jour : proposer aussi les pré-releases (bêtas) de GitHub
+pub const MAJ_PRERELEASE: &str = "majprerelease";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
-    CONSOLE, TELEMETRIE, TELEMETRIE_ID,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

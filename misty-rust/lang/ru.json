@@ -653,5 +653,8 @@
   "Console_RienTrouve": "Нет строк, подходящих под фильтр.",
   "Console_Attente": "Ожидание игры…",
   "Home_Compte_HorsLigne": "ОФЛАЙН",
-  "Home_AjouterMicrosoft": "Добавить ещё один аккаунт Microsoft"
+  "Home_AjouterMicrosoft": "Добавить ещё один аккаунт Microsoft",
+  "Param_PreRelease": "Предварительные обновления",
+  "Param_PreRelease_Texte": "Предлагать также бета- и предварительные версии с GitHub. В них новое появляется первым, но возможны ошибки.",
+  "Maj_PreRelease_Texte": "Это предварительная (бета) версия: в ней ещё возможны ошибки. Предварительные обновления можно отключить в настройках."
 }

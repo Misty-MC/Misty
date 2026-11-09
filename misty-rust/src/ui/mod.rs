@@ -374,7 +374,11 @@ async fn verifier_mise_a_jour(app: &Rc<App>, manuel: bool) {
     let installer = dialogs::confirmer(
         app,
         &loc::t("Maj_Disponible"),
-        &loc::tf("Maj_Disponible_Texte", &[&release.version, &crate::services::app_info::VERSION]),
+        &if release.prerelease {
+            format!("{}\n\n{}", loc::tf("Maj_Disponible_Texte", &[&release.version, &crate::services::app_info::VERSION]), loc::t("Maj_PreRelease_Texte"))
+        } else {
+            loc::tf("Maj_Disponible_Texte", &[&release.version, &crate::services::app_info::VERSION])
+        },
         Some(&loc::t("Maj_Installer")),
         Some(&loc::t("Commun_PlusTard")),
         false,

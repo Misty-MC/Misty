@@ -653,5 +653,8 @@
   "Console_RienTrouve": "Ninguna línea coincide con el filtro.",
   "Console_Attente": "Esperando al juego…",
   "Home_Compte_HorsLigne": "SIN CONEXIÓN",
-  "Home_AjouterMicrosoft": "Añadir otra cuenta de Microsoft"
+  "Home_AjouterMicrosoft": "Añadir otra cuenta de Microsoft",
+  "Param_PreRelease": "Actualizaciones preliminares",
+  "Param_PreRelease_Texte": "Ofrece también las versiones beta y preliminares publicadas en GitHub. Traen las novedades primero, pero pueden tener errores.",
+  "Maj_PreRelease_Texte": "Es una versión preliminar (beta): todavía puede tener errores. Puedes desactivar las actualizaciones preliminares en los ajustes."
 }

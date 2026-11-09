@@ -197,6 +197,10 @@ pub fn installer(app: &Rc<App>) {
         discord::reappliquer();
     });
     st.on_console_auto_toggled(|actif| settings::set_bool(settings::CONSOLE, actif));
+    st.on_prerelease_toggled(|actif| {
+        settings::set_bool(settings::MAJ_PRERELEASE, actif);
+        crate::services::journal::info(&format!("Mises à jour pré-release : {}", if actif { "oui" } else { "non" }));
+    });
     st.on_telemetry_toggled(crate::services::telemetry::activer);
     st.on_open_launcher_log(|| {
         let f = crate::services::journal::dossier().join("launcher.log");
@@ -381,6 +385,7 @@ fn infos_debug() -> String {
         format!("Profils : {}", crate::services::instances::lister().len()),
         format!("Compte Microsoft : {}", if account::session().is_some() { "oui" } else { "non" }),
         format!("Telemetrie : {}", if crate::services::telemetry::active() { "oui" } else { "non" }),
+        format!("Pre-releases : {}", if settings::get_bool(settings::MAJ_PRERELEASE, false) { "oui" } else { "non" }),
     ]
     .join("
 ")
@@ -411,6 +416,7 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_downloads(settings::telechargements() as f32);
     st.set_seasonal(settings::get_bool(settings::SAISON, true));
     st.set_console_auto(settings::get_bool(settings::CONSOLE, true));
+    st.set_prerelease(settings::get_bool(settings::MAJ_PRERELEASE, false));
     st.set_telemetry(crate::services::telemetry::active());
     st.set_bg_blur(settings::fond_flou() as f32);
 
