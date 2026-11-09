@@ -54,6 +54,7 @@ windows-sys = { version = "0.59", features = ["Win32_System_SystemInformation", 
 [build-dependencies]
 slint-build = "1.18"
 winresource = "0.1"
+cc = "1"
 
 # Développement : « cargo run » reste rapide à recompiler, mais l'interface est fluide
 # (Slint, le rendu et les images sont compilés optimisés une fois pour toutes).

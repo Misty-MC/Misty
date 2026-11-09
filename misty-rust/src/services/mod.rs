@@ -20,6 +20,7 @@ pub mod paths;
 pub mod pseudos;
 pub mod settings;
 pub mod shortcut;
+pub mod seedmap;
 pub mod skins;
 pub mod storage;
 pub mod system_info;

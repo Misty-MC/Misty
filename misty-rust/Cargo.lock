@@ -3582,6 +3582,7 @@ name = "misty"
 version = "0.3.8"
 dependencies = [
  "anyhow",
+ "cc",
  "chrono",
  "dirs 5.0.1",
  "discord-rich-presence",
