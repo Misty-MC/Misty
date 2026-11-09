@@ -29,19 +29,28 @@ pub async fn disponible(sorte: Sorte, version: &str) -> bool {
     loaders(sorte, version).await.is_ok_and(|l| !l.is_empty())
 }
 
+/// "0.30.1" → [0, 30, 1] (pour comparer des versions de loader ; un suffixe "-beta.3" est ignoré).
+fn numeros(version: &str) -> Vec<u64> {
+    version.split('-').next().unwrap_or_default().split('.').map(|n| n.parse().unwrap_or(0)).collect()
+}
+
 /// Installe le JSON de version et renvoie son nom ("fabric-loader-0.16.5-1.21.1"…).
 pub async fn installer(dirs: &McDirs, sorte: Sorte, version: &str, version_loader: Option<&str>) -> anyhow::Result<String> {
     let loader = match version_loader {
         Some(v) => v.to_string(),
         None => {
             let liste = loaders(sorte, version).await?;
-            // La liste est triée du plus récent au plus ancien ; on préfère une version stable
+            // Fabric trie du plus récent au plus ancien, Quilt dans le désordre : on cherche donc
+            // la version la plus haute, en préférant une version stable (pas de "-beta" / "-rc")
+            let nom = |l: &Value| l["loader"]["version"].as_str().unwrap_or_default().to_string();
+            let stable = |l: &Value| l["loader"]["stable"].as_bool().unwrap_or_else(|| !nom(l).contains('-'));
             let choisi = liste
                 .iter()
-                .find(|l| l["loader"]["stable"].as_bool().unwrap_or(true))
-                .or_else(|| liste.first())
+                .filter(|l| stable(l))
+                .max_by_key(|l| numeros(&nom(l)))
+                .or_else(|| liste.iter().max_by_key(|l| numeros(&nom(l))))
                 .ok_or_else(|| anyhow::anyhow!("Aucun loader pour {version}"))?;
-            choisi["loader"]["version"].as_str().unwrap_or_default().to_string()
+            nom(choisi)
         }
     };
 

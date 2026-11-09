@@ -1,4 +1,17 @@
 # Changelog
+## 0.3.7
+### Quilt
+- New mod loader: Quilt can now be picked in the version picker and in the profile creation, for every Minecraft version from 1.14 on that Quilt supports
+- Quilt modpacks are now supported: Modrinth modpacks (`quilt-loader`) and CurseForge modpacks install and launch with the right Quilt version. Before, CurseForge Quilt modpacks were refused as an unsupported loader
+- Misty picks the latest stable Quilt loader by default and skips beta and release candidate builds
+- Quilt profiles also load Fabric mods, so Modrinth and CurseForge searches show both
+- Fix: Quilt crashed on recent Minecraft versions because an old loader was picked. Misty now picks the highest stable Quilt loader
+
+### Modpacks
+- New "Import a modpack" button on the Profiles page: pick a Modrinth `.mrpack` or a CurseForge `.zip` file and Misty creates a profile from it, with its mods, configs and the right mod loader
+- The profile takes the name written in the modpack. Mods that CurseForge authors don't allow apps to download are listed so you can get them by hand
+- A clear error message when the file is not a modpack, and a half-created profile is removed if the import fails
+
 ## 0.3.6
 ### Horizon
 - Fix: Horizon builds failed to start with "unrecognized argument: --launch-api". Misty now works with every Horizon build: stable versions (v0.2.x) and the latest nightlies

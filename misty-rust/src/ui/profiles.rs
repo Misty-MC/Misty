@@ -50,6 +50,11 @@ pub fn installer(app: &Rc<App>) {
         lancer(async move { nouveau(&a).await });
     });
     let a = app.clone();
+    s.on_import_modpack(move || {
+        let a = a.clone();
+        lancer(async move { importer_modpack(&a).await });
+    });
+    let a = app.clone();
     s.on_modpacks(move || {
         p(&a).set_view(1);
         browser::configurer_modpacks(&a);
@@ -295,6 +300,34 @@ pub async fn installer_modpack(app: &Rc<App>, projet: ProjetDistant) -> bool {
         Err(e) => {
             dialogs::erreur(app, &loc::t("Profil_ModpackImpossible"), &format!("{e:#}")).await;
             false
+        }
+    }
+}
+
+/// Import d'un modpack depuis un fichier (.mrpack Modrinth ou .zip CurseForge) choisi par l'utilisateur.
+async fn importer_modpack(app: &Rc<App>) {
+    let Some(fichier) = dialogs::choisir_fichier(&loc::t("Profil_ImporterTitre"), &loc::t("Profil_ImporterFiltre"), &["mrpack", "zip"]).await else {
+        return;
+    };
+    let s = p(app);
+    let nom = fichier.file_stem().map(|n| n.to_string_lossy().to_uppercase()).unwrap_or_default();
+    s.set_wait_title(nom.into());
+    s.set_wait_text(loc::t("Commun_Preparation").into());
+    s.set_waiting(true);
+
+    let progression = app.progression(|ui, texte| ui.global::<ProfilesState>().set_wait_text(texte.into()));
+    let resultat = app.bg(async move { modpack::importer_fichier(&fichier, progression).await }).await;
+    s.set_waiting(false);
+
+    match resultat {
+        Ok(r) => {
+            super::instance::ouvrir(app, r.instance.clone());
+            if !r.bloques.is_empty() {
+                proposer_telechargements_manuels(app, &r).await;
+            }
+        }
+        Err(e) => {
+            dialogs::erreur(app, &loc::t("Profil_ModpackImpossible"), &format!("{e:#}")).await;
         }
     }
 }

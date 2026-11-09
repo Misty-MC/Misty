@@ -73,19 +73,21 @@ pub fn compatible(id: &str, loader: i32) -> bool {
         3 => version_compat::neoforge(id),
         4 => version_compat::optifine(id),
         5 => version_compat::liteloader(id),
+        6 => version_compat::quilt(id),
         _ => true,
     }
 }
 
 /// Nom du loader filtré, tel qu'il apparaît dans la liste des modes.
 pub fn nom_loader(loader: i32) -> Option<&'static str> {
-    use crate::minecraft::loaders::{FABRIC, FORGE, LITELOADER, NEOFORGE, OPTIFINE};
+    use crate::minecraft::loaders::{FABRIC, FORGE, LITELOADER, NEOFORGE, OPTIFINE, QUILT};
     match loader {
         1 => Some(FABRIC),
         2 => Some(FORGE),
         3 => Some(NEOFORGE),
         4 => Some(OPTIFINE),
         5 => Some(LITELOADER),
+        6 => Some(QUILT),
         _ => None,
     }
 }

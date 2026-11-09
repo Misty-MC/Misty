@@ -17,8 +17,7 @@ pub fn neoforge(version: &str) -> bool {
 pub fn fabric(version: &str) -> bool {
     entre(version, (1, 14, 0), MAX_CONNUE)
 }
-/// Fork de Fabric : mêmes versions. (Quilt est désactivé dans la liste des modes, comme dans la version C#.)
-#[allow(dead_code)]
+/// Fork de Fabric : mêmes versions.
 pub fn quilt(version: &str) -> bool {
     entre(version, (1, 14, 0), MAX_CONNUE)
 }

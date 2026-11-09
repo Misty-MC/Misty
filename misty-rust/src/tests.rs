@@ -68,7 +68,7 @@ async fn modes_disponibles() {
 async fn fabric_et_forge() {
     loc::initialiser();
     let dirs = McDirs::misty();
-    for (version, mode) in [("1.21.1", loaders::FABRIC), ("1.21.1", loaders::NEOFORGE), ("1.21.1", loaders::FORGE)] {
+    for (version, mode) in [("1.21.1", loaders::FABRIC), ("1.21.1", loaders::QUILT), ("1.21.1", loaders::NEOFORGE), ("1.21.1", loaders::FORGE)] {
         let (prog, _) = compteur();
         let nom = loaders::installer(&dirs, version, mode, None, prog).await.unwrap_or_else(|e| panic!("{mode} : {e:#}"));
         verifier(&nom).await;

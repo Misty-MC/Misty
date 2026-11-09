@@ -121,6 +121,11 @@
 
   "Profil_Titre": "PROFILS",
   "Profil_InstallerModpack": "Installer un modpack",
+  "Profil_ImporterModpack": "Importer un modpack",
+  "Profil_ImporterTitre": "Choisis un fichier de modpack",
+  "Profil_ImporterFiltre": "Modpack (.mrpack, .zip)",
+  "Erreur_ModpackFormat": "Ce fichier n'est pas un modpack : modrinth.index.json (Modrinth) ou manifest.json (CurseForge) est introuvable.",
+  "Erreur_ModpackIllisible": "Ce fichier est illisible : ce n'est pas une archive de modpack valide.",
   "Profil_Nouveau": "Nouveau profil",
   "Profil_NouveauTitre": "NOUVEAU PROFIL",
   "Profil_Creer": "Créer le profil",

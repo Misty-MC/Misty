@@ -197,6 +197,8 @@ pub struct CorrespondanceCF {
 pub struct ManifestCF {
     pub minecraft: MinecraftCF,
     #[serde(default)]
+    pub name: String,
+    #[serde(default)]
     pub version: String,
     #[serde(default)]
     pub files: Vec<FichierManifestCF>,

@@ -109,15 +109,69 @@ async fn telecharger_archive(
     Ok(zip::ZipArchive::new(std::fs::File::open(&chemin)?)?)
 }
 
+/// D'où vient le modpack : le catalogue (projet connu) ou un fichier importé (rien à suivre).
+struct Origine {
+    titre: String,
+    icone_url: Option<String>,
+    /// (plateforme, id du projet) : None pour un fichier importé
+    projet: Option<(String, String)>,
+}
+
+impl Origine {
+    fn catalogue(p: &ProjetDistant) -> Self {
+        Origine { titre: p.titre.clone(), icone_url: p.icone_url.clone(), projet: Some((p.source.clone(), p.id.clone())) }
+    }
+    fn fichier(chemin: &Path) -> Self {
+        let titre = chemin.file_stem().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        Origine { titre, icone_url: None, projet: None }
+    }
+    /// Un fichier importé prend le nom écrit dans le modpack, s'il en a un.
+    fn titre_avec(&self, nom_du_pack: &str) -> String {
+        if self.projet.is_none() && !nom_du_pack.trim().is_empty() {
+            nom_du_pack.trim().to_string()
+        } else {
+            self.titre.clone()
+        }
+    }
+}
+
 /// Crée le profil du modpack.
-fn creer(projet: &ProjetDistant, version_mc: &str, loader: &str, version_loader: Option<String>, version_pack: String) -> anyhow::Result<Instance> {
-    let mut instance = instances::creer(&projet.titre, version_mc, loader, version_loader)?;
-    instance.icone_url = projet.icone_url.clone();
-    instance.modpack_source = Some(projet.source.clone());
-    instance.modpack_project_id = Some(projet.id.clone());
-    instance.modpack_version = Some(version_pack);
+fn creer(origine: &Origine, titre: &str, version_mc: &str, loader: &str, version_loader: Option<String>, version_pack: String) -> anyhow::Result<Instance> {
+    let mut instance = instances::creer(titre, version_mc, loader, version_loader)?;
+    instance.icone_url = origine.icone_url.clone();
+    if let Some((source, id)) = &origine.projet {
+        instance.modpack_source = Some(source.clone());
+        instance.modpack_project_id = Some(id.clone());
+    }
+    instance.modpack_version = Some(version_pack).filter(|v| !v.is_empty());
     instances::sauver(&instance)?;
     Ok(instance)
+}
+
+/// Importe un modpack depuis un fichier : .mrpack (Modrinth) ou .zip (CurseForge, avec manifest.json).
+pub async fn importer_fichier(chemin: &Path, progression: Progress) -> anyhow::Result<Resultat> {
+    let mut instance: Option<Instance> = None;
+    let resultat = importer_fichier_interne(chemin, &progression, &mut instance).await;
+    // Si quelque chose échoue, le profil à moitié créé est supprimé
+    if resultat.is_err() {
+        if let Some(i) = &instance {
+            let _ = instances::supprimer(i);
+        }
+    }
+    resultat
+}
+
+async fn importer_fichier_interne(chemin: &Path, progression: &Progress, sortie: &mut Option<Instance>) -> anyhow::Result<Resultat> {
+    progression(loc::t("Progres_Modpack"));
+    let mut zip = zip::ZipArchive::new(std::fs::File::open(chemin)?).map_err(|_| anyhow::anyhow!(loc::t("Erreur_ModpackIllisible")))?;
+    let origine = Origine::fichier(chemin);
+    if zip.by_name("modrinth.index.json").is_ok() {
+        appliquer_modrinth(&mut zip, &origine, None, progression, sortie).await
+    } else if zip.by_name("manifest.json").is_ok() {
+        appliquer_curseforge(&mut zip, &origine, None, progression, sortie).await
+    } else {
+        anyhow::bail!(loc::t("Erreur_ModpackFormat"))
+    }
 }
 
 // ───────────────────────── Modrinth ─────────────────────────
@@ -144,8 +198,19 @@ async fn installer_modrinth(
         .ok_or_else(|| anyhow::anyhow!(loc::t("Erreur_SansMrpack")))?;
 
     let mut zip = telecharger_archive(&fichier.url, fichier.hashes.get("sha1").map(String::as_str), progression, temporaire).await?;
+    appliquer_modrinth(&mut zip, &Origine::catalogue(projet), Some(version.version_number.clone()), progression, sortie).await
+}
 
-    let index: modrinth::IndexModpack = lire_json(&mut zip, "modrinth.index.json")?;
+/// Crée le profil d'après l'archive .mrpack déjà ouverte, puis télécharge ses fichiers.
+/// `version_pack` : None = celle écrite dans l'archive.
+async fn appliquer_modrinth(
+    zip: &mut zip::ZipArchive<std::fs::File>,
+    origine: &Origine,
+    version_pack: Option<String>,
+    progression: &Progress,
+    sortie: &mut Option<Instance>,
+) -> anyhow::Result<Resultat> {
+    let index: modrinth::IndexModpack = lire_json(zip, "modrinth.index.json")?;
     let version_mc = index
         .dependencies
         .get("minecraft")
@@ -153,7 +218,8 @@ async fn installer_modrinth(
         .ok_or_else(|| anyhow::anyhow!(loc::t("Erreur_ModpackSansMc")))?;
     let (loader, version_loader) = loader_modrinth(&index.dependencies);
 
-    let instance = creer(projet, &version_mc, loader, version_loader, version.version_number.clone())?;
+    let version_pack = version_pack.unwrap_or_else(|| index.version_id.clone());
+    let instance = creer(origine, &origine.titre_avec(&index.name), &version_mc, loader, version_loader, version_pack)?;
     *sortie = Some(instance.clone());
 
     // Fichiers à télécharger (sauf ceux réservés au serveur)
@@ -176,8 +242,8 @@ async fn installer_modrinth(
     .await?;
 
     progression(loc::t("Progres_Config"));
-    extraire(&mut zip, "overrides/", &instance.dossier())?;
-    extraire(&mut zip, "client-overrides/", &instance.dossier())?;
+    extraire(zip, "overrides/", &instance.dossier())?;
+    extraire(zip, "client-overrides/", &instance.dossier())?;
 
     Ok(Resultat { instance, bloques: Vec::new() })
 }
@@ -185,6 +251,9 @@ async fn installer_modrinth(
 fn loader_modrinth(dependances: &HashMap<String, String>) -> (&'static str, Option<String>) {
     if let Some(v) = dependances.get("fabric-loader") {
         return (loaders::FABRIC, Some(v.clone()));
+    }
+    if let Some(v) = dependances.get("quilt-loader") {
+        return (loaders::QUILT, Some(v.clone()));
     }
     if let Some(v) = dependances.get("neoforge") {
         return (loaders::NEOFORGE, Some(v.clone()));
@@ -217,11 +286,23 @@ async fn installer_curseforge(
     };
 
     let mut zip = telecharger_archive(&url, fichier_pack.sha1(), progression, temporaire).await?;
-    let manifeste: curseforge::ManifestCF = lire_json(&mut zip, "manifest.json")?;
+    appliquer_curseforge(&mut zip, &Origine::catalogue(projet), Some(fichier_pack.display_name.clone()), progression, sortie).await
+}
+
+/// Crée le profil d'après l'archive CurseForge déjà ouverte, puis télécharge ses mods.
+/// `version_repli` : nom de version à utiliser si le manifeste n'en a pas.
+async fn appliquer_curseforge(
+    zip: &mut zip::ZipArchive<std::fs::File>,
+    origine: &Origine,
+    version_repli: Option<String>,
+    progression: &Progress,
+    sortie: &mut Option<Instance>,
+) -> anyhow::Result<Resultat> {
+    let manifeste: curseforge::ManifestCF = lire_json(zip, "manifest.json")?;
     let (loader, version_loader) = loader_curseforge(&manifeste.minecraft.mod_loaders)?;
 
-    let version_pack = if manifeste.version.is_empty() { fichier_pack.display_name.clone() } else { manifeste.version.clone() };
-    let instance = creer(projet, &manifeste.minecraft.version, loader, version_loader, version_pack)?;
+    let version_pack = if manifeste.version.is_empty() { version_repli.unwrap_or_default() } else { manifeste.version.clone() };
+    let instance = creer(origine, &origine.titre_avec(&manifeste.name), &manifeste.minecraft.version, loader, version_loader, version_pack)?;
     *sortie = Some(instance.clone());
 
     // Infos des fichiers (URL, nom) et des projets (type, nom, icône)
@@ -282,7 +363,7 @@ async fn installer_curseforge(
 
     progression(loc::t("Progres_Config"));
     let overrides = manifeste.overrides.as_deref().map(|o| o.trim_matches('/')).filter(|o| !o.is_empty()).unwrap_or("overrides");
-    extraire(&mut zip, &format!("{overrides}/"), &instance.dossier())?;
+    extraire(zip, &format!("{overrides}/"), &instance.dossier())?;
 
     Ok(Resultat { instance, bloques })
 }
@@ -300,6 +381,7 @@ fn loader_curseforge(liste: &[curseforge::LoaderManifestCF]) -> anyhow::Result<(
         "forge" => (loaders::FORGE, version),
         "neoforge" => (loaders::NEOFORGE, version),
         "fabric" => (loaders::FABRIC, version),
+        "quilt" => (loaders::QUILT, version),
         _ => anyhow::bail!(loc::tf("Erreur_LoaderNonPris", &[&principal.id])),
     })
 }

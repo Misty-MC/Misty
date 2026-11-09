@@ -99,6 +99,10 @@ pub struct DependanceModrinth {
 #[serde(rename_all = "camelCase")]
 pub struct IndexModpack {
     #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub version_id: String,
+    #[serde(default)]
     pub files: Vec<FichierModpack>,
     #[serde(default)]
     pub dependencies: HashMap<String, String>,

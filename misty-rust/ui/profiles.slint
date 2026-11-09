@@ -227,6 +227,15 @@ export component ProfilesPage inherits Rectangle {
                 alignment: center;
                 MButton {
                     width: 230px;
+                    text: Tr.t("Profil_ImporterModpack");
+                    icon: "\u{E8E5}";
+                    clicked => { ProfilesState.import-modpack(); }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                MButton {
+                    width: 230px;
                     text: Tr.t("Profil_InstallerModpack");
                     icon: "\u{E896}";
                     clicked => { ProfilesState.modpacks(); }

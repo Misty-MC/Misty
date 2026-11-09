@@ -121,6 +121,11 @@
 
   "Profil_Titre": "ПРОФИЛИ",
   "Profil_InstallerModpack": "Установить модпак",
+  "Profil_ImporterModpack": "Импортировать модпак",
+  "Profil_ImporterTitre": "Выберите файл модпака",
+  "Profil_ImporterFiltre": "Модпак (.mrpack, .zip)",
+  "Erreur_ModpackFormat": "Это не модпак: не найден modrinth.index.json (Modrinth) или manifest.json (CurseForge).",
+  "Erreur_ModpackIllisible": "Не удалось прочитать файл: это не архив модпака.",
   "Profil_Nouveau": "Новый профиль",
   "Profil_NouveauTitre": "НОВЫЙ ПРОФИЛЬ",
   "Profil_Creer": "Создать профиль",

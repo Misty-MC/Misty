@@ -19,15 +19,16 @@ pub const QUILT: &str = "Quilt";
 /// Liste des modes disponibles pour une version de Minecraft (Vanilla toujours en premier).
 /// Un loader injoignable ou sans version pour ce Minecraft n'est simplement pas proposé.
 pub async fn modes_disponibles(version: &str) -> Vec<String> {
-    let (forge, optifine, neoforge, fabric, lite) = tokio::join!(
+    let (forge, optifine, neoforge, fabric, quilt, lite) = tokio::join!(
         async { version_compat::forge(version) && forge::disponible(forge::Sorte::Forge, version).await },
         async { version_compat::optifine(version) && optifine::disponible(version).await },
         async { version_compat::neoforge(version) && forge::disponible(forge::Sorte::NeoForge, version).await },
         async { version_compat::fabric(version) && fabric::disponible(fabric::Sorte::Fabric, version).await },
+        async { version_compat::quilt(version) && fabric::disponible(fabric::Sorte::Quilt, version).await },
         async { version_compat::liteloader(version) && liteloader::disponible(version).await },
     );
     let mut modes = vec![VANILLA.to_string()];
-    for (ok, nom) in [(forge, FORGE), (optifine, OPTIFINE), (neoforge, NEOFORGE), (fabric, FABRIC), (lite, LITELOADER)] {
+    for (ok, nom) in [(forge, FORGE), (optifine, OPTIFINE), (neoforge, NEOFORGE), (fabric, FABRIC), (quilt, QUILT), (lite, LITELOADER)] {
         if ok {
             modes.push(nom.to_string());
         }
