@@ -1,0 +1,465 @@
+// Console du jeu : la sortie de Minecraft ou d'Horizon en direct, par-dessus tout le launcher
+// (fond sombre légèrement transparent, comme les launchers de PvP). Rust remplit ConsoleState.
+
+import { Theme, Tr } from "theme.slint";
+import { Icon, ChromeButton } from "widgets.slint";
+import { AppState } from "state.slint";
+import { ListView } from "std-widgets.slint";
+
+export struct LogLine {
+    text: string,
+    /// 0 info · 1 avertissement · 2 erreur · 3 message de Misty
+    level: int,
+}
+
+export global ConsoleState {
+    in-out property <bool> open;
+    in property <[LogLine]> lines;
+    in property <string> title;
+    in property <bool> running;
+    /// « En cours · 03:12 » ou « Fermé · 12 min »
+    in property <string> state-text;
+    in property <bool> crashed;
+    in property <int> warnings;
+    in property <int> errors;
+    /// 0 tout · 1 avertissements et erreurs · 2 erreurs
+    in-out property <int> filter: 0;
+    in-out property <string> search;
+    /// Rapport : texte affiché après l'envoi (code à donner sur Discord, ou erreur)
+    in property <string> report-text;
+    in property <bool> sending;
+    callback filter-changed();
+    callback copy();
+    callback open-folder();
+    callback send-report();
+    callback kill();
+}
+
+/// Couleurs de la console : claires avec le thème clair, sombres avec le thème sombre.
+global CC {
+    out property <bool> d: Theme.dark;
+    /// voile sur tout le launcher
+    out property <color> voile: d ? #070B16D9 : #EEF4FCE0;
+    /// cadre des lignes
+    out property <color> zone: d ? #02040ACC : #FFFFFFD9;
+    out property <color> bord: d ? #FFFFFF14 : #1C23351F;
+    out property <color> titre: d ? #FFFFFF : #1C2335;
+    out property <color> sous-titre: d ? #9FB0D0 : #5A6B82;
+    out property <color> discret: d ? #8C9AB8 : #7A8AA3;
+    out property <color> vide: d ? #6F7D9C : #8394AB;
+    // boutons et filtres
+    out property <color> bouton: d ? #FFFFFF12 : #FFFFFFB3;
+    out property <color> bouton-survol: d ? #FFFFFF1F : #FFFFFF;
+    out property <color> bouton-appui: d ? #FFFFFF2A : #E3ECF8;
+    out property <color> bouton-bord: d ? #FFFFFF1A : #1C23351F;
+    out property <color> encre: d ? #DCE6FF : #1C2335;
+    out property <color> danger: d ? #FF8A98 : #C8243A;
+    out property <color> filtre-actif: d ? #FFFFFF26 : #1C23351A;
+    out property <color> filtre-survol: d ? #FFFFFF14 : #FFFFFF99;
+    out property <color> filtre-bord: d ? #FFFFFF40 : #1C233533;
+    out property <color> filtre-texte: d ? #B7C3DE : #5A6B82;
+    // lignes
+    out property <color> info: d ? #D5DCEB : #1C2335;
+    out property <color> avert: d ? #FFC46B : #A85F00;
+    out property <color> erreur: d ? #FF7A8A : #C8243A;
+    out property <color> misty: d ? #7FB2FF : #2F6FD6;
+    out property <color> succes: d ? #9FE8B8 : #13883D;
+    out property <color> bleu: d ? #8FB8FF : #2F6FD6;
+}
+
+/// Bouton de la console.
+component BoutonConsole inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> danger;
+    in property <bool> enabled: true;
+    callback clicked;
+    height: 34px;
+    width: contenu.preferred-width + 24px;
+    border-radius: 10px;
+    background: zone.pressed && root.enabled ? CC.bouton-appui : zone.has-hover && root.enabled ? (root.danger ? #FF5A6E33 : CC.bouton-survol) : CC.bouton;
+    border-width: 1px;
+    border-color: root.danger ? #FF5A6E66 : CC.bouton-bord;
+    opacity: root.enabled ? 1 : 0.5;
+    animate background { duration: 120ms; }
+    contenu := HorizontalLayout {
+        alignment: center;
+        spacing: 7px;
+        if root.icon != "": Icon {
+            text: root.icon;
+            font-size: 13px;
+            color: root.danger ? CC.danger : CC.encre;
+            vertical-alignment: center;
+        }
+        if root.text != "": Text {
+            text: root.text;
+            font-family: Theme.ui-font;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: root.danger ? CC.danger : CC.encre;
+            vertical-alignment: center;
+        }
+    }
+    zone := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Filtre (Tout, Avertissements, Erreurs), avec son compteur.
+component FiltreConsole inherits Rectangle {
+    in property <string> text;
+    in property <string> count;
+    in property <color> pastille;
+    in property <bool> checked;
+    callback clicked;
+    height: 30px;
+    width: ligne.preferred-width + 22px;
+    border-radius: 9px;
+    background: root.checked ? CC.filtre-actif : zone.has-hover ? CC.filtre-survol : transparent;
+    border-width: 1px;
+    border-color: root.checked ? CC.filtre-bord : CC.bord;
+    animate background { duration: 120ms; }
+    ligne := HorizontalLayout {
+        alignment: center;
+        spacing: 7px;
+        Rectangle {
+            width: 7px;
+            height: 7px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 4px;
+            background: root.pastille;
+        }
+        Text {
+            text: root.text;
+            font-family: Theme.ui-font;
+            font-size: 12px;
+            font-weight: 600;
+            color: root.checked ? CC.titre : CC.filtre-texte;
+            vertical-alignment: center;
+        }
+        if root.count != "": Text {
+            text: root.count;
+            font-family: "Consolas";
+            font-size: 11.5px;
+            color: CC.discret;
+            vertical-alignment: center;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component ConsoleOverlay inherits Rectangle {
+    /// hauteur d'une ligne de journal
+    property <length> pas: 19px;
+    property <bool> suivre: true;
+
+    background: CC.voile;
+    // la console prend toute la fenêtre : rien ne passe au launcher derrière
+    TouchArea { }
+
+    VerticalLayout {
+        padding: 22px;
+        padding-top: 0px;
+        spacing: 14px;
+
+        // ── Barre de titre de la fenêtre (la console la recouvre) : déplacer, réduire, fermer ──
+        Rectangle {
+            height: 40px;
+            TouchArea {
+                pointer-event(e) => {
+                    if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
+                        AppState.drag();
+                    }
+                }
+                double-clicked => { AppState.toggle-maximize(); }
+            }
+        }
+
+        // ── En-tête : partie suivie, état, actions ──
+        HorizontalLayout {
+            spacing: 14px;
+            Rectangle {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+                background: ConsoleState.crashed ? #FF5A6E33 : #3B82F633;
+                Icon {
+                    text: "\u{E756}";
+                    font-size: 18px;
+                    color: ConsoleState.crashed ? CC.danger : CC.bleu;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 3px;
+                Text {
+                    text: ConsoleState.title == "" ? Tr.t("Console_Titre") : Tr.t("Console_Titre") + "  ·  " + ConsoleState.title;
+                    font-family: Theme.ui-font;
+                    font-size: 17px;
+                    font-weight: 800;
+                    color: CC.titre;
+                    overflow: elide;
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 4px;
+                        background: ConsoleState.running ? #1DE062 : ConsoleState.crashed ? #FF5A6E : CC.discret;
+                    }
+                    Text {
+                        text: ConsoleState.state-text;
+                        font-family: Theme.ui-font;
+                        font-size: 12.5px;
+                        color: ConsoleState.crashed ? CC.danger : CC.sous-titre;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                VerticalLayout {
+                    alignment: center;
+                    BoutonConsole {
+                        icon: "\u{E8C8}";
+                        text: Tr.t("Console_Copier");
+                        clicked => { ConsoleState.copy(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    BoutonConsole {
+                        icon: "\u{E838}";
+                        text: Tr.t("Console_Dossier");
+                        clicked => { ConsoleState.open-folder(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    BoutonConsole {
+                        icon: "\u{E898}";
+                        text: ConsoleState.sending ? Tr.t("Console_Envoi") : Tr.t("Console_Envoyer");
+                        enabled: !ConsoleState.sending && ConsoleState.lines.length > 0;
+                        clicked => { ConsoleState.send-report(); }
+                    }
+                }
+                if ConsoleState.running: VerticalLayout {
+                    alignment: center;
+                    BoutonConsole {
+                        icon: "\u{E71A}";
+                        text: Tr.t("Console_Arreter");
+                        danger: true;
+                        clicked => { ConsoleState.kill(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    BoutonConsole {
+                        icon: "\u{E711}";
+                        text: Tr.t("Console_Fermer");
+                        clicked => { ConsoleState.open = false; }
+                    }
+                }
+            }
+        }
+
+        // ── Filtres, recherche ──
+        HorizontalLayout {
+            spacing: 8px;
+            FiltreConsole {
+                text: Tr.t("Console_Tout");
+                count: "";
+                pastille: CC.bleu;
+                checked: ConsoleState.filter == 0;
+                clicked => { ConsoleState.filter = 0; ConsoleState.filter-changed(); }
+            }
+            FiltreConsole {
+                text: Tr.t("Console_Avertissements");
+                count: ConsoleState.warnings > 0 ? "" + ConsoleState.warnings : "";
+                pastille: #FFBE5A;
+                checked: ConsoleState.filter == 1;
+                clicked => { ConsoleState.filter = 1; ConsoleState.filter-changed(); }
+            }
+            FiltreConsole {
+                text: Tr.t("Console_Erreurs");
+                count: ConsoleState.errors > 0 ? "" + ConsoleState.errors : "";
+                pastille: #FF5A6E;
+                checked: ConsoleState.filter == 2;
+                clicked => { ConsoleState.filter = 2; ConsoleState.filter-changed(); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            if ConsoleState.report-text != "": Text {
+                text: ConsoleState.report-text;
+                font-family: Theme.ui-font;
+                font-size: 12.5px;
+                color: CC.succes;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            Rectangle {
+                width: 240px;
+                height: 32px;
+                border-radius: 9px;
+                background: CC.bouton;
+                border-width: 1px;
+                border-color: recherche.has-focus ? CC.bleu : CC.bouton-bord;
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    spacing: 8px;
+                    Icon {
+                        text: "\u{E721}";
+                        font-size: 12px;
+                        color: CC.discret;
+                        vertical-alignment: center;
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        recherche := TextInput {
+                            width: 100%;
+                            height: 100%;
+                            text <=> ConsoleState.search;
+                            font-family: Theme.ui-font;
+                            font-size: 12.5px;
+                            color: CC.titre;
+                            vertical-alignment: center;
+                            single-line: true;
+                            edited => { ConsoleState.filter-changed(); }
+                        }
+                        if ConsoleState.search == "": Text {
+                            width: 100%;
+                            text: Tr.t("Console_Rechercher");
+                            font-family: Theme.ui-font;
+                            font-size: 12.5px;
+                            color: CC.vide;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Les lignes ──
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: 14px;
+            background: CC.zone;
+            border-width: 1px;
+            border-color: CC.bord;
+            clip: true;
+
+            liste := ListView {
+                x: 8px;
+                y: 6px;
+                width: parent.width - 12px;
+                height: parent.height - 12px;
+                for l in ConsoleState.lines: Rectangle {
+                    height: root.pas;
+                    Text {
+                        x: 8px;
+                        width: parent.width - 16px;
+                        text: l.text;
+                        font-family: "Consolas";
+                        font-size: 12.5px;
+                        color: l.level == 2 ? CC.erreur : l.level == 1 ? CC.avert : l.level == 3 ? CC.misty : CC.info;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+                scrolled => {
+                    // on suit le bas tant que le joueur n'est pas remonté
+                    root.suivre = self.content-y <= self.visible-height - self.content-height + root.pas;
+                }
+            }
+            if ConsoleState.lines.length == 0: Text {
+                text: Tr.t("Console_Vide");
+                font-family: Theme.ui-font;
+                font-size: 14px;
+                color: CC.vide;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            // revenir en bas
+            if !root.suivre && ConsoleState.lines.length > 0: Rectangle {
+                x: parent.width - self.width - 18px;
+                y: parent.height - self.height - 14px;
+                width: bas.preferred-width + 26px;
+                height: 34px;
+                border-radius: 17px;
+                background: zone-bas.has-hover ? #3B82F6 : #2563EB;
+                drop-shadow-blur: 14px;
+                drop-shadow-color: CC.d ? #00000088 : #1C233540;
+                bas := HorizontalLayout {
+                    alignment: center;
+                    spacing: 7px;
+                    Icon {
+                        text: "\u{E74B}";
+                        font-size: 12px;
+                        color: white;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: Tr.t("Console_Suivre");
+                        font-family: Theme.ui-font;
+                        font-size: 12.5px;
+                        font-weight: 700;
+                        color: white;
+                        vertical-alignment: center;
+                    }
+                }
+                zone-bas := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.suivre = true;
+                        liste.content-y = min(0px, liste.visible-height - ConsoleState.lines.length * root.pas);
+                    }
+                }
+            }
+        }
+    }
+
+    // boutons de la fenêtre, à la même place que ceux du launcher
+    HorizontalLayout {
+        x: parent.width - self.preferred-width - 10px;
+        y: 8px;
+        height: 34px;
+        spacing: 4px;
+        ChromeButton {
+            encre: CC.encre;
+            icon: "\u{E921}";
+            clicked => { AppState.minimize(); }
+        }
+        ChromeButton {
+            encre: CC.encre;
+            icon: AppState.maximized ? "\u{E923}" : "\u{E922}";
+            clicked => { AppState.toggle-maximize(); }
+        }
+        ChromeButton {
+            encre: CC.encre;
+            icon: "\u{E8BB}";
+            close: true;
+            clicked => { AppState.close(); }
+        }
+    }
+
+    // nouvelles lignes : on reste collé en bas
+    changed lines-count => {
+        if (root.suivre) {
+            liste.content-y = min(0px, liste.visible-height - ConsoleState.lines.length * root.pas);
+        }
+    }
+    property <int> lines-count: ConsoleState.lines.length;
+    init => {
+        liste.content-y = min(0px, liste.visible-height - ConsoleState.lines.length * root.pas);
+    }
+}

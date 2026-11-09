@@ -26,11 +26,18 @@ pub const FOND_FLOU: &str = "fondflou";
 pub const HORIZON_BUILD: &str = "horizonbuild";
 /// Nombre de fichiers téléchargés en même temps pendant l’installation du jeu
 pub const TELECHARGEMENTS: &str = "telechargements";
+/// Console du jeu ouverte au lancement d'une partie
+pub const CONSOLE: &str = "console";
+/// Télémétrie anonyme : "" pas encore demandé, "true" acceptée, "false" refusée
+pub const TELEMETRIE: &str = "telemetrie";
+/// Identifiant d'installation aléatoire, envoyé avec la télémétrie
+pub const TELEMETRIE_ID: &str = "telemetrieid";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

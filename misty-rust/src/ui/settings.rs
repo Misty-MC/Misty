@@ -196,6 +196,17 @@ pub fn installer(app: &Rc<App>) {
         settings::set_bool(settings::RICH_PRESENCE, actif);
         discord::reappliquer();
     });
+    st.on_console_auto_toggled(|actif| settings::set_bool(settings::CONSOLE, actif));
+    st.on_telemetry_toggled(crate::services::telemetry::activer);
+    st.on_open_launcher_log(|| {
+        let f = crate::services::journal::dossier().join("launcher.log");
+        if f.exists() {
+            system_info::montrer_fichier(&f);
+        } else {
+            let _ = std::fs::create_dir_all(crate::services::journal::dossier());
+            system_info::ouvrir_dossier(&crate::services::journal::dossier());
+        }
+    });
 
     let a = app.clone();
     st.on_check_update(move || {
@@ -369,6 +380,7 @@ fn infos_debug() -> String {
         format!("Dossier : {}", paths::data_dir().display()),
         format!("Profils : {}", crate::services::instances::lister().len()),
         format!("Compte Microsoft : {}", if account::session().is_some() { "oui" } else { "non" }),
+        format!("Telemetrie : {}", if crate::services::telemetry::active() { "oui" } else { "non" }),
     ]
     .join("
 ")
@@ -398,6 +410,8 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_rich(discord::active());
     st.set_downloads(settings::telechargements() as f32);
     st.set_seasonal(settings::get_bool(settings::SAISON, true));
+    st.set_console_auto(settings::get_bool(settings::CONSOLE, true));
+    st.set_telemetry(crate::services::telemetry::active());
     st.set_bg_blur(settings::fond_flou() as f32);
 
     maj_textes(app);

@@ -4,7 +4,7 @@ use super::{dialogs, images, lancer, modele, modele_textes, App};
 use crate::minecraft::{install, launch, loaders, FileProgress, McDirs};
 use crate::services::horizon;
 use crate::services::instances::{self, Instance};
-use crate::services::{account, content, discord, loc, pseudos, settings};
+use crate::services::{account, content, discord, loc, pseudos, settings, journal, telemetry};
 use crate::{AppState, HomeState};
 use slint::ComponentHandle;
 use std::rc::Rc;
@@ -732,15 +732,28 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         dossier_jeu: instance.as_ref().map(|i| i.dossier()).unwrap_or_else(crate::services::paths::data_dir),
     };
 
+    let titre = match &instance {
+        Some(i) => format!("{} · {version} {mode}", i.nom),
+        None => format!("Minecraft {version} · {mode}"),
+    };
+    journal::nouvelle_partie(&titre);
+    if super::console::auto() {
+        super::console::ouvrir(app);
+    }
     let resultat = app.bloquant(move || launch::lancer(&McDirs::misty(), &installee, &options)).await;
     let mut processus = match resultat {
         Ok(p) => p,
         Err(e) => {
+            journal::ajouter(&format!("{e:#}"), journal::ERREUR);
+            journal::fin(Some(-1));
             statut(app, &loc::t("Home_EchecLancement"));
             dialogs::erreur(app, &loc::t("Home_LancementImpossible"), &format!("{e:#}")).await;
             return;
         }
     };
+    let fils = journal::suivre(&mut processus, None);
+    telemetry::evenement("game_start", serde_json::json!({ "minecraft": version, "loader": mode, "profile": instance.is_some() }));
+    let (v_tel, m_tel, pseudo_tel) = (version.to_string(), mode.to_string(), pseudo_joueur.clone());
 
     let detail = match &instance {
         Some(i) => format!("{mode} · {}", i.nom),
@@ -758,7 +771,20 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
     // Fin du jeu : on revient à l'état « prêt »
     let faible = app.ui.as_weak();
     std::thread::spawn(move || {
-        let _ = processus.wait();
+        let code = processus.wait().ok().and_then(|s| s.code());
+        for f in fils {
+            let _ = f.join();
+        }
+        journal::fin(code);
+        let etat = journal::etat();
+        let plante = matches!(code, Some(n) if n != 0);
+        telemetry::evenement(
+            "game_end",
+            serde_json::json!({ "minecraft": v_tel, "loader": m_tel, "code": code, "seconds": etat.duree.as_secs(), "crashed": plante, "errors": etat.erreurs }),
+        );
+        if plante {
+            telemetry::plantage(&pseudo_tel);
+        }
         let _ = faible.upgrade_in_event_loop(|_| {
             if let Some(a) = crate::APP.with(|a| a.borrow().clone()) {
                 a.home.borrow_mut().jeu_en_cours = false;
@@ -1007,7 +1033,21 @@ async fn horizon_jouer(app: &Rc<App>) {
         let b = build.clone();
         let ex = exigences.clone();
         let p = pseudo.clone();
+        journal::nouvelle_partie(&format!("Horizon {tag} · Minecraft {}", exigences.minecraft));
+        if super::console::auto() {
+            super::console::ouvrir(app);
+        }
+        telemetry::evenement("game_start", serde_json::json!({ "minecraft": exigences.minecraft, "loader": "horizon", "build": tag }));
         let fin = app.bloquant(move || horizon::jouer(&b, &ex, session.as_ref(), &p)).await;
+        let etat = journal::etat();
+        let plante = matches!(etat.code, Some(n) if n != 0);
+        telemetry::evenement(
+            "game_end",
+            serde_json::json!({ "minecraft": exigences.minecraft, "loader": "horizon", "build": tag, "code": etat.code, "seconds": etat.duree.as_secs(), "crashed": plante, "errors": etat.erreurs }),
+        );
+        if plante {
+            telemetry::plantage(&pseudo);
+        }
         app.home.borrow_mut().jeu_en_cours = false;
         super::maj_discord(app, true);
         fin

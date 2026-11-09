@@ -56,6 +56,7 @@ pub async fn info(app: &App, titre: &str, message: &str) {
 }
 
 pub async fn erreur(app: &App, titre: &str, message: &str) {
+    crate::services::journal::erreur(&format!("{titre} : {message}"));
     ouvrir(app, titre, message, "OK", None, true, &[]).await;
 }
 

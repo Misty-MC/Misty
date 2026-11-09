@@ -393,15 +393,27 @@ pub fn jouer(build: &Path, ex: &Exigences, session: Option<&Session>, pseudo: &s
             }
         }
     }
-    let mut enfant = c.spawn()?;
+    c.stdout(Stdio::piped());
+    let mut enfant = match c.spawn() {
+        Ok(e) => e,
+        Err(e) => {
+            super::journal::ajouter(&format!("horizon-client : {e}"), super::journal::ERREUR);
+            super::journal::fin(Some(-1));
+            return Err(e.into());
+        }
+    };
     if let (Some(mut entree), Some(json)) = (enfant.stdin.take(), json) {
         entree.write_all(json.as_bytes())?;
     } // l'entrée est fermée ici, comme l'attend Horizon
-    let mut erreur = String::new();
-    if let Some(mut e) = enfant.stderr.take() {
-        let _ = std::io::Read::read_to_string(&mut e, &mut erreur);
-    }
+    // la sortie va dans la console ; celle d'erreur est aussi gardée pour résumer un échec
+    let copie = super::journal::Copie::default();
+    let fils = super::journal::suivre(&mut enfant, Some(copie.clone()));
     let statut = enfant.wait()?;
+    for f in fils {
+        let _ = f.join();
+    }
+    super::journal::fin(statut.code());
+    let erreur = copie.lock().map(|c| c.clone()).unwrap_or_default();
     if let Some(f) = fichier_session {
         let _ = std::fs::remove_file(f); // au cas où le jeu ne l'aurait pas lu
     }

@@ -294,6 +294,9 @@ export component PlayButton inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
     in property <length> font-size: 30px;
+    /// Icône au-dessus du texte (bouton Logs, à côté de Jouer)
+    in property <string> icon;
+    in property <length> icon-size: 24px;
     callback clicked;
 
     border-radius: 22px;
@@ -310,7 +313,7 @@ export component PlayButton inherits Rectangle {
         border-width: 2px;
         border-color: #FFFFFF55;
         animate y { duration: 80ms; }
-        Text {
+        if root.icon == "": Text {
             text: root.text;
             font-family: Theme.pixel-font;
             font-size: root.font-size;
@@ -320,6 +323,30 @@ export component PlayButton inherits Rectangle {
             stroke-style: outside;
             horizontal-alignment: center;
             vertical-alignment: center;
+        }
+        if root.icon != "": VerticalLayout {
+            alignment: center;
+            spacing: 6px;
+            Text {
+                text: root.icon;
+                font-family: Theme.icon-font;
+                font-size: root.icon-size;
+                color: white;
+                stroke: root.enabled ? #2C4F9E : #3E526A;
+                stroke-width: 1.5px;
+                stroke-style: outside;
+                horizontal-alignment: center;
+            }
+            if root.text != "": Text {
+                text: root.text;
+                font-family: Theme.pixel-font;
+                font-size: root.font-size;
+                color: white;
+                stroke: root.enabled ? #2C4F9E : #3E526A;
+                stroke-width: 2px;
+                stroke-style: outside;
+                horizontal-alignment: center;
+            }
         }
     }
     touch := TouchArea {

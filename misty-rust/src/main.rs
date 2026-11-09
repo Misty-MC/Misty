@@ -37,6 +37,9 @@ fn main() {
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("runtime tokio");
 
     let _ = std::fs::create_dir_all(services::paths::data_dir());
+    services::journal::capturer_paniques();
+    services::journal::info(&format!("Démarrage de Misty {} ({})", services::app_info::VERSION, services::system_info::version_windows()));
+    services::telemetry::init(runtime.handle().clone());
     loc::initialiser();
     discord::definir(discord::Statut::Launcher(discord::Page::Accueil));
 
@@ -58,6 +61,7 @@ fn main() {
     }
 
     slint::run_event_loop().expect("boucle de l'interface");
+    services::journal::info("Fermeture de Misty");
 
     discord::arreter();
     APP.with(|a| *a.borrow_mut() = None);
@@ -90,6 +94,49 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
     ui::lancer(async move {
         attendre(6000).await;
         photo(&app, "0-accueil", &dossier);
+        // MISTY_CAPTURE_RAPIDE : seulement le choix de version en fenêtre minimale et la console
+        if std::env::var("MISTY_CAPTURE_RAPIDE").is_ok() {
+            if app.ui.global::<DialogState>().get_visible() {
+                app.ui.global::<DialogState>().invoke_cancel();
+            }
+            app.ui.window().set_size(slint::LogicalSize::new(1040.0, 680.0));
+            attendre(1000).await;
+            let accueil = app.ui.global::<HomeState>();
+            accueil.set_picker_tab(0);
+            accueil.set_picker_open(true);
+            attendre(2500).await;
+            photo(&app, "r1-versions-etroit", &dossier);
+            accueil.set_picker_open(false);
+            use services::journal;
+            journal::nouvelle_partie("Minecraft 1.21.4 · fabric");
+            for (t, n) in [
+                ("[10:42:01] [main/INFO]: Loading Minecraft 1.21.4 with Fabric Loader 0.16.9", 0),
+                ("[10:42:02] [main/WARN]: Mod 'sodium' uses a deprecated API", 1),
+                ("[10:42:05] [Render thread/INFO]: Backend library: LWJGL version 3.3.3", 0),
+                ("[10:42:07] [Render thread/ERROR]: Failed to load texture minecraft:textures/x.png", 2),
+                ("java.io.FileNotFoundException: minecraft:textures/x.png", 2),
+                ("	at net.minecraft.class_1060.method_4625(class_1060.java:85)", 2),
+                ("[10:42:09] [Render thread/INFO]: Sound engine started", 0),
+            ] {
+                journal::ajouter(t, n);
+            }
+            ui::console::ouvrir(&app);
+            attendre(1200).await;
+            photo(&app, "r2-console", &dossier);
+            app.ui.global::<Theme>().set_mode(1);
+            attendre(800).await;
+            photo(&app, "r2b-console-sombre", &dossier);
+            app.ui.global::<Theme>().set_mode(0);
+            journal::fin(Some(1));
+            attendre(800).await;
+            photo(&app, "r3-console-plante", &dossier);
+            app.ui.global::<ConsoleState>().set_filter(2);
+            app.ui.global::<ConsoleState>().invoke_filter_changed();
+            attendre(600).await;
+            photo(&app, "r4-console-erreurs", &dossier);
+            let _ = slint::quit_event_loop();
+            return;
+        }
         if std::env::var("MISTY_CAPTURE_SOMBRE").is_ok() {
             app.ui.global::<Theme>().set_mode(1);
         }

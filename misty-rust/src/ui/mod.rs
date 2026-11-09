@@ -8,6 +8,7 @@
 
 pub mod browser;
 pub mod changelog;
+pub mod console;
 pub mod dialogs;
 pub mod editor;
 pub mod home;
@@ -201,6 +202,7 @@ pub fn installer(app: &Rc<App>) {
     skin::installer(app);
     studio::installer(app);
     news::installer(app);
+    console::installer(app);
 }
 
 fn afficher_paysage(app: &App, paysage: scene::Scene) {
@@ -325,6 +327,24 @@ pub async fn demarrer(app: Rc<App>) {
 
     home::initialiser(&app).await;
     app.ui.global::<AppState>().set_ready(true);
+
+    // télémétrie : on demande une fois, puis l'interrupteur des options décide
+    if !crate::services::telemetry::demandee() {
+        let oui = dialogs::confirmer(
+            &app,
+            &loc::t("Telemetrie_Question"),
+            &loc::t("Telemetrie_Question_Texte"),
+            Some(&loc::t("Telemetrie_Accepter")),
+            Some(&loc::t("Telemetrie_Refuser")),
+            false,
+        )
+        .await;
+        crate::services::telemetry::activer(oui);
+    }
+    crate::services::telemetry::evenement(
+        "launcher_start",
+        serde_json::json!({ "theme": crate::services::settings::theme(), "profiles": crate::services::instances::lister().len() }),
+    );
 }
 
 /// `manuel` : lancé depuis les options (on affiche aussi « à jour » et les erreurs).
@@ -398,11 +418,15 @@ async fn verifier_mise_a_jour(app: &Rc<App>, manuel: bool) {
             st.set_update_status(texte.into());
         });
     };
+    let cible = release.version.clone();
+    crate::services::journal::info(&format!("Mise à jour vers {cible}"));
     match app.bg(async move { crate::services::update::installer(&release, avancement).await }).await {
         Ok(()) => {
+            crate::services::telemetry::evenement("update", serde_json::json!({ "to": cible, "ok": true }));
             let _ = slint::quit_event_loop();
         }
         Err(e) => {
+            crate::services::telemetry::evenement("update", serde_json::json!({ "to": cible, "ok": false, "error": format!("{e:#}") }));
             app.ui.global::<AppState>().set_updating(false);
             dialogs::erreur(app, &loc::t("Maj_Impossible"), &format!("{e:#}")).await
         }

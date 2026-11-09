@@ -168,7 +168,11 @@ component CarteLoader inherits Rectangle {
     in property <bool> enabled;
     callback clicked;
     height: 52px;
-    width: max(110px, nom.preferred-width + 46px);
+    // les cartes se partagent la largeur de la ligne (4 ou 5 loaders, même fenêtre étroite)
+    horizontal-stretch: 1;
+    min-width: nom.preferred-width + 20px;
+    preferred-width: nom.preferred-width + 46px;
+    max-width: 150px;
     border-radius: 14px;
     background: root.checked ? Theme.accent-soft : zone.has-hover && root.enabled ? Theme.glass-hover : Theme.glass-strong;
     border-width: root.checked ? 2px : 1px;
@@ -177,35 +181,13 @@ component CarteLoader inherits Rectangle {
     transform-scale: zone.pressed && root.enabled ? 0.95 : 1;
     animate background, border-color { duration: Theme.normal; }
     animate transform-scale { duration: 140ms; easing: ease-out; }
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 9px;
-        alignment: center;
-        VerticalLayout {
-            alignment: center;
-            Rectangle {
-                width: 14px;
-                height: 14px;
-                border-radius: 4px;
-                border-width: 2px;
-                border-color: root.checked ? Theme.accent : Theme.text-dim;
-                Rectangle {
-                    width: root.checked ? 6px : 0px;
-                    height: self.width;
-                    border-radius: 1px;
-                    background: Theme.accent;
-                    animate width { duration: 220ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
-                }
-            }
-        }
-        nom := Text {
-            text: root.text;
-            font-size: 14px;
-            font-weight: 700;
-            color: root.checked ? Theme.accent : Theme.navy;
-            vertical-alignment: center;
-        }
+    nom := Text {
+        text: root.text;
+        font-size: 14px;
+        font-weight: 700;
+        color: root.checked ? Theme.accent : Theme.navy;
+        horizontal-alignment: center;
+        vertical-alignment: center;
     }
     zone := TouchArea {
         enabled: root.enabled;
@@ -830,15 +812,12 @@ export component VersionPicker inherits Rectangle {
                     }
 
                     // mod loader de la version choisie, puis valider
+                    PixelLabel {
+                        text: Tr.t("Commun_ModLoader");
+                        font-size: 10.5px;
+                    }
                     HorizontalLayout {
-                        spacing: 10px;
-                        VerticalLayout {
-                            alignment: center;
-                            PixelLabel {
-                                text: Tr.t("Commun_ModLoader");
-                                font-size: 10.5px;
-                            }
-                        }
+                        spacing: 8px;
                         for m[i] in HomeState.modes: CarteLoader {
                             text: m;
                             checked: i == HomeState.mode-index;

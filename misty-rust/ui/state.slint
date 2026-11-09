@@ -421,6 +421,11 @@ export global SettingsState {
     callback storage-toggle(string);
     callback storage-delete(string);
     callback rich-toggled(bool);
+    in-out property <bool> console-auto: true;
+    callback console-auto-toggled(bool);
+    in-out property <bool> telemetry;
+    callback telemetry-toggled(bool);
+    callback open-launcher-log();
     callback github();
     callback check-update();
     callback close();

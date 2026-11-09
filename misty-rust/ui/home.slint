@@ -3,6 +3,7 @@
 import { Theme, Tr, Assets } from "theme.slint";
 import { HomeState, AppState } from "state.slint";
 import { Icon, PixelLabel, BodyText, OutlinedText, GlassCard, Thumb, IconButton, PlayButton, GlassCombo, SlimProgress } from "widgets.slint";
+import { ConsoleState } from "console.slint";
 import { SkinState, SkinPanel } from "skin.slint";
 
 /// Onglet vertical (« JOUER », « SKIN ») : le texte est écrit de haut en bas.
@@ -592,7 +593,22 @@ export component HomePage inherits Rectangle {
                     }
                 }
 
-                // Jouer
+                // Console du jeu, puis Jouer
+                VerticalLayout {
+                    alignment: center;
+                    PlayButton {
+                        width: 96px;
+                        height: 96px;
+                        icon: "\u{E756}";
+                        icon-size: 26px;
+                        text: Tr.t("Home_Bouton_Logs");
+                        font-size: 13px;
+                        clicked => {
+                            ConsoleState.report-text = "";
+                            ConsoleState.open = true;
+                        }
+                    }
+                }
                 VerticalLayout {
                     alignment: center;
                     PlayButton {

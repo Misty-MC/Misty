@@ -26,9 +26,11 @@ pub struct Options {
     pub dossier_jeu: PathBuf,
 }
 
-/// Prépare les natives et lance le jeu. Renvoie le processus Java.
+/// Prépare les natives et lance le jeu. Renvoie le processus Java, sa sortie branchée sur des
+/// tubes (lus par la console : voir services::journal).
 pub fn lancer(dirs: &McDirs, v: &VersionInstallee, options: &Options) -> anyhow::Result<Child> {
-    Ok(preparer(dirs, v, options)?.spawn()?)
+    use std::process::Stdio;
+    Ok(preparer(dirs, v, options)?.stdout(Stdio::piped()).stderr(Stdio::piped()).stdin(Stdio::null()).spawn()?)
 }
 
 /// Prépare les natives et construit la commande, sans la lancer.
