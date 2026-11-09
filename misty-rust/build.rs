@@ -18,16 +18,6 @@ fn main() {
         }
     }
 
-    // cubiomes (MIT) : génération des biomes d'une seed, pour le visualiseur de seed
-    println!("cargo:rerun-if-changed=vendor");
-    let mut cc = cc::Build::new();
-    cc.include("vendor").opt_level(2).warnings(false);
-    for f in ["biomenoise", "biomes", "generator", "layers", "noise", "util", "finders"] {
-        cc.file(format!("vendor/cubiomes/{f}.c"));
-    }
-    cc.file("vendor/misty_shim.c");
-    cc.compile("cubiomes");
-
     // Notes de version affichées dans l'application
     println!("cargo:rerun-if-changed=../CHANGELOG.md");
 

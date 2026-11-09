@@ -463,46 +463,6 @@ export global ChangelogState {
 
 // ───────────────────────── Packs de textures ─────────────────────────
 
-/// Pastille de structure du visualiseur de seed.
-export struct ToolChip {
-    name: string,
-    color: color,
-    on: bool,
-}
-
-/// Outils : 0 liste des outils, 1 visualiseur de seed.
-export global ToolsState {
-    in-out property <int> tool: 0;
-    in-out property <string> seed-text;
-    in property <[string]> versions;
-    in-out property <int> version-index: 0;
-    in property <[string]> dimensions;
-    in-out property <int> dimension-index: 0;
-    in property <image> map;
-    in property <bool> has-map;
-    in property <int> map-id;
-    in property <float> zoom-scale: 1;
-    in property <bool> busy;
-    in property <string> hover-text;
-    in property <string> center-text;
-    in property <string> zoom-text;
-    in property <[ToolChip]> chips;
-    callback seed-opened();
-    callback generate();
-    callback random-seed();
-    callback version-changed(int);
-    callback dimension-changed(int);
-    callback toggle-chip(int);
-    /// Déplacement de la carte, en fraction de sa largeur et de sa hauteur
-    callback pan(float, float);
-    /// +1 zoom avant, -1 zoom arrière
-    callback zoom(int);
-    /// Position de la souris sur la carte, en fraction de sa largeur et de sa hauteur
-    callback hover(float, float);
-    callback goto-spawn();
-    callback goto-origin();
-}
-
 export struct PackCard {
     name: string,
     description: string,

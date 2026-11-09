@@ -26,7 +26,6 @@ pub enum Page {
     Editeur,
     Options,
     Amis,
-    Outils,
 }
 
 impl Page {
@@ -40,7 +39,6 @@ impl Page {
             Page::Editeur => "Discord_Pack",
             Page::Options => "Discord_Options",
             Page::Amis => "Discord_Amis",
-            Page::Outils => "Discord_Outils",
         }
     }
 }

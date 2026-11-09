@@ -1,7 +1,7 @@
 // Fenêtre principale : cadre, barre latérale, pages, fenêtre des options, boîte de dialogue.
 
 import { Theme, Tr, Assets, Bulle } from "theme.slint";
-import { AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, ToolsState, ToolChip } from "state.slint";
+import { AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState } from "state.slint";
 import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, ChromeButton, MButton, SlimProgress, Spinner } from "widgets.slint";
 import { HomePage } from "home.slint";
 import { ProfilesPage, ProfileCreateOverlay, ProfileWaitOverlay } from "profiles.slint";
@@ -12,14 +12,13 @@ import { FriendsPage } from "friends.slint";
 import { SkinState } from "skin.slint";
 import { PacksPage, PackCreateOverlay } from "packs.slint";
 import { EditorPage } from "editor.slint";
-import { ToolsPage } from "tools.slint";
 import { ScrollView } from "std-widgets.slint";
 import { Paysage } from "scene.slint";
 import { VersionPicker } from "versions.slint";
 import { ConsoleOverlay, ConsoleState, LogLine, LogPane } from "console.slint";
 
 export { ConsoleState, LogLine, LogPane }
-export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState, ToolsState, ToolChip }
+export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState }
 
 /// Bouton de navigation de la barre latérale. Le fond de l'onglet actif est dessiné par la barre
 /// (un indicateur qui glisse d'un onglet à l'autre) : le bouton ne fait que l'icône et le survol.
@@ -176,7 +175,7 @@ export component MainWindow inherits Window {
     }
 
     // Position de l'indicateur de la barre latérale (onglets 0, 7, 1, 3, 4 → cases 0 à 4)
-    property <int> case-nav: AppState.nav == 0 ? 0 : AppState.nav == 7 ? 1 : AppState.nav == 1 ? 2 : AppState.nav == 3 ? 3 : AppState.nav == 4 ? 4 : AppState.nav == 8 ? 5 : AppState.nav == 9 ? 6 : -1;
+    property <int> case-nav: AppState.nav == 0 ? 0 : AppState.nav == 7 ? 1 : AppState.nav == 1 ? 2 : AppState.nav == 3 ? 3 : AppState.nav == 4 ? 4 : AppState.nav == 8 ? 5 : -1;
 
     clavier := FocusScope {
         key-pressed(e) => {
@@ -340,7 +339,6 @@ export component MainWindow inherits Window {
                                         checked: AppState.nav == 8;
                                         clicked => { AppState.nav-clicked(8); }
                                     }
-                                    // L'onglet Outils (page 9, seed viewer) n'a pas encore de bouton ici.
                                 }
                             }
                         }
@@ -441,7 +439,6 @@ export component MainWindow inherits Window {
                     Onglet { actif: AppState.page == 3; ChangelogPage { } }
                     Onglet { actif: AppState.page == 4; PacksPage { } }
                     Onglet { actif: AppState.page == 8; FriendsPage { } }
-                    Onglet { actif: AppState.page == 9; ToolsPage { } }
                     if AppState.page == 5: Apparition { InstancePage { } }
                     if AppState.page == 6: Apparition { EditorPage { } }
                 }

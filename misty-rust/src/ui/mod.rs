@@ -22,7 +22,6 @@ pub mod scene;
 pub mod settings;
 pub mod skin;
 pub mod studio;
-pub mod tools;
 
 use crate::services::{discord, loc, paths, system_info, Progress};
 use crate::*;
@@ -45,8 +44,6 @@ pub mod page {
     pub const SKIN: i32 = 7;
     /// Amis et chat (interface seulement pour l'instant)
     pub const AMIS: i32 = 8;
-    /// Outils (visualiseur de seed…)
-    pub const OUTILS: i32 = 9;
 }
 
 /// L'application : la fenêtre, le runtime et l'état de chaque page.
@@ -63,7 +60,6 @@ pub struct App {
     pub packs: RefCell<packs::Etat>,
     pub editor: RefCell<editor::Etat>,
     pub skin: RefCell<skin::Etat>,
-    pub tools: RefCell<tools::Etat>,
     /// Lien de la news affichée sur l'accueil (vide = notes de version du launcher)
     pub news_url: RefCell<String>,
 }
@@ -84,7 +80,6 @@ impl App {
             editor: RefCell::default(),
             news_url: RefCell::default(),
             skin: RefCell::default(),
-            tools: RefCell::default(),
         })
     }
 
@@ -208,7 +203,6 @@ pub fn installer(app: &Rc<App>) {
     studio::installer(app);
     news::installer(app);
     console::installer(app);
-    tools::installer(app);
 }
 
 fn afficher_paysage(app: &App, paysage: scene::Scene) {
@@ -280,7 +274,6 @@ pub fn maj_discord(app: &App, force: bool) {
             page::PACKS => discord::Page::Packs,
             page::EDITEUR => discord::Page::Editeur,
             page::AMIS => discord::Page::Amis,
-            page::OUTILS => discord::Page::Outils,
             _ => discord::Page::Accueil,
         }
     };
@@ -535,5 +528,4 @@ pub fn langue_changee(app: &Rc<App>) {
     settings::maj_textes(app);
     editor::langue_changee(app);
     skin::langue_changee(app);
-    tools::langue_changee(app);
 }
