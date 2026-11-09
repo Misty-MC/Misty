@@ -210,14 +210,24 @@ fn maj_en_tete(app: &Rc<App>) {
     });
 }
 
+/// Filter labels with the number of items of each type, e.g. "Mods (12)".
+fn libelles_filtres(app: &App) -> Vec<String> {
+    let e = app.instance.borrow();
+    let avec_nombre = |libelle: String, nb: usize| if nb > 0 { format!("{libelle} ({nb})") } else { libelle };
+    let mut libelles = vec![avec_nombre(loc::t("Instance_Tout"), e.contenus.len())];
+    for (t, l) in content::types() {
+        libelles.push(avec_nombre(l, e.contenus.iter().filter(|c| c.type_ == t).count()));
+    }
+    libelles
+}
+
 /// Filtres par type (reconstruits au changement de langue).
 fn construire_filtres(app: &Rc<App>) {
     let mut types = vec![String::new()];
-    let mut libelles = vec![loc::t("Instance_Tout")];
-    for (t, l) in content::types() {
+    for (t, _) in content::types() {
         types.push(t);
-        libelles.push(l);
     }
+    let libelles = libelles_filtres(app);
     let actuel = app.instance.borrow().filtre_type.clone();
     let index = types.iter().position(|t| *t == actuel).unwrap_or(0);
     s(app).set_filters(modele_textes(&libelles));
@@ -294,6 +304,7 @@ fn appliquer_filtre(app: &Rc<App>) {
     let urls: Vec<Option<String>> = items.iter().map(|(_, u)| u.clone()).collect();
     let m = modele(items.into_iter().map(|(c, _)| c).collect());
     s(app).set_items(m.clone());
+    s(app).set_filters(modele_textes(&libelles_filtres(app)));
     s(app).set_content_tab_text(if nb > 0 { format!("{} ({nb})", loc::t("Instance_Contenu")) } else { loc::t("Instance_Contenu") }.into());
     {
         let mut e = app.instance.borrow_mut();

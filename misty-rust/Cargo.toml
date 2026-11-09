@@ -1,6 +1,6 @@
 [package]
 name = "misty"
-version = "0.3.7"
+version = "0.3.8"
 edition = "2021"
 description = "Launcher Minecraft"
 authors = ["xTheoxreborn"]

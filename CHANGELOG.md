@@ -1,4 +1,8 @@
 # Changelog
+## 0.3.8
+### Profiles
+- The filters of a profile's content (All, Mods, Resource packs, Datapacks, Shaders) now show how many items each one holds, for example "Mods (12)"
+
 ## 0.3.7
 ### Game console
 - New console over the launcher, like PvP launchers: the game's logs live, colored by level (info, warnings, errors, Misty's own messages), for Minecraft and Horizon
