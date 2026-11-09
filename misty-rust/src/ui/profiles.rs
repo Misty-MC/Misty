@@ -334,7 +334,7 @@ async fn importer_modpack(app: &Rc<App>) {
 
 /// Certains auteurs CurseForge interdisent le téléchargement par des applications tierces :
 /// on liste ces fichiers et on propose d'ouvrir leur page pour les télécharger à la main.
-async fn proposer_telechargements_manuels(app: &Rc<App>, r: &modpack::Resultat) {
+pub async fn proposer_telechargements_manuels(app: &Rc<App>, r: &modpack::Resultat) {
     let mut liste: Vec<String> = r.bloques.iter().take(12).map(|b| format!("• {}", loc::tf("Manuel_Ligne", &[&b.nom, &b.dossier]))).collect();
     if r.bloques.len() > 12 {
         liste.push(loc::tf("Manuel_Autres", &[&(r.bloques.len() - 12)]));

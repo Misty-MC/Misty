@@ -43,6 +43,11 @@ pub fn installer(app: &Rc<App>) {
         }
     });
     let a = app.clone();
+    st.on_update_pack(move || {
+        let a = a.clone();
+        lancer(async move { mettre_a_jour_pack(&a).await });
+    });
+    let a = app.clone();
     st.on_folder(move || {
         if let Some(i) = instance(&a) {
             system_info::ouvrir_dossier(&i.dossier());
@@ -146,6 +151,98 @@ fn surveiller(app: &Rc<App>) {
     });
 }
 
+/// Met à jour le modpack du profil : choix de la version (l'actuelle est marquée), confirmation,
+/// puis remplacement des fichiers du pack. Mondes, options et ajouts du joueur restent.
+async fn mettre_a_jour_pack(app: &Rc<App>) {
+    use crate::services::modpack;
+    use crate::ProfilesState;
+    let Some(inst) = instance(app) else { return };
+    let attente = app.ui.global::<ProfilesState>();
+    attente.set_wait_title(inst.nom.to_uppercase().into());
+    attente.set_wait_text(loc::t("Pack_Recherche").into());
+    attente.set_waiting(true);
+    let i = inst.clone();
+    let resultat = app
+        .bg(async move {
+            let versions = modpack::versions_du_profil(&i).await?;
+            let actuelle = modpack::version_installee(&i).await;
+            anyhow::Ok((versions, actuelle))
+        })
+        .await;
+    attente.set_waiting(false);
+    let (versions, actuelle) = match resultat {
+        Ok((v, a)) if !v.is_empty() => (v, a),
+        Ok(_) => return dialogs::erreur(app, &loc::t("Pack_MajImpossible"), &loc::t("Erreur_ModpackSansVersion")).await,
+        Err(e) => return dialogs::erreur(app, &loc::t("Pack_MajImpossible"), &format!("{e:#}")).await,
+    };
+
+    // déjà la plus récente : on le dit, et on propose quand même une autre version
+    let actuelle_nom = inst.modpack_version.clone().unwrap_or_default();
+    if actuelle.as_deref() == Some(versions[0].id.as_str()) {
+        let autre = dialogs::confirmer(
+            app,
+            &loc::t("Pack_AJour"),
+            &loc::tf("Pack_AJour_Texte", &[&actuelle_nom]),
+            Some(&loc::t("Pack_AutreVersion")),
+            Some(&loc::t("Commun_Fermer")),
+            false,
+        )
+        .await;
+        if !autre {
+            return;
+        }
+    }
+    let libelles: Vec<String> = versions
+        .iter()
+        .map(|v| if actuelle.as_deref() == Some(v.id.as_str()) { format!("{}  ·  {}", v.libelle, loc::t("Pack_Actuelle")) } else { v.libelle.clone() })
+        .collect();
+    let Some(choix) = dialogs::choisir(app, &loc::t("Pack_MettreAJour"), &loc::tf("Pack_Choisir_Texte", &[&inst.nom]), &libelles).await else {
+        return;
+    };
+    let Some(version) = versions.get(choix).cloned() else { return };
+    if actuelle.as_deref() == Some(version.id.as_str()) {
+        return;
+    }
+    let ok = dialogs::confirmer(
+        app,
+        &loc::t("Pack_Confirmer_Titre"),
+        &loc::tf("Pack_Confirmer_Texte", &[&inst.nom, &version.libelle]),
+        Some(&loc::t("Pack_MettreAJour")),
+        None,
+        false,
+    )
+    .await;
+    if !ok {
+        return;
+    }
+
+    attente.set_wait_title(inst.nom.to_uppercase().into());
+    attente.set_wait_text(loc::t("Commun_Preparation").into());
+    attente.set_waiting(true);
+    let progression = app.progression(|ui, texte| ui.global::<ProfilesState>().set_wait_text(texte.into()));
+    let (i, id) = (inst.clone(), version.id.clone());
+    crate::services::journal::info(&format!("Mise à jour du modpack {} vers {}", inst.nom, version.libelle));
+    let resultat = app.bg(async move { modpack::mettre_a_jour(&i, id, progression).await }).await;
+    attente.set_waiting(false);
+    match resultat {
+        Ok(r) => {
+            ouvrir(app, r.instance.clone());
+            if !r.bloques.is_empty() {
+                super::profiles::proposer_telechargements_manuels(app, &r).await;
+            } else {
+                dialogs::info(app, &loc::t("Pack_MajFaite"), &loc::tf("Pack_MajFaite_Texte", &[&inst.nom, &version.libelle])).await;
+            }
+        }
+        Err(e) => {
+            // le profil a pu changer à moitié : on le relit tel qu'il est sur le disque
+            if let Some(i) = instances::trouver(&inst.id) {
+                ouvrir(app, i);
+            }
+            dialogs::erreur(app, &loc::t("Pack_MajImpossible"), &format!("{e:#}")).await;
+        }
+    }
+}
+
 /// Affiche un profil (appelé à chaque ouverture de la page).
 pub fn ouvrir(app: &Rc<App>, inst: Instance) {
     app.instance.borrow_mut().instance = Some(inst);
@@ -189,6 +286,7 @@ fn maj_en_tete(app: &Rc<App>) {
         });
     }
     st.set_badges(modele(badges));
+    st.set_is_modpack(i.est_modpack());
 
     st.set_has_icon(false);
     let (fichier, url, id) = (i.chemin_icone(), i.icone_url.clone(), i.id.clone());

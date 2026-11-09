@@ -40,6 +40,7 @@ fn main() {
     services::journal::capturer_paniques();
     services::journal::info(&format!("Démarrage de Misty {} ({})", services::app_info::VERSION, services::system_info::version_windows()));
     services::telemetry::init(runtime.handle().clone());
+    services::presence::demarrer(runtime.handle());
     loc::initialiser();
     discord::definir(discord::Statut::Launcher(discord::Page::Accueil));
 
@@ -62,6 +63,7 @@ fn main() {
 
     slint::run_event_loop().expect("boucle de l'interface");
     services::journal::info("Fermeture de Misty");
+    services::presence::quitter(runtime.handle());
 
     discord::arreter();
     APP.with(|a| *a.borrow_mut() = None);

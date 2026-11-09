@@ -511,8 +511,11 @@ async fn choisir_fichier(app: &Rc<App>) {
     if !skins::skin_valide(&octets) {
         return dialogs::erreur(app, &loc::t("Skin_Erreur"), &loc::t("Skin_Invalide")).await;
     }
+    // bras fins ou larges : choisis d'après la texture (on peut toujours changer ensuite)
+    let fin = skins::est_fin(&octets);
     app.skin.borrow_mut().fichier = Some(octets);
     let st = s(app);
+    st.set_slim(fin);
     st.set_has_file(true);
     st.set_file_name(chemin.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default().into());
     st.set_info("".into());

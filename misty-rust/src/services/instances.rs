@@ -39,6 +39,9 @@ pub struct Instance {
     pub modpack_project_id: Option<String>,
     #[serde(default)]
     pub modpack_version: Option<String>,
+    /// Id de la version du pack (Modrinth) ou du fichier (CurseForge), pour les mises à jour
+    #[serde(default)]
+    pub modpack_version_id: Option<String>,
     #[serde(default = "Local::now", deserialize_with = "date")]
     pub cree_le: DateTime<Local>,
     #[serde(default, deserialize_with = "date_option")]
@@ -149,6 +152,7 @@ pub fn creer(nom: &str, version_mc: &str, loader: &str, loader_version: Option<S
         modpack_source: None,
         modpack_project_id: None,
         modpack_version: None,
+        modpack_version_id: None,
         cree_le: Local::now(),
         dernier_lancement: None,
     };

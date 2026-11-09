@@ -216,6 +216,20 @@ pub fn skin_valide(png: &[u8]) -> bool {
     image::load_from_memory(png).map(|i| i.width() == 64 && (i.height() == 64 || i.height() == 32)).unwrap_or(false)
 }
 
+/// Modèle d'un skin : vrai pour les bras fins (Alex, « slim »), faux pour les bras larges (Steve).
+/// Un bras fin fait 3 pixels de large au lieu de 4 : sur la texture, les 2 dernières colonnes de la
+/// zone de chaque bras restent vides (bras droit : x 54–55, y 20–31 ; bras gauche : x 46–47, y 52–63).
+/// Les anciens skins 64 × 32 sont toujours larges.
+pub fn est_fin(png: &[u8]) -> bool {
+    let Ok(img) = image::load_from_memory(png) else { return false };
+    let img = img.to_rgba8();
+    if img.width() != 64 || img.height() != 64 {
+        return false;
+    }
+    let vide = |x0: u32, y0: u32| (x0..x0 + 2).all(|x| (y0..y0 + 12).all(|y| img.get_pixel(x, y)[3] == 0));
+    vide(54, 20) && vide(46, 52)
+}
+
 fn coller(dest: &mut RgbaImage, skin: &RgbaImage, src: (u32, u32, u32, u32), vers: (u32, u32), miroir: bool) {
     let (sx, sy, w, h) = src;
     for y in 0..h {
@@ -969,6 +983,29 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
         }
     });
     Some(image)
+}
+
+#[cfg(test)]
+mod tests_modele {
+    use super::*;
+
+    #[test]
+    fn steve_et_alex() {
+        let steve = include_bytes!("../../assets/steve.png");
+        assert!(!est_fin(steve));
+        // la même texture, bras réduits à 3 pixels : les colonnes en trop sont effacées
+        let mut alex = image::load_from_memory(steve).unwrap().to_rgba8();
+        for (x0, y0) in [(54u32, 20u32), (46, 52)] {
+            for x in x0..x0 + 2 {
+                for y in y0..y0 + 12 {
+                    alex.put_pixel(x, y, Rgba([0, 0, 0, 0]));
+                }
+            }
+        }
+        let mut png = Vec::new();
+        alex.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+        assert!(est_fin(&png));
+    }
 }
 
 #[cfg(test)]

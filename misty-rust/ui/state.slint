@@ -193,6 +193,9 @@ export global HomeState {
     in property <string> percent-text;
     in property <float> progress;
     in property <bool> play-enabled;
+    /// Téléchargement d'une version en cours : il peut être annulé
+    in property <bool> can-cancel;
+    callback cancel-install();
     in property <string> play-text;
 
     callback account-selected(int);
@@ -283,6 +286,9 @@ export global InstanceState {
     in-out property <bool> renaming;
     in-out property <string> rename-text;
 
+    /// Profil créé depuis un modpack connu (Modrinth / CurseForge) : il peut être mis à jour
+    in property <bool> is-modpack;
+    callback update-pack();
     callback back();
     callback play();
     callback folder();

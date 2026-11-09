@@ -11,8 +11,70 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
+/// Erreur « téléchargement annulé par le joueur » (pas affichée comme une erreur).
+#[derive(Debug)]
+struct Annule;
+
+impl std::fmt::Display for Annule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&loc::t("Home_Annule"))
+    }
+}
+
+impl std::error::Error for Annule {}
+
+fn est_annule(e: &anyhow::Error) -> bool {
+    e.chain().any(|c| c.downcast_ref::<Annule>().is_some())
+}
+
+/// Téléchargement qu'on peut annuler : chaque tâche de fond lancée par `tache` s'arrête à la
+/// demande (les fichiers à moitié téléchargés restent en .part et seront refaits).
+#[derive(Clone, Default)]
+struct Annulation(Rc<std::cell::RefCell<(Vec<tokio::task::AbortHandle>, bool)>>);
+
+impl Annulation {
+    fn annuler(&self) {
+        let mut a = self.0.borrow_mut();
+        a.1 = true;
+        for t in a.0.drain(..) {
+            t.abort();
+        }
+    }
+
+    fn annulee(&self) -> bool {
+        self.0.borrow().1
+    }
+
+    /// Erreur Annule si le joueur a annulé depuis l'étape précédente.
+    fn verifier(&self) -> anyhow::Result<()> {
+        if self.annulee() {
+            Err(Annule.into())
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Lance une tâche de fond annulable et attend son résultat.
+    async fn tache<T: Send + 'static>(
+        &self,
+        app: &App,
+        f: impl std::future::Future<Output = anyhow::Result<T>> + Send + 'static,
+    ) -> anyhow::Result<T> {
+        self.verifier()?;
+        let h = app.rt.spawn(f);
+        self.0.borrow_mut().0.push(h.abort_handle());
+        match h.await {
+            Ok(r) => r,
+            Err(e) if e.is_cancelled() => Err(Annule.into()),
+            Err(e) => Err(anyhow::anyhow!("{e}")),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Etat {
+    /// Téléchargement en cours (annulable par le bouton Annuler)
+    annulation: Option<Annulation>,
     version_choisie: String,
     modes_charges: bool,
     installation_en_cours: bool,
@@ -39,9 +101,32 @@ fn h(app: &App) -> HomeState<'_> {
     app.ui.global::<HomeState>()
 }
 
+/// Début d'un téléchargement annulable.
+fn debut_annulable(app: &App) -> Annulation {
+    let an = Annulation::default();
+    app.home.borrow_mut().annulation = Some(an.clone());
+    h(app).set_can_cancel(true);
+    an
+}
+
+/// Fin du téléchargement (réussi, raté ou annulé) : plus rien à annuler.
+fn fin_annulable(app: &App) {
+    app.home.borrow_mut().annulation = None;
+    h(app).set_can_cancel(false);
+}
+
 pub fn installer(app: &Rc<App>) {
     let s = h(app);
     s.set_play_text(loc::t("Home_Bouton_Jouer").into());
+    let a = app.clone();
+    s.on_cancel_install(move || {
+        let an = a.home.borrow().annulation.clone();
+        if let Some(an) = an {
+            an.annuler();
+            fin_annulable(&a);
+            statut(&a, &loc::t("Home_Annulation"));
+        }
+    });
     s.set_status(loc::t("Home_Chargement").into());
 
     let a = app.clone();
@@ -559,7 +644,12 @@ async fn charger_versions(app: &Rc<App>) {
 fn filtrer_versions(app: &App) {
     use super::picker;
     let s = h(app);
-    let types = [s.get_picker_release(), s.get_picker_snapshot(), s.get_picker_beta(), s.get_picker_alpha()];
+    let mut types = [s.get_picker_release(), s.get_picker_snapshot(), s.get_picker_beta(), s.get_picker_alpha()];
+    // aucun type coché : les releases reviennent (une liste vide n'aurait rien à proposer)
+    if !types.iter().any(|&t| t) {
+        s.set_picker_release(true);
+        types[0] = true;
+    }
     let loader = s.get_picker_loader();
     let recherche = s.get_picker_search().trim().to_lowercase();
     let (groupes, choisi) = {
@@ -745,21 +835,28 @@ async fn jouer(app: &Rc<App>) {
     let nom = instance.as_ref().map(|i| i.nom.clone()).unwrap_or_else(|| format!("{version} {mode}"));
     afficher_progression(app, 0.0, &loc::tf("Home_Preparation", &[&nom]));
 
-    // Téléchargement de la version et du loader
+    // Téléchargement de la version et du loader (annulable)
+    let an = debut_annulable(app);
     let progression = progression_fichiers(app);
     let (v, m, lv) = (version.clone(), mode.clone(), instance.as_ref().and_then(|i| i.loader_version.clone()));
-    let resultat = app
-        .bg(async move {
+    let resultat = an
+        .tache(app, async move {
             let dirs = McDirs::misty();
             let nom_version = loaders::installer(&dirs, &v, &m, lv.as_deref(), progression.clone()).await?;
             install::installer(&dirs, &nom_version, progression).await
         })
         .await;
+    fin_annulable(app);
 
     match resultat {
         Ok(installee) => {
             afficher_progression(app, 100.0, &loc::t("Home_Lancement"));
             lancer_jeu(app, &version, &mode, installee, instance, joueur).await;
+        }
+        Err(e) if est_annule(&e) => {
+            crate::services::journal::info(&format!("Téléchargement annulé : {nom}"));
+            statut(app, &loc::t("Home_Annule"));
+            h(app).set_progress(0.0);
         }
         Err(e) => {
             statut(app, &loc::t("Home_EchecTelechargement"));
@@ -889,6 +986,9 @@ fn progression_fichiers(app: &Rc<App>) -> FileProgress {
         let texte = loc::tf("Home_Telechargement", &[&nom]);
         let _ = faible.upgrade_in_event_loop(move |ui| {
             if let Some(a) = crate::APP.with(|a| a.borrow().clone()) {
+                if a.home.borrow().annulation.as_ref().is_some_and(|an| an.annulee()) {
+                    return;
+                }
                 afficher_progression(&a, pourcentage, &texte);
             } else {
                 let _ = ui;
@@ -1061,6 +1161,7 @@ async fn horizon_jouer(app: &Rc<App>) {
     let s = h(app);
     s.set_play_enabled(false);
     s.set_selectors_enabled(false);
+    let an = debut_annulable(app);
     let resultat: anyhow::Result<()> = async {
         let b = build.clone();
         let exigences = app.bloquant(move || horizon::exigences(&b)).await?;
@@ -1068,15 +1169,16 @@ async fn horizon_jouer(app: &Rc<App>) {
         afficher_progression(app, 0.0, &loc::tf("Hz_InstallationMinecraft", &[&exigences.minecraft]));
         let progression = progression_fichiers(app);
         let mc = exigences.minecraft.clone();
-        let installee = app.bg(async move { install::installer(&McDirs::misty(), &mc, progression).await }).await?;
+        let installee = an.tache(app, async move { install::installer(&McDirs::misty(), &mc, progression).await }).await?;
         let b = build.clone();
         let ex = exigences.clone();
         if !app.bloquant(move || horizon::est_prepare(&b, &ex)).await {
             let json = installee.json.clone();
             let mc = exigences.minecraft.clone();
-            let jar = app.bg(async move { horizon::server_jar(&json, &mc).await }).await?;
+            let jar = an.tache(app, async move { horizon::server_jar(&json, &mc).await }).await?;
             let (b, ex) = (build.clone(), exigences.clone());
-            app.bg(async move { horizon::manifeste_epingle(&b, &ex).await }).await?;
+            an.tache(app, async move { horizon::manifeste_epingle(&b, &ex).await }).await?;
+            an.verifier()?;
             let java_home = installee.java.parent().and_then(|bin| bin.parent()).map(|p| p.to_path_buf()).unwrap_or_default();
             afficher_progression(app, 0.0, &loc::t("Hz_Preparation"));
             let fenetre = app.ui.as_weak();
@@ -1094,8 +1196,11 @@ async fn horizon_jouer(app: &Rc<App>) {
                 })
             })
             .await?;
+            an.verifier()?;
         }
-        // la partie
+        // la partie : plus rien à annuler
+        an.verifier()?;
+        fin_annulable(app);
         afficher_progression(app, 100.0, &loc::t("Hz_Lancement"));
         discord::definir(discord::Statut::EnJeu { version: exigences.minecraft.clone(), mode: format!("Horizon {tag}"), pseudo: pseudo.clone() });
         app.home.borrow_mut().jeux_en_cours += 1;
@@ -1132,10 +1237,15 @@ async fn horizon_jouer(app: &Rc<App>) {
         fin
     }
     .await;
+    fin_annulable(app);
     s.set_play_enabled(true);
     s.set_selectors_enabled(true);
     match resultat {
         Ok(()) => afficher_progression(app, 0.0, &loc::t("Hz_Ferme")),
+        Err(e) if est_annule(&e) => {
+            afficher_progression(app, 0.0, &loc::t("Home_Annule"));
+            h(app).set_percent_text("".into());
+        }
         Err(e) => {
             afficher_progression(app, 0.0, &loc::t("Hz_Erreur"));
             dialogs::erreur(app, &loc::t("Hz_Erreur"), &format!("{e:#}")).await;

@@ -663,6 +663,10 @@ export component VersionPicker inherits Rectangle {
                     point: Couleurs.types[i];
                     checked: i == 0 ? HomeState.picker-release : i == 1 ? HomeState.picker-snapshot : i == 2 ? HomeState.picker-beta : HomeState.picker-alpha;
                     clicked => {
+                        // au moins un type reste coché : sinon la liste serait vide (et le resterait après Horizon)
+                        if (self.checked && (HomeState.picker-release ? 1 : 0) + (HomeState.picker-snapshot ? 1 : 0) + (HomeState.picker-beta ? 1 : 0) + (HomeState.picker-alpha ? 1 : 0) <= 1) {
+                            return;
+                        }
                         if (i == 0) { HomeState.picker-release = !HomeState.picker-release; }
                         if (i == 1) { HomeState.picker-snapshot = !HomeState.picker-snapshot; }
                         if (i == 2) { HomeState.picker-beta = !HomeState.picker-beta; }
@@ -714,9 +718,11 @@ export component VersionPicker inherits Rectangle {
                             }
                         }
                     }
-                    if HomeState.picker-groups.length == 0: Text {
-                        y: 30px;
-                        width: parent.width;
+                    // sous la carte Horizon (qui reste toujours en tête de liste)
+                    if HomeState.picker-groups.length == 0 && !HomeState.picker-horizon: Text {
+                        y: 104px;
+                        x: 16px;
+                        width: parent.width - 32px;
                         text: Tr.t("Ver_Aucune");
                         font-size: 13px;
                         color: Theme.text-muted;

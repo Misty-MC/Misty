@@ -17,6 +17,7 @@ pub mod modpack;
 pub mod modrinth;
 pub mod packs;
 pub mod paths;
+pub mod presence;
 pub mod pseudos;
 pub mod settings;
 pub mod shortcut;

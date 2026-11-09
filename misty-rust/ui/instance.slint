@@ -84,6 +84,14 @@ export component InstancePage inherits Rectangle {
             }
             HorizontalLayout {
                 spacing: 8px;
+                if InstanceState.is-modpack: VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        icon: "\u{E895}";
+                        tooltip: Tr.t("Pack_MettreAJour");
+                        clicked => { InstanceState.update-pack(); }
+                    }
+                }
                 VerticalLayout {
                     alignment: center;
                     IconButton {

@@ -1,7 +1,22 @@
 # Changelog
 ## 0.3.8
+### Modpacks
+- Modpacks can now be updated: a new button on a modpack profile lists its versions (the installed one is marked) and switches to the one you pick. The modpack's mods and configs are replaced, your worlds, options and the mods you added yourself are kept
+- An imported modpack file (`.mrpack` or CurseForge `.zip`) is recognized on Modrinth or CurseForge when it is published there, so it can be updated too
+- Files that CurseForge authors don't allow apps to download are now looked for on Modrinth (the exact same file first, then the project with the same name for your Minecraft version and loader). Only those that can't be found are left to download by hand
+
 ### Profiles
 - The filters of a profile's content (All, Mods, Resource packs, Datapacks, Shaders) now show how many items each one holds, for example "Mods (12)"
+### Home and versions
+- New "Cancel" button while a version downloads, for when the wrong version was started by mistake
+- Version picker: turning off every version type no longer empties the list (the last type stays on), and the "no version" message no longer covers Horizon
+
+### Skin studio
+- Opening a skin file picks the right arm model on its own: slim (Alex) or wide (Steve)
+
+### Online players
+- Misty counts the players online: while it is open, it sends an anonymous signal every minute (a random id drawn at each start, and whether a game is running). The total is public at `misty-launcher.online/api/online`
+
 ### Texture packs
 - You can now create texture packs for Minecraft 1.0 to 1.5.2 (before 1.6): the original textures are extracted from the game, they are sorted in the editor like the other versions, and the exported zip uses the old layout (textures at the root, description in pack.txt)
 
