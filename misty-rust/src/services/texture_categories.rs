@@ -15,17 +15,23 @@ const COULEURS: &[&str] = &[
 
 /// `chemin` : relatif au dossier textures, ex. "block/stone.png".
 pub fn categorie(chemin: &str) -> &'static str {
+    // Avant la 1.6 : "textures/blocks/stone.png", "mob/creeper.png", "terrain.png", "particles.png"...
+    let chemin = chemin.strip_prefix("textures/").unwrap_or(chemin);
     let dossier = chemin.split_once('/').map(|(d, _)| d).unwrap_or("");
     let fichier = chemin.rsplit('/').next().unwrap_or(chemin);
     let nom = fichier.rsplit_once('.').map(|(n, _)| n).unwrap_or(fichier).to_lowercase();
 
     match dossier {
         "block" => bloc(&nom),
+        "blocks" => bloc(&nom),
         "item" => objet(&nom),
-        "entity" | "models" => "Entités",
-        "gui" => "Interface",
+        "items" => objet(&nom),
+        "entity" | "models" | "mob" | "armor" => "Entités",
+        "gui" | "title" | "achievement" | "font" => "Interface",
         "environment" => "Environnement",
         "particle" => "Particules",
+        "" if nom == "particles" => "Particules",
+        "" if nom == "terrain" => "Blocs de construction",
         _ => "Autres",
     }
 }

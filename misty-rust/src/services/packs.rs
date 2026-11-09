@@ -85,6 +85,10 @@ fn extraire_template(jar: &Path, dossier: &Path, version_mc: &str) -> anyhow::Re
     fs::create_dir_all(dossier)?;
     let mut zip = zip::ZipArchive::new(fs::File::open(jar)?)?;
     let mut format = None;
+    // Avant la 1.6, les textures sont à la racine du jar (terrain.png, gui/, mob/...), pas dans assets/minecraft/textures/.
+    // On les range quand même dans assets/minecraft/textures/ du template pour que l'éditeur fonctionne partout ;
+    // l'export remet l'ancienne disposition (voir `exporter`).
+    let ancien = !zip.file_names().any(|n| n.starts_with(RACINE_TEXTURES));
     for i in 0..zip.len() {
         let mut entree = zip.by_index(i)?;
         let nom = entree.name().to_string();
@@ -94,11 +98,12 @@ fn extraire_template(jar: &Path, dossier: &Path, version_mc: &str) -> anyhow::Re
             format = lire_format(&texte);
             continue;
         }
-        let utile = nom.starts_with(RACINE_TEXTURES) || nom == "pack.png";
+        let texture_ancienne = ancien && nom.to_lowercase().ends_with(".png") && nom != "pack.png" && !nom.starts_with("META-INF/");
+        let utile = nom.starts_with(RACINE_TEXTURES) || nom == "pack.png" || texture_ancienne;
         if !utile || nom.ends_with('/') {
             continue;
         }
-        let destination = dossier.join(&nom);
+        let destination = if texture_ancienne { dossier.join(RACINE_TEXTURES).join(&nom) } else { dossier.join(&nom) };
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -111,6 +116,9 @@ fn extraire_template(jar: &Path, dossier: &Path, version_mc: &str) -> anyhow::Re
 
     let format = format.unwrap_or_else(|| format_depuis_nom(version_mc));
     fs::write(dossier.join(".format"), format.to_string())?;
+    if ancien {
+        fs::write(dossier.join(".ancien"), "")?;
+    }
     fs::write(dossier.join(".ok"), "")?;
     Ok(format)
 }
@@ -228,15 +236,27 @@ pub fn exporter(pack: &PackInfo, destination: &Path) -> anyhow::Result<()> {
     let mut zip = zip::ZipWriter::new(fs::File::create(destination)?);
     let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
+    let ancien = dossier_templates().join(&pack.version_mc).join(".ancien").exists();
     let mut fichiers = Vec::new();
     lister_fichiers(&pack.dossier, &mut fichiers);
     for fichier in fichiers {
-        let relatif = fichier.strip_prefix(&pack.dossier)?.to_string_lossy().replace('\\', "/");
-        if relatif.eq_ignore_ascii_case("misty.json") {
+        let mut relatif = fichier.strip_prefix(&pack.dossier)?.to_string_lossy().replace('\\', "/");
+        if relatif.eq_ignore_ascii_case("misty.json") || (ancien && relatif.eq_ignore_ascii_case("pack.mcmeta")) {
             continue;
+        }
+        if ancien {
+            if let Some(reste) = relatif.strip_prefix(RACINE_TEXTURES) {
+                relatif = reste.to_string();
+            }
         }
         zip.start_file(relatif, options)?;
         zip.write_all(&fs::read(&fichier)?)?;
+    }
+
+    // Avant la 1.6 : textures à la racine du zip, description dans pack.txt (pack.mcmeta n'existe pas encore)
+    if ancien {
+        zip.start_file("pack.txt", options)?;
+        zip.write_all(pack.description.as_bytes())?;
     }
 
     // Icône du pack : celle de Minecraft, si le pack n'en a pas

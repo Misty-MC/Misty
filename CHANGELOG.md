@@ -2,6 +2,8 @@
 ## 0.3.8
 ### Profiles
 - The filters of a profile's content (All, Mods, Resource packs, Datapacks, Shaders) now show how many items each one holds, for example "Mods (12)"
+### Texture packs
+- You can now create texture packs for Minecraft 1.0 to 1.5.2 (before 1.6): the original textures are extracted from the game, they are sorted in the editor like the other versions, and the exported zip uses the old layout (textures at the root, description in pack.txt)
 
 ## 0.3.7
 ### Game console
