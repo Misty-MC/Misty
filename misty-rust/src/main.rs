@@ -19,7 +19,8 @@ use slint::ComponentHandle;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-slint::include_modules!();
+// Interface Slint, compilée dans son propre crate (misty-ui) pour des recompilations rapides
+pub use misty_ui::*;
 
 thread_local! {
     /// L'application, accessible depuis les rappels qui reviennent sur le thread de l'interface.

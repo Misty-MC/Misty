@@ -1,0 +1,19 @@
+[package]
+name = "misty-ui"
+version = "0.1.0"
+edition = "2021"
+description = "Interface Slint de Misty (ui/*.slint), compilée à part du launcher"
+license = "MIT"
+publish = false
+
+# L'interface est un crate à part : Slint en génère près de 20 Mo de Rust. Ainsi, modifier le code
+# du launcher (src/) ne le recompile pas, seul un changement dans ui/*.slint le fait.
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+slint = { version = "1.18", features = ["unstable-winit-030"] }
+
+[build-dependencies]
+slint-build = "1.18"

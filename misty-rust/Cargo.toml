@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dependencies]
 # Interface
 slint = { version = "1.18", features = ["unstable-winit-030"] }
+misty-ui = { path = "misty-ui" }
 # Asynchrone + réseau
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "process", "sync", "time", "io-util"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "gzip"] }
@@ -52,7 +53,6 @@ mslnk = "0.1"
 windows-sys = { version = "0.59", features = ["Win32_System_SystemInformation", "Win32_Foundation", "Win32_Graphics_Dwm"] }
 
 [build-dependencies]
-slint-build = "1.18"
 winresource = "0.1"
 
 # Développement : « cargo run » reste rapide à recompiler, mais l'interface est fluide
@@ -62,6 +62,16 @@ opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
+# Pas d'informations de débogage pour les dépendances : l'exe de développement passe de près de
+# 900 Mo à beaucoup moins, et l'édition de liens (lente sous Windows) en est d'autant plus rapide.
+# Le code du launcher garde les siennes.
+debug = false
+
+# L'interface générée (près de 20 Mo de Rust) : le même niveau que le launcher, sinon chaque
+# changement dans ui/*.slint prendrait plusieurs minutes de plus
+[profile.dev.package.misty-ui]
+opt-level = 1
+debug = false
 
 [profile.release]
 opt-level = 3

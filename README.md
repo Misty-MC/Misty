@@ -97,7 +97,8 @@ CHANGELOG.md           patch notes (embedded in the exe)
 installer/             release script (build.ps1) + Inno Setup installer (Misty.iss)
 misty-client/          Misty Client: the in-game Fabric mod (Java), embedded in the exe
 misty-rust/
-├── build.rs           compiles the UI, embeds the icon, CurseForge key and changelog
+├── build.rs           embeds the icon, CurseForge key, changelog and Misty Client
+├── misty-ui/          crate that compiles the Slint interface (kept apart so Rust edits rebuild fast)
 ├── assets/            icon, Silkscreen pixel font (OFL), flags
 ├── lang/              translations (en, fr, es, it, ru), embedded in the exe
 ├── ui/                Slint interface (theme, widgets, state, one file per page)

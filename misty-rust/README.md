@@ -31,6 +31,8 @@ ui/                 Interface Slint (l'équivalent des .xaml)
   state.slint       état de chaque page, partagé avec Rust (les « globals »)
   main.slint        fenêtre, barre latérale, boîte de dialogue
   home / profiles / instance / browser / settings / changelog / packs / editor .slint
+misty-ui/           crate qui compile ui/ : à part, pour qu'une modification du code Rust ne
+                    recompile pas les ~20 Mo de Rust générés par Slint (4 s au lieu de 20)
 
 src/
   main.rs           démarrage

@@ -3,8 +3,9 @@
 //! Un seul client pour toute l'application (plusieurs clients avec le même ID se volent la connexion).
 //! Il vit dans son propre thread : Discord peut être lent ou fermé, l'interface ne doit jamais attendre.
 //!
-//! Le statut affiche le logo de Misty, ce que fait le joueur dans le launcher (page ouverte) ou en jeu
-//! (« Joue en tant que <pseudo> », version et profil), et un bouton vers le site.
+//! Le statut affiche le logo de Misty avec la tête du joueur en petit, ce que fait le joueur dans le
+//! launcher (page ouverte) ou en jeu (« Joue en tant que <pseudo> », version et profil), et un
+//! bouton vers le site.
 
 use super::{app_info, loc, settings};
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
@@ -14,6 +15,12 @@ use std::sync::{Mutex, OnceLock};
 /// Logo de Misty (Discord accepte une adresse d'image pour le Rich Presence).
 const LOGO: &str = "https://misty-launcher.online/assets/icone.png";
 const SITE: &str = "https://misty-launcher.online";
+
+/// Tête du joueur en petite image : Discord la télécharge lui-même depuis mc-heads.net (le service
+/// de skins déjà utilisé par le site), par UUID pour un compte Microsoft, par pseudo sinon.
+fn tete(id: &str) -> String {
+    format!("https://mc-heads.net/avatar/{}/128", urlencoding::encode(id))
+}
 
 /// Page du launcher affichée dans le statut.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -52,6 +59,8 @@ pub enum Statut {
 
 enum Message {
     Definir(Statut),
+    /// Compte choisi dans le launcher : (pseudo, UUID si compte Microsoft)
+    Joueur(String, Option<String>),
     Reappliquer,
     Arreter,
 }
@@ -74,6 +83,11 @@ pub fn definir(statut: Statut) {
     let _ = canal().lock().unwrap().send(Message::Definir(statut));
 }
 
+/// Compte choisi dans le launcher : sa tête est la petite image du statut.
+pub fn definir_joueur(pseudo: &str, uuid: Option<&str>) {
+    let _ = canal().lock().unwrap().send(Message::Joueur(pseudo.to_string(), uuid.map(str::to_string)));
+}
+
 /// À appeler quand l'option ou la langue change.
 pub fn reappliquer() {
     let _ = canal().lock().unwrap().send(Message::Reappliquer);
@@ -88,6 +102,7 @@ fn boucle(rx: mpsc::Receiver<Message>) {
     let mut debut_jeu = debut;
     let mut client: Option<DiscordIpcClient> = None;
     let mut actuel: Option<Statut> = None;
+    let mut joueur: Option<(String, Option<String>)> = None;
 
     while let Ok(message) = rx.recv() {
         match message {
@@ -97,6 +112,13 @@ fn boucle(rx: mpsc::Receiver<Message>) {
                     debut_jeu = chrono::Utc::now().timestamp();
                 }
                 actuel = Some(s);
+            }
+            Message::Joueur(pseudo, uuid) => {
+                let nouveau = Some((pseudo, uuid));
+                if joueur == nouveau {
+                    continue;
+                }
+                joueur = nouveau;
             }
             Message::Reappliquer => {}
             Message::Arreter => {
@@ -127,13 +149,25 @@ fn boucle(rx: mpsc::Receiver<Message>) {
                         debut_jeu,
                     ),
                 };
+                // la tête : celle du compte en jeu (une partie peut avoir été lancée avec un autre
+                // compte que celui choisi maintenant), sinon celle du compte du launcher
+                let compte = match (statut, &joueur) {
+                    (Statut::EnJeu { pseudo, .. }, Some((p, uuid))) if p == pseudo => Some((p.clone(), uuid.clone())),
+                    (Statut::EnJeu { pseudo, .. }, _) => Some((pseudo.clone(), None)),
+                    (Statut::Launcher(_), j) => j.clone(),
+                };
+                let petite = compte.as_ref().map(|(pseudo, uuid)| (tete(uuid.as_deref().unwrap_or(pseudo)), pseudo.clone()));
                 let texte_logo = format!("Misty {}", app_info::VERSION);
                 let bouton = loc::t("Discord_Bouton");
+                let mut images = activity::Assets::new().large_image(LOGO).large_text(&texte_logo);
+                if let Some((url, pseudo)) = &petite {
+                    images = images.small_image(url).small_text(pseudo);
+                }
                 let a = activity::Activity::new()
                     .details(&details)
                     .state(&state)
                     .timestamps(activity::Timestamps::new().start(depuis))
-                    .assets(activity::Assets::new().large_image(LOGO).large_text(&texte_logo))
+                    .assets(images)
                     .buttons(vec![activity::Button::new(&bouton, SITE)]);
                 c.set_activity(a)
             }

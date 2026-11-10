@@ -463,6 +463,9 @@ fn maj_avatar(app: &Rc<App>) {
     let pseudo = pseudo_actuel(app);
     let a = app.clone();
     let premium = account::session().is_some();
+    // petite image du statut Discord : la tête de ce compte
+    let uuid = account::session().map(|s| s.uuid);
+    discord::definir_joueur(&pseudo, uuid.as_deref());
     lancer(async move {
         // Compte Microsoft : tête tirée du dernier skin connu (disque), sans interroger Mojang.
         // L'onglet Skin la met à jour dès qu'il a reçu le vrai skin ; mc-heads renverrait Steve.

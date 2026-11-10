@@ -1,11 +1,7 @@
-// build.rs — compile l'interface Slint, intègre l'icône Windows, la clé CurseForge et Misty Client.
+// build.rs — intègre l'icône Windows, la clé CurseForge et Misty Client.
+// (L'interface Slint se compile dans son propre crate : misty-ui/.)
 
 fn main() {
-    // Curseurs personnalisés (main du studio de skin) : encore une fonction expérimentale de Slint 1.18
-    std::env::set_var("SLINT_ENABLE_EXPERIMENTAL_FEATURES", "1");
-    // Interface : ui/main.slint (et tous les fichiers qu'il importe)
-    slint_build::compile("ui/main.slint").expect("compilation de l'interface Slint");
-
     // Clé API CurseForge (privée, ignorée par git) : misty-rust/curseforge.key
     for chemin in ["curseforge.key"] {
         println!("cargo:rerun-if-changed={chemin}");

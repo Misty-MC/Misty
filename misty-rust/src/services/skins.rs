@@ -933,23 +933,68 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
         })
         .collect();
 
-    // Rendu en bandes, sur tous les cœurs
+    // Rectangle de l'écran que couvre chaque boîte : ses 8 coins vus par la caméra (orthographique,
+    // donc une simple projection). Un pixel ne teste que les boîtes dont le rectangle le contient,
+    // et les lignes sans aucune boîte sont sautées.
+    let demi = LIVE as f32 / 2.0;
+    let rectangles: Vec<[u32; 4]> = posees
+        .iter()
+        .map(|bp| {
+            let (mut x0, mut x1, mut y0, mut y1) = (f32::INFINITY, f32::NEG_INFINITY, f32::INFINITY, f32::NEG_INFINITY);
+            for coin in 0..8 {
+                let q = [
+                    if coin & 1 == 0 { bp.boite.min[0] } else { bp.boite.max[0] },
+                    if coin & 2 == 0 { bp.boite.min[1] } else { bp.boite.max[1] },
+                    if coin & 4 == 0 { bp.boite.min[2] } else { bp.boite.max[2] },
+                ];
+                let v = [q[0] - bp.origine[0], q[1] - bp.origine[1], q[2] - bp.origine[2]];
+                let sx = v[0] * bp.droite[0] + v[1] * bp.droite[1] + v[2] * bp.droite[2];
+                let sy = v[0] * bp.haut[0] + v[1] * bp.haut[1] + v[2] * bp.haut[2];
+                // pixel dont le centre est en (sx, sy) : voir le calcul de sx et sy plus bas
+                let (px, py) = (sx * ECHELLE + demi - 0.5, demi - sy * ECHELLE - 0.5);
+                x0 = x0.min(px);
+                x1 = x1.max(px);
+                y0 = y0.min(py);
+                y1 = y1.max(py);
+            }
+            // un pixel de marge contre les arrondis
+            let borne = |v: f32| v.clamp(0.0, LIVE as f32) as u32;
+            [borne(x0.floor() - 1.0), borne(x1.ceil() + 2.0), borne(y0.floor() - 1.0), borne(y1.ceil() + 2.0)]
+        })
+        .collect();
+    let lignes_utiles = rectangles.iter().fold((LIVE, 0), |(a, b), r| (a.min(r[2]), b.max(r[3])));
+
+    // Rendu en bandes de lignes, directement dans l'image, sur tous les cœurs
     let mut image = RgbaImage::from_pixel(LIVE, LIVE, Rgba([0, 0, 0, 0]));
     let fils = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).clamp(1, 8) as u32;
-    let bande = LIVE.div_ceil(fils);
-    std::thread::scope(|sc| {
-        let posees = &posees;
-        let morceaux: Vec<_> = (0..fils)
-            .map(|f| {
+    let (premiere, derniere) = lignes_utiles;
+    if premiere < derniere {
+        let bande = (derniere - premiere).div_ceil(fils);
+        let largeur = LIVE as usize * 4;
+        let utiles = &mut image.as_mut()[premiere as usize * largeur..derniere as usize * largeur];
+        std::thread::scope(|sc| {
+            let (posees, rectangles) = (&posees, &rectangles);
+            for (f, morceau) in utiles.chunks_mut(bande as usize * largeur).enumerate() {
                 sc.spawn(move || {
-                    let (y0, y1) = (f * bande, ((f + 1) * bande).min(LIVE));
-                    let mut pixels = Vec::new();
-                    for py in y0..y1 {
-                        let sy = (LIVE as f32 / 2.0 - (py as f32 + 0.5)) / ECHELLE;
-                        for px in 0..LIVE {
-                            let sx = (px as f32 + 0.5 - LIVE as f32 / 2.0) / ECHELLE;
+                    let mut candidates: Vec<usize> = Vec::with_capacity(posees.len());
+                    for (l, ligne) in morceau.chunks_mut(largeur).enumerate() {
+                        let py = premiere + f as u32 * bande + l as u32;
+                        candidates.clear();
+                        candidates.extend((0..posees.len()).filter(|&i| (rectangles[i][2]..rectangles[i][3]).contains(&py)));
+                        if candidates.is_empty() {
+                            continue;
+                        }
+                        let x0 = candidates.iter().map(|&i| rectangles[i][0]).min().unwrap_or(0);
+                        let x1 = candidates.iter().map(|&i| rectangles[i][1]).max().unwrap_or(0);
+                        let sy = (demi - (py as f32 + 0.5)) / ECHELLE;
+                        for px in x0..x1 {
+                            let sx = (px as f32 + 0.5 - demi) / ECHELLE;
                             let mut meilleur: Option<(f32, Rgba<u8>)> = None;
-                            for bp in posees.iter() {
+                            for &i in candidates.iter() {
+                                if !(rectangles[i][0]..rectangles[i][1]).contains(&px) {
+                                    continue;
+                                }
+                                let bp = &posees[i];
                                 let o = [
                                     bp.origine[0] + bp.droite[0] * sx + bp.haut[0] * sy,
                                     bp.origine[1] + bp.droite[1] * sx + bp.haut[1] * sy,
@@ -966,22 +1011,15 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
                                 }
                             }
                             if let Some((_, c)) = meilleur {
-                                pixels.push((px, py, c));
+                                let k = px as usize * 4;
+                                ligne[k..k + 4].copy_from_slice(&c.0);
                             }
                         }
                     }
-                    pixels
-                })
-            })
-            .collect();
-        for m in morceaux {
-            if let Ok(pixels) = m.join() {
-                for (x, y, c) in pixels {
-                    image.put_pixel(x, y, c);
-                }
+                });
             }
-        }
-    });
+        });
+    }
     Some(image)
 }
 
@@ -1020,6 +1058,29 @@ mod tests_live {
             assert_eq!(img.dimensions(), (LIVE, LIVE));
             assert!(img.pixels().any(|p| p[3] == 255), "animation {a} vide");
         }
+    }
+
+    /// Temps d'une image du studio : `cargo test --release temps_du_studio -- --ignored --nocapture`.
+    /// `MISTY_STUDIO=<dossier>` y écrit aussi les images, pour comparer deux versions du rendu.
+    #[test]
+    #[ignore]
+    fn temps_du_studio() {
+        let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
+        let cape = image::load_from_memory(texture_misty()).unwrap().to_rgba8();
+        let dossier = std::env::var("MISTY_STUDIO").ok();
+        let debut = std::time::Instant::now();
+        let mut n = 0;
+        for a in 0..5 {
+            for i in 0..24 {
+                let yaw = i as f32 * 0.27;
+                let img = rendre_live(&steve, Some(&cape), i % 2 == 0, a == 3, Anim::depuis(a), i as f32 * 0.13, yaw, 0.2 + (i % 5) as f32 * 0.1).unwrap();
+                n += 1;
+                if let Some(d) = &dossier {
+                    img.save(format!("{d}/{a}-{i}.png")).unwrap();
+                }
+            }
+        }
+        println!("studio : {:.2} ms par image", debut.elapsed().as_secs_f64() * 1000.0 / n as f64);
     }
 }
 
