@@ -1,6 +1,12 @@
 # Changelog
-## 0.3.8
+## 0.3.8-beta.1
 ### Misty Client (in game)
+- New Zoom module: hold C to zoom in, the mouse wheel zooms more or less, the mouse turns slower while zoomed. Smooth by default, the key can be changed in Options › Controls
+- New Fullbright module: everything is lit, caves, nights and the Nether. Turn it on in the Misty settings, or give it a key in Options › Controls
+- The Singleplayer, Multiplayer and Options menus (and every menu outside a world) now have the Misty landscape behind them, with Misty buttons, sliders, text fields and tabs
+- Misty settings redone: categories on the left (General, HUD, Zoom, Fullbright, Cosmetics) and a live animated preview of each one
+- The Misty settings can also be opened from the classic Minecraft menu (top right), so the Misty menu can be turned back on
+- HUD editor: dragging a module now follows the mouse
 - New main menu: the launcher's night landscape scrolling behind (stars, moon, mountains, mist), the entries along a glowing path with custom blue icons, and you in 3D on the right with what you wear, your head following the mouse
 - New wardrobe, laid out like Essential's: categories on the left (capes now; hats, wings, pets and emotes coming), the cosmetics in the middle, your outfit in 3D on the right. A cosmetic equipped in game is kept by the launcher
 - New Misty loading screen instead of Mojang's red one: the same landscape, the Misty cloud and a blue progress bar

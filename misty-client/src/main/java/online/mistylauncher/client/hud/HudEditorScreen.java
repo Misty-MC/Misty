@@ -159,21 +159,41 @@ public final class HudEditorScreen extends MistyScreen {
 		if (this.dragged == null) {
 			return super.mouseDragged(event, dx, dy);
 		}
-		if (!this.moved && Math.abs(event.x() - this.pressX) < CLICK_SLOP && Math.abs(event.y() - this.pressY) < CLICK_SLOP) {
-			return true;
+		this.dragTo(event.x(), event.y());
+		return true;
+	}
+
+	/**
+	 * The pointer also moves the grabbed module without a drag event: the game does not always
+	 * send one, and the module must follow the mouse until the button is released.
+	 */
+	@Override
+	public void mouseMoved(final double x, final double y) {
+		if (this.dragged != null) {
+			this.dragTo(x, y);
+		}
+		super.mouseMoved(x, y);
+	}
+
+	/** Moves the grabbed module so the point it was grabbed by is under (x, y). */
+	private void dragTo(final double pointerX, final double pointerY) {
+		if (this.dragged == null) {
+			return;
+		}
+		if (!this.moved && Math.abs(pointerX - this.pressX) < CLICK_SLOP && Math.abs(pointerY - this.pressY) < CLICK_SLOP) {
+			return;
 		}
 		this.moved = true;
 		HudManager.Bounds bounds = this.bounds(this.dragged);
 		int centerX = (this.width - bounds.width()) / 2;
 		int centerY = (this.height - bounds.height()) / 2;
-		int x = snap((int)Math.round(event.x() - this.grabX), MARGIN, centerX, this.width - bounds.width() - MARGIN);
-		int y = snap((int)Math.round(event.y() - this.grabY), MARGIN, centerY, this.height - bounds.height() - MARGIN);
+		int x = snap((int)Math.round(pointerX - this.grabX), MARGIN, centerX, this.width - bounds.width() - MARGIN);
+		int y = snap((int)Math.round(pointerY - this.grabY), MARGIN, centerY, this.height - bounds.height() - MARGIN);
 		this.centeredX = x == centerX;
 		this.centeredY = y == centerY;
 		x = Math.clamp(x, 0, Math.max(0, this.width - bounds.width()));
 		y = Math.clamp(y, 0, Math.max(0, this.height - bounds.height()));
 		HudManager.place(this.dragged, bounds, x, y, this.width, this.height);
-		return true;
 	}
 
 	private static int snap(final int value, final int... targets) {

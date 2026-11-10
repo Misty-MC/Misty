@@ -112,7 +112,8 @@ mod tests {
     #[test]
     fn changelog_integre_depuis_la_premiere_release() {
         let s = super::integre();
-        assert_eq!(s.first().map(|x| x.0.as_str()), Some(crate::services::app_info::VERSION));
+        // titres en majuscules à l'affichage ("0.3.8-BETA.1")
+        assert_eq!(s.first().map(|x| x.0.clone()), Some(crate::services::app_info::VERSION.to_uppercase()));
         assert_eq!(s.last().map(|x| x.0.as_str()), Some("0.3.0"));
         assert!(s[0].2.iter().any(|&h| h), "intertitres de 0.3.5");
     }

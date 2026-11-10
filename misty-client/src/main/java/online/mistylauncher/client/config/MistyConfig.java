@@ -26,6 +26,16 @@ public final class MistyConfig {
 	public boolean network = true;
 	/** Misty capes and elytra are drawn (yours and the other players'). */
 	public boolean cosmetics = true;
+	/** Zoom while the zoom key (C) is held. */
+	public boolean zoom = true;
+	/** How much the zoom magnifies (1.5 to 10), changed with the mouse wheel while zooming. */
+	public float zoomLevel = 4.0F;
+	/** The zoom glides in and out instead of jumping. */
+	public boolean zoomSmooth = true;
+	/** The mouse wheel changes the zoom while the key is held. */
+	public boolean zoomScroll = true;
+	/** Fullbright: everything lit, even caves and nights. */
+	public boolean fullbright = false;
 	/** State of each HUD module, by module id. */
 	public Map<String, Module> modules = new LinkedHashMap<>();
 

@@ -98,7 +98,7 @@ if (-not $Iscc) {
     throw "Inno Setup introuvable. Installe-le (winget install JRSoftware.InnoSetup) ou passe -Iscc <chemin de ISCC.exe>."
 }
 
-& $Iscc "/DVersion=$version" "/DSource=$dossier" "/DSortie=$publish" (Join-Path $PSScriptRoot "Misty.iss")
+& $Iscc "/DVersion=$version" "/DNumVersion=$($version -replace '-.*$', '')" "/DSource=$dossier" "/DSortie=$publish" (Join-Path $PSScriptRoot "Misty.iss")
 if ($LASTEXITCODE -ne 0) { throw "ISCC a échoué" }
 
 Signer (Join-Path $publish "Misty-Setup-$version.exe")

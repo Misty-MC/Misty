@@ -18,6 +18,11 @@
 
 #define Dossier "Misty-" + Version
 
+; version numérique des propriétés du fichier (sans suffixe de pré-release : "0.3.8-beta.1" -> "0.3.8")
+#ifndef NumVersion
+  #define NumVersion Version
+#endif
+
 [Setup]
 ; Ne jamais changer cet ID : c'est lui qui relie les versions entre elles (et update.rs : CLE_DESINSTALLATION)
 AppId={{8F4C2A61-3B7E-4D19-9A55-6C1E0F2B7D43}
@@ -28,7 +33,7 @@ AppPublisher=xTheoxreborn
 AppPublisherURL=https://github.com/Misty-MC/Misty
 AppSupportURL=https://github.com/Misty-MC/Misty/issues
 AppUpdatesURL=https://github.com/Misty-MC/Misty/releases
-VersionInfoVersion={#Version}
+VersionInfoVersion={#NumVersion}
 DefaultDirName={localappdata}\Programs\Misty
 DisableDirPage=auto
 DisableProgramGroupPage=yes

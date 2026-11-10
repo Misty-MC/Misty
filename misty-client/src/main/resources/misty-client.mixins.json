@@ -3,14 +3,17 @@
 	"package": "online.mistylauncher.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"CameraMixin",
 		"ChatComponentMixin",
 		"ChatListenerMixin",
 		"HudMixin",
+		"LightmapMixin",
 		"LoadingOverlayMixin",
 		"MouseHandlerMixin",
 		"PauseScreenMixin",
 		"PlayerInfoMixin",
 		"PlayerTabOverlayMixin",
+		"ScreenMixin",
 		"TitleScreenMixin"
 	],
 	"injectors": {

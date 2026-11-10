@@ -100,6 +100,21 @@ public final class MistyBackground {
 	}
 
 	/**
+	 * The landscape inside a box (the settings' previews), magnified {@code zoom} times around
+	 * its centre.
+	 */
+	public static void drawIn(final GuiGraphicsExtractor graphics, final int x, final int y, final int width, final int height, final float zoom) {
+		graphics.enableScissor(x, y, x + width, y + height);
+		graphics.pose().pushMatrix();
+		graphics.pose().translate(x + width / 2.0F, y + height / 2.0F);
+		graphics.pose().scale(zoom, zoom);
+		graphics.pose().translate(-width / 2.0F, -height / 2.0F);
+		draw(graphics, width, height);
+		graphics.pose().popMatrix();
+		graphics.disableScissor();
+	}
+
+	/**
 	 * One looping layer: drawn twice side by side, moved right by {@code offset} (in GUI pixels,
 	 * wrapped on the width of a tile).
 	 */

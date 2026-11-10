@@ -11,6 +11,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import online.mistylauncher.client.config.LauncherLink;
 import online.mistylauncher.client.config.MistyConfig;
+import online.mistylauncher.client.features.Zoom;
+import net.minecraft.network.chat.Component;
 import online.mistylauncher.client.hud.HudEditorScreen;
 import online.mistylauncher.client.hud.HudManager;
 import online.mistylauncher.client.net.MistyNetwork;
@@ -27,9 +29,15 @@ public final class MistyClient implements ClientModInitializer {
 
 	private static MistyConfig config = new MistyConfig();
 	private static KeyMapping editorKey;
+	private static KeyMapping fullbrightKey;
 
 	public static MistyConfig config() {
 		return config;
+	}
+
+	/** The fullbright switch key (shown in the settings). */
+	public static KeyMapping fullbrightKey() {
+		return fullbrightKey;
 	}
 
 	public static Identifier id(final String path) {
@@ -50,9 +58,11 @@ public final class MistyClient implements ClientModInitializer {
 		HudManager.init(config);
 		LauncherLink.refresh();
 
-		editorKey = KeyMappingHelper.registerKeyMapping(
-			new KeyMapping("key.misty.editor", InputConstants.KEY_RSHIFT, KeyMapping.Category.register(id("misty")))
-		);
+		KeyMapping.Category category = KeyMapping.Category.register(id("misty"));
+		editorKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.misty.editor", InputConstants.KEY_RSHIFT, category));
+		// zoom: held (C, like OptiFine); fullbright: a switch, no key until the player picks one
+		Zoom.bind(KeyMappingHelper.registerKeyMapping(new KeyMapping("key.misty.zoom", InputConstants.KEY_C, category)));
+		fullbrightKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.misty.fullbright", InputConstants.UNKNOWN.getValue(), category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(MistyClient::tick);
 		ClientLifecycleEvents.CLIENT_STARTED.register(MistyNetwork::start);
@@ -62,6 +72,14 @@ public final class MistyClient implements ClientModInitializer {
 	private static void tick(final Minecraft minecraft) {
 		LauncherLink.tick();
 		MistyNetwork.tick(minecraft);
+		Zoom.tick();
+		while (fullbrightKey.consumeClick()) {
+			config.fullbright = !config.fullbright;
+			config.save();
+			if (minecraft.player != null) {
+				minecraft.player.sendOverlayMessage(Component.translatable(config.fullbright ? "misty.fullbright.on" : "misty.fullbright.off"));
+			}
+		}
 		while (editorKey.consumeClick()) {
 			if (minecraft.gui.screen() == null) {
 				minecraft.gui.setScreen(new HudEditorScreen(null));

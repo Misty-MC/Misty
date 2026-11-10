@@ -40,13 +40,36 @@ abstract class TitleScreenMixin extends Screen {
 		this.misty$active = MistyClient.config().customMenu;
 		if (this.misty$active) {
 			MistyTitle.init((TitleScreen)(Object)this, this.width, this.height, this.getMultiplayerDisabledReason(), this::addRenderableWidget);
-			// development: -Dmisty.debug.wardrobe=true opens the wardrobe once, to look at it
-			if (Boolean.getBoolean("misty.debug.wardrobe") && !misty$wardrobeShown) {
+			// development: -Dmisty.debug.open=<screen> opens a screen once at start, to look at it
+			// (wardrobe, settings, options, singleplayer, multiplayer)
+			String open = System.getProperty("misty.debug.open", Boolean.getBoolean("misty.debug.wardrobe") ? "wardrobe" : "");
+			if (!open.isEmpty() && !misty$wardrobeShown) {
 				misty$wardrobeShown = true;
-				this.minecraft.gui.setScreen(new online.mistylauncher.client.ui.WardrobeScreen((TitleScreen)(Object)this));
+				TitleScreen self = (TitleScreen)(Object)this;
+				net.minecraft.client.gui.screens.Screen next = switch (open) {
+					case "wardrobe" -> new online.mistylauncher.client.ui.WardrobeScreen(self);
+					case "settings" -> new online.mistylauncher.client.ui.MistySettingsScreen(self);
+					case "options" -> new net.minecraft.client.gui.screens.options.OptionsScreen(self, this.minecraft.options);
+					case "singleplayer" -> new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(self);
+					case "multiplayer" -> new net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen(self);
+					default -> null;
+				};
+				if (next != null) {
+					this.minecraft.gui.setScreen(next);
+				}
 			}
 			ci.cancel();
 		}
+	}
+
+	/** Classic menu (custom menu off): a way back into the Misty settings, top right. */
+	@Inject(method = "init", at = @At("TAIL"))
+	private void misty$settingsButton(final CallbackInfo ci) {
+		Component label = Component.translatable("misty.settings.title");
+		int width = this.font.width(label) + 16;
+		TitleScreen self = (TitleScreen)(Object)this;
+		this.addRenderableWidget(new online.mistylauncher.client.ui.MistyButton(this.width - width - 8, 8, width, 18, label,
+			() -> this.minecraft.gui.setScreen(new online.mistylauncher.client.ui.MistySettingsScreen(self))));
 	}
 
 	@Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true)
