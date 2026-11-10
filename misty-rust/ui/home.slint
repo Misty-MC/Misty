@@ -507,7 +507,7 @@ export component HomePage inherits Rectangle {
                         VerticalLayout {
                             alignment: end;
                             spacing: 6px;
-                            Label { text: HomeState.horizon-selected ? Tr.t("Hz_Moteur") : HomeState.quick ? Tr.t("Commun_Version") : Tr.t("Home_Profil"); }
+                            Label { text: HomeState.horizon-selected ? Tr.t("Hz_Moteur") : HomeState.misty-selected && HomeState.quick ? "MISTY CLIENT" : HomeState.quick ? Tr.t("Commun_Version") : Tr.t("Home_Profil"); }
                             HorizontalLayout {
                                 spacing: 8px;
                                 choix := Rectangle {
@@ -526,14 +526,14 @@ export component HomePage inherits Rectangle {
                                         VerticalLayout {
                                             alignment: center;
                                             Icon {
-                                                text: HomeState.horizon-selected ? "\u{E945}" : HomeState.quick ? "\u{E7FC}" : "\u{E8F1}";
+                                                text: HomeState.horizon-selected ? "\u{E945}" : HomeState.misty-selected && HomeState.quick ? "\u{E753}" : HomeState.quick ? "\u{E7FC}" : "\u{E8F1}";
                                                 font-size: 14px;
                                                 color: HomeState.horizon-selected ? #F0795A : Theme.accent;
                                             }
                                         }
                                         Text {
                                             horizontal-stretch: 1;
-                                            text: HomeState.horizon-selected ? "HORIZON  ·  " + HomeState.horizon-build : HomeState.quick ? HomeState.card-version + "  ·  " + HomeState.card-loader : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
+                                            text: HomeState.horizon-selected ? "HORIZON  ·  " + HomeState.horizon-build : HomeState.misty-selected && HomeState.quick ? "MISTY  ·  " + HomeState.misty-mc : HomeState.quick ? HomeState.card-version + "  ·  " + HomeState.card-loader : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
                                             font-size: 14px;
                                             font-weight: 700;
                                             color: Theme.navy;
@@ -552,6 +552,7 @@ export component HomePage inherits Rectangle {
                                         clicked => {
                                             HomeState.picker-tab = HomeState.quick || HomeState.horizon-selected ? 0 : 1;
                                             HomeState.picker-horizon = HomeState.horizon-selected;
+                                            HomeState.picker-misty = HomeState.misty-selected && HomeState.quick && !HomeState.horizon-selected;
                                             HomeState.picker-open = true;
                                             if (HomeState.horizon-selected) {
                                                 HomeState.horizon-refresh();

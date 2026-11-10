@@ -1,6 +1,7 @@
 # Changelog
 ## 0.3.8
 ### Misty Client (in game)
+- New "Misty" versions at the top of the version picker, above Horizon: pick Misty 26.3 and play, Misty starts Fabric with Misty Client for you (even when the in-game setting is off). The choice is kept for the next start
 - New: Misty now comes into the game, like PvP clients. Misty Client is a mod built into the launcher, installed on its own in **Fabric 26.3** profiles (nothing to download, switchable in Settings)
 - Misty main menu instead of the Minecraft one: the cloud, your account, and the same entries as before
 - HUD: FPS, ping, clicks per second, coordinates, keystrokes, armor and clock. Press Right Shift in game to arrange it: drag a module to move it, click to turn it on or off, scroll to resize

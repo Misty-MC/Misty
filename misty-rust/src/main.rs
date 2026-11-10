@@ -108,6 +108,10 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             accueil.set_picker_open(true);
             attendre(2500).await;
             photo(&app, "r1-versions-etroit", &dossier);
+            accueil.set_picker_misty(true);
+            attendre(1200).await;
+            photo(&app, "r1b-versions-misty", &dossier);
+            accueil.set_picker_misty(false);
             accueil.set_picker_open(false);
             use services::journal;
             let parties = [

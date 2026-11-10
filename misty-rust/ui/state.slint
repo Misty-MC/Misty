@@ -123,6 +123,17 @@ export global HomeState {
     // ── Horizon (Minecraft 26.3 en Rust) : builds téléchargés depuis GitHub, lancés par Misty ──
     /// Horizon est choisi : la barre du bas et JOUER le lancent
     in-out property <bool> horizon-selected;
+    /// Versions Misty (Fabric + Misty Client) : proposées si le mod est dans l'exe
+    in property <bool> misty-available;
+    /// Version de Minecraft du mod ("26.3")
+    in property <string> misty-mc;
+    in property <image> misty-art;
+    /// JOUER lance Misty (jeu rapide sur la version du mod, Fabric, Misty Client)
+    in-out property <bool> misty-selected;
+    /// Fenêtre de choix ouverte sur Misty
+    in-out property <bool> picker-misty;
+    callback misty-select();
+    callback misty-play();
     /// L'entrée Horizon est ouverte dans la fenêtre de choix
     in-out property <bool> picker-horizon;
     in property <image> horizon-art;

@@ -38,12 +38,14 @@ pub const MAJ_PRERELEASE: &str = "majprerelease";
 pub const MISTY_CLIENT: &str = "mistyclient";
 /// Cosmétique Misty équipé : "" aucun, "misty_cape", "misty_elytra" (voir services::client)
 pub const COSMETIQUE: &str = "cosmetique";
+/// JOUER lance la version Misty (Fabric + Misty Client)
+pub const MISTY_CHOISI: &str = "mistychoisi";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
-    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, MISTY_CHOISI,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

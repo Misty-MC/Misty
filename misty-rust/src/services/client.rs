@@ -40,11 +40,11 @@ pub fn compatible(version_mc: &str, mode: &str) -> bool {
 }
 
 /// Avant de lancer le jeu : pose le mod dans `mods` (ou le met à jour) si Misty Client est activé
-/// et que le profil le supporte, sinon le retire (un mod d'une autre version de Minecraft
-/// empêcherait le jeu de démarrer).
-pub fn preparer(dossier_jeu: &Path, version_mc: &str, mode: &str) {
+/// (ou que la version Misty est lancée : `force`) et que le profil le supporte, sinon le retire
+/// (un mod d'une autre version de Minecraft empêcherait le jeu de démarrer).
+pub fn preparer(dossier_jeu: &Path, version_mc: &str, mode: &str, force: bool) {
     let chemin = dossier_jeu.join("mods").join(FICHIER);
-    if active() && compatible(version_mc, mode) {
+    if (active() || force) && compatible(version_mc, mode) {
         if fs::read(&chemin).is_ok_and(|actuel| actuel == JAR) {
             return;
         }

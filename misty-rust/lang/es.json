@@ -678,5 +678,19 @@
   "Progres_Reconnaissance": "Buscando el modpack en Modrinth y CurseForge…",
   "Progres_AncienPack": "Listando los archivos de la versión actual…",
   "Progres_RechercheModrinth": "Buscando {0} archivo(s) en Modrinth…",
-  "Erreur_PasUnModpack": "Este perfil no se creó desde un modpack conocido."
+  "Erreur_PasUnModpack": "Este perfil no se creó desde un modpack conocido.",
+  "Misty_Sous_Titre": "Fabric + Misty Client",
+  "Misty_Etiquette": "MISTY CLIENT",
+  "Misty_Titre": "Minecraft con el mod Misty",
+  "Misty_Inclus": "INCLUIDO",
+  "Misty_F_Menu": "Menú Misty",
+  "Misty_F_Menu_Texte": "Un menú principal y un menú de pausa Misty, con los ajustes Misty.",
+  "Misty_F_Hud": "HUD",
+  "Misty_F_Hud_Texte": "FPS, ping, CPS, coordenadas, teclas, armadura y reloj. Shift derecho para colocarlos.",
+  "Misty_F_Badge": "Insignia Misty",
+  "Misty_F_Badge_Texte": "La nube Misty delante de los jugadores que juegan con Misty.",
+  "Misty_F_Cosmetiques": "Cosméticos",
+  "Misty_F_Cosmetiques_Texte": "La capa y los élitros Misty de la pestaña Skin, vistos por los demás jugadores Misty.",
+  "Misty_Info": "Misty instala Fabric y el mod Misty Client por ti, sin nada que configurar.",
+  "Misty_Jouer": "Jugar"
 }

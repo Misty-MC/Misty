@@ -334,6 +334,272 @@ component LigneHorizon inherits Rectangle {
     }
 }
 
+/// Ligne Misty (en tête de liste) : Fabric + Misty Client.
+component LigneMisty inherits Rectangle {
+    in property <bool> checked;
+    callback clicked;
+    height: 74px;
+    border-radius: 14px;
+    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : #2F8CFF12;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : #2F8CFF59;
+    animate background, border-color { duration: Theme.normal; }
+    HorizontalLayout {
+        padding: 8px;
+        spacing: 12px;
+        Rectangle {
+            width: 100px;
+            border-radius: 10px;
+            clip: true;
+            background: @linear-gradient(135deg, #16244A 0%, #2F6FD6 100%);
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: HomeState.misty-art;
+                image-fit: cover;
+                image-rendering: pixelated;
+                opacity: 0.55;
+                transform-scale: zone.has-hover || root.checked ? 1.12 : 1;
+                animate transform-scale { duration: 360ms; easing: ease-out; }
+            }
+            Image {
+                width: 44px;
+                height: 44px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                source: Assets.logo;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text {
+                text: "MISTY";
+                font-family: Theme.pixel-font;
+                font-size: 15px;
+                color: Theme.accent;
+            }
+            Text {
+                text: Tr.t("Misty_Sous_Titre");
+                font-size: 12.5px;
+                font-weight: 600;
+                color: Theme.navy2;
+                overflow: elide;
+            }
+            Text {
+                text: HomeState.misty-mc + " · Fabric · HUD";
+                font-size: 11.5px;
+                color: Theme.text-dim;
+                overflow: elide;
+            }
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Ce que Misty apporte en jeu (une carte par fonction).
+component FonctionMisty inherits Rectangle {
+    in property <string> icon;
+    in property <string> titre;
+    in property <string> texte;
+    // quatre cartes de même largeur, quel que soit leur texte
+    horizontal-stretch: 1;
+    min-width: 0;
+    preferred-width: 0;
+    border-radius: 14px;
+    background: Theme.glass-strong;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 6px;
+        HorizontalLayout {
+            spacing: 8px;
+            Rectangle {
+                width: 26px;
+                height: 26px;
+                border-radius: 8px;
+                background: Theme.accent-soft;
+                Icon {
+                    text: root.icon;
+                    font-size: 13px;
+                    color: Theme.accent;
+                }
+            }
+            Text {
+                text: root.titre;
+                font-size: 13px;
+                font-weight: 700;
+                color: Theme.navy;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        Text {
+            text: root.texte;
+            font-size: 11.5px;
+            color: Theme.text-muted;
+            wrap: word-wrap;
+        }
+    }
+}
+
+/// Panneau Misty : ce qu'apporte Misty Client, sa version, et Jouer.
+component PanneauMisty inherits VerticalLayout {
+    spacing: 14px;
+    // bannière
+    Rectangle {
+        height: 200px;
+        border-radius: 20px;
+        clip: true;
+        border-width: 1px;
+        border-color: Theme.accent.with-alpha(0.45);
+        background: @linear-gradient(135deg, #0E1A38 0%, #1D3F86 55%, #3B7BE8 100%);
+        Image {
+            x: 0;
+            width: parent.width;
+            height: max(parent.height, parent.width * 90 / 160);
+            y: min(0px, parent.height - self.height * 82 / 90);
+            source: HomeState.misty-art;
+            image-fit: fill;
+            image-rendering: pixelated;
+            opacity: 0.5;
+        }
+        Rectangle {
+            background: @linear-gradient(90deg, #0A1226E6 0%, #0A122699 45%, #0A122600 75%);
+        }
+        Image {
+            width: 120px;
+            height: 120px;
+            x: parent.width - self.width - 36px;
+            y: (parent.height - self.height) / 2;
+            source: Assets.logo;
+        }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 6px;
+            alignment: end;
+            PixelLabel {
+                text: Tr.t("Misty_Etiquette");
+                font-size: 10.5px;
+                color: #CFE0FF;
+            }
+            HorizontalLayout {
+                alignment: start;
+                OutlinedText {
+                    text: "MISTY";
+                    font-size: 44px;
+                    thickness: 4px;
+                    depth: 5px;
+                    stroke-color: #142A5C;
+                    shadow: #0A1430;
+                }
+            }
+            Text {
+                text: Tr.t("Misty_Titre");
+                font-size: 18px;
+                font-weight: 800;
+                color: white;
+            }
+            Text {
+                text: "Minecraft " + HomeState.misty-mc + " · Fabric · Misty Client";
+                font-size: 13px;
+                color: #CFDAF0;
+            }
+        }
+    }
+
+    // ce que Misty apporte
+    PixelLabel {
+        text: Tr.t("Misty_Inclus");
+        font-size: 10.5px;
+    }
+    HorizontalLayout {
+        spacing: 10px;
+        FonctionMisty { icon: "\u{E80F}"; titre: Tr.t("Misty_F_Menu"); texte: Tr.t("Misty_F_Menu_Texte"); }
+        FonctionMisty { icon: "\u{E9D9}"; titre: Tr.t("Misty_F_Hud"); texte: Tr.t("Misty_F_Hud_Texte"); }
+        FonctionMisty { icon: "\u{E753}"; titre: Tr.t("Misty_F_Badge"); texte: Tr.t("Misty_F_Badge_Texte"); }
+        FonctionMisty { icon: "\u{E7EE}"; titre: Tr.t("Misty_F_Cosmetiques"); texte: Tr.t("Misty_F_Cosmetiques_Texte"); }
+    }
+
+    // versions Misty
+    PixelLabel {
+        text: Tr.t("Ver_Onglet_Versions");
+        font-size: 10.5px;
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Rectangle {
+            width: 150px;
+            height: 42px;
+            border-radius: 12px;
+            background: HomeState.misty-selected ? Theme.accent : zone-version.has-hover ? Theme.glass-hover : Theme.glass-strong;
+            border-width: 1px;
+            border-color: HomeState.misty-selected ? Theme.accent : Theme.glass-border;
+            animate background { duration: Theme.normal; }
+            HorizontalLayout {
+                alignment: center;
+                spacing: 8px;
+                Icon {
+                    text: "\u{E753}";
+                    font-size: 14px;
+                    color: HomeState.misty-selected ? white : Theme.accent;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: "MISTY " + HomeState.misty-mc;
+                    font-family: Theme.pixel-font;
+                    font-size: 12px;
+                    color: HomeState.misty-selected ? white : Theme.navy;
+                    vertical-alignment: center;
+                }
+            }
+            zone-version := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { HomeState.misty-select(); }
+            }
+        }
+    }
+    Rectangle { vertical-stretch: 1; }
+
+    // bas : info, Jouer
+    HorizontalLayout {
+        spacing: 10px;
+        Text {
+            horizontal-stretch: 1;
+            text: Tr.t("Misty_Info");
+            font-size: 12.5px;
+            color: Theme.text-muted;
+            vertical-alignment: center;
+            wrap: word-wrap;
+        }
+        VerticalLayout {
+            alignment: center;
+            MButton {
+                icon: "\u{E73E}";
+                text: Tr.t("Ver_Valider");
+                clicked => {
+                    HomeState.misty-select();
+                    HomeState.picker-open = false;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            MButton {
+                kind: 3;
+                icon: "\u{E768}";
+                text: Tr.t("Misty_Jouer");
+                clicked => { HomeState.misty-play(); }
+            }
+        }
+    }
+}
+
 /// Un build d'Horizon, en puce comme les versions : un clic le télécharge, puis le choisit.
 component PuceBuild inherits Rectangle {
     in property <HorizonBuild> b;
@@ -656,7 +922,7 @@ export component VersionPicker inherits Rectangle {
                 }
                 Rectangle { horizontal-stretch: 1; }
             }
-            if HomeState.picker-tab == 0 && !HomeState.picker-horizon: HorizontalLayout {
+            if HomeState.picker-tab == 0 && !HomeState.picker-horizon && !HomeState.picker-misty: HorizontalLayout {
                 spacing: 6px;
                 for t[i] in [Tr.t("Ver_Releases"), "Snapshots", Tr.t("Ver_Betas"), "Alphas"]: Puce {
                     text: t;
@@ -695,32 +961,45 @@ export component VersionPicker inherits Rectangle {
                         width: parent.width - 16px;
                         height: parent.height - 16px;
                         content-width: self.visible-width;
-                        content-height: (HomeState.picker-groups.length + 1) * 78px + 10px;
-                        LigneHorizon {
+                        // décalage des lignes sous Misty (absente si le mod n'est pas dans l'exe)
+                        content-height: (HomeState.misty-available ? 88px : 0px) + (HomeState.picker-groups.length + 1) * 78px + 10px;
+                        if HomeState.misty-available: LigneMisty {
                             x: 0;
                             y: 0;
+                            width: parent.width - 4px;
+                            checked: HomeState.picker-misty;
+                            clicked => {
+                                HomeState.picker-misty = true;
+                                HomeState.picker-horizon = false;
+                            }
+                        }
+                        LigneHorizon {
+                            x: 0;
+                            y: (HomeState.misty-available ? 88px : 0px);
                             width: parent.width - 4px;
                             checked: HomeState.picker-horizon;
                             clicked => {
                                 HomeState.picker-horizon = true;
+                                HomeState.picker-misty = false;
                                 HomeState.horizon-refresh();
                             }
                         }
                         for g[i] in HomeState.picker-groups: LigneGroupe {
                             x: 0;
-                            y: 88px + i * 78px;
+                            y: (HomeState.misty-available ? 88px : 0px) + 88px + i * 78px;
                             width: parent.width - 4px;
                             g: g;
-                            checked: !HomeState.picker-horizon && i == HomeState.picker-group;
+                            checked: !HomeState.picker-horizon && !HomeState.picker-misty && i == HomeState.picker-group;
                             clicked => {
                                 HomeState.picker-horizon = false;
+                                HomeState.picker-misty = false;
                                 HomeState.picker-group-selected(i);
                             }
                         }
                     }
                     // sous la carte Horizon (qui reste toujours en tête de liste)
-                    if HomeState.picker-groups.length == 0 && !HomeState.picker-horizon: Text {
-                        y: 104px;
+                    if HomeState.picker-groups.length == 0 && !HomeState.picker-horizon && !HomeState.picker-misty: Text {
+                        y: (HomeState.misty-available ? 88px : 0px) + 104px;
                         x: 16px;
                         width: parent.width - 32px;
                         text: Tr.t("Ver_Aucune");
@@ -731,13 +1010,18 @@ export component VersionPicker inherits Rectangle {
                     }
                 }
 
+                // Misty
+                if HomeState.picker-misty: PanneauMisty {
+                    horizontal-stretch: 1;
+                }
+
                 // Horizon
                 if HomeState.picker-horizon: PanneauHorizon {
                     horizontal-stretch: 1;
                 }
 
                 // détail de la mise à jour choisie
-                if !HomeState.picker-horizon && root.a-groupe: VerticalLayout {
+                if !HomeState.picker-horizon && !HomeState.picker-misty && root.a-groupe: VerticalLayout {
                     horizontal-stretch: 1;
                     spacing: 14px;
 
@@ -812,7 +1096,7 @@ export component VersionPicker inherits Rectangle {
                             y: 4px + floor(i / grille.colonnes) * 50px;
                             width: grille.largeur;
                             v: v;
-                            checked: HomeState.quick && !HomeState.horizon-selected && v.id == HomeState.card-version;
+                            checked: HomeState.quick && !HomeState.horizon-selected && !HomeState.misty-selected && v.id == HomeState.card-version;
                             clicked => { HomeState.version-picked(v.id); }
                         }
                     }

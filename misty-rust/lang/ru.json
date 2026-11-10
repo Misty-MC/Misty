@@ -678,5 +678,19 @@
   "Progres_Reconnaissance": "Поиск модпака на Modrinth и CurseForge…",
   "Progres_AncienPack": "Список файлов текущей версии…",
   "Progres_RechercheModrinth": "Поиск файлов на Modrinth: {0}…",
-  "Erreur_PasUnModpack": "Этот профиль создан не из известного модпака."
+  "Erreur_PasUnModpack": "Этот профиль создан не из известного модпака.",
+  "Misty_Sous_Titre": "Fabric + Misty Client",
+  "Misty_Etiquette": "MISTY CLIENT",
+  "Misty_Titre": "Minecraft с модом Misty",
+  "Misty_Inclus": "ВКЛЮЧЕНО",
+  "Misty_F_Menu": "Меню Misty",
+  "Misty_F_Menu_Texte": "Главное меню и меню паузы Misty с настройками Misty.",
+  "Misty_F_Hud": "HUD",
+  "Misty_F_Hud_Texte": "FPS, пинг, CPS, координаты, клавиши, броня и часы. Правый Shift — расставить.",
+  "Misty_F_Badge": "Значок Misty",
+  "Misty_F_Badge_Texte": "Облако Misty перед игроками, которые играют с Misty.",
+  "Misty_F_Cosmetiques": "Косметика",
+  "Misty_F_Cosmetiques_Texte": "Плащ и элитры Misty из вкладки «Скин», видны другим игрокам Misty.",
+  "Misty_Info": "Misty сам устанавливает Fabric и мод Misty Client, ничего настраивать не нужно.",
+  "Misty_Jouer": "Играть"
 }
