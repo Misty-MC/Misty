@@ -6,6 +6,7 @@
 		"ChatComponentMixin",
 		"ChatListenerMixin",
 		"HudMixin",
+		"LoadingOverlayMixin",
 		"MouseHandlerMixin",
 		"PauseScreenMixin",
 		"PlayerInfoMixin",

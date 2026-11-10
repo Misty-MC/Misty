@@ -1,6 +1,9 @@
 # Changelog
 ## 0.3.8
 ### Misty Client (in game)
+- New main menu: the launcher's night landscape scrolling behind (stars, moon, mountains, mist), the entries along a glowing path with custom blue icons, and you in 3D on the right with what you wear, your head following the mouse
+- New wardrobe, laid out like Essential's: categories on the left (capes now; hats, wings, pets and emotes coming), the cosmetics in the middle, your outfit in 3D on the right. A cosmetic equipped in game is kept by the launcher
+- New Misty loading screen instead of Mojang's red one: the same landscape, the Misty cloud and a blue progress bar
 - New "Misty" versions at the top of the version picker, above Horizon: pick Misty 26.3 and play, Misty starts Fabric with Misty Client for you (even when the in-game setting is off). The choice is kept for the next start
 - New: Misty now comes into the game, like PvP clients. Misty Client is a mod built into the launcher, installed on its own in **Fabric 26.3** profiles (nothing to download, switchable in Settings)
 - Misty main menu instead of the Minecraft one: the cloud, your account, and the same entries as before

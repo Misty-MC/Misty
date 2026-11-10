@@ -57,8 +57,26 @@ pub fn preparer(dossier_jeu: &Path, version_mc: &str, mode: &str, force: bool) {
     }
 }
 
+/// La garde-robe du jeu (Misty Client) écrit son choix dans `client.json` avec `"from": "game"` :
+/// le launcher le reprend au lieu d'écrire le sien par-dessus.
+pub fn reprendre_du_jeu() {
+    let Ok(texte) = fs::read_to_string(paths::data_dir().join("client.json")) else { return };
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&texte) else { return };
+    if json["from"].as_str() != Some("game") {
+        return;
+    }
+    let choix = json["cosmetic"].as_str().unwrap_or("");
+    if choix.is_empty() || choix == CAPE || choix == ELYTRES {
+        if choix != settings::get(settings::COSMETIQUE) {
+            settings::set(settings::COSMETIQUE, choix);
+            journal::info(&format!("Cosmétique choisi en jeu : {}", if choix.is_empty() { "aucun" } else { choix }));
+        }
+    }
+}
+
 /// Cosmétique Misty équipé ("" : aucun).
 pub fn cosmetique() -> String {
+    reprendre_du_jeu();
     let c = settings::get(settings::COSMETIQUE);
     if c == CAPE || c == ELYTRES {
         c

@@ -23,6 +23,8 @@ abstract class TitleScreenMixin extends Screen {
 	/** Whether the widgets on screen are Misty's (the option can change while the menu is open). */
 	@Unique
 	private boolean misty$active;
+	@Unique
+	private static boolean misty$wardrobeShown;
 
 	private TitleScreenMixin(final Component title) {
 		super(title);
@@ -38,6 +40,11 @@ abstract class TitleScreenMixin extends Screen {
 		this.misty$active = MistyClient.config().customMenu;
 		if (this.misty$active) {
 			MistyTitle.init((TitleScreen)(Object)this, this.width, this.height, this.getMultiplayerDisabledReason(), this::addRenderableWidget);
+			// development: -Dmisty.debug.wardrobe=true opens the wardrobe once, to look at it
+			if (Boolean.getBoolean("misty.debug.wardrobe") && !misty$wardrobeShown) {
+				misty$wardrobeShown = true;
+				this.minecraft.gui.setScreen(new online.mistylauncher.client.ui.WardrobeScreen((TitleScreen)(Object)this));
+			}
 			ci.cancel();
 		}
 	}
@@ -48,7 +55,7 @@ abstract class TitleScreenMixin extends Screen {
 			this.rebuildWidgets();
 		}
 		if (this.misty$active) {
-			this.extractPanorama(graphics, a);
+			// the launcher's landscape instead of the Minecraft panorama
 			MistyTitle.background(graphics, this.width, this.height);
 			super.extractRenderState(graphics, mouseX, mouseY, a);
 			MistyTitle.foreground(graphics, this.font, this.width, this.height);

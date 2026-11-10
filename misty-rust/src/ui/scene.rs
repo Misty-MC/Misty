@@ -331,3 +331,128 @@ mod tests {
         assert!(flou.lune_taille > net.lune_taille);
     }
 }
+
+/// Paysage du menu principal de Misty Client (le mod) : les calques du thème nuit, nets, en PNG
+/// dans ses ressources. Chaque calque est suivi de son reflet, pour défiler en boucle sans
+/// raccord visible : `cargo test exporter_paysage_du_mod -- --ignored`.
+#[cfg(test)]
+mod export_mod {
+    use super::*;
+
+    fn png(tampon: &Tampon, couleur: [u8; 3], reflet: bool) -> image::RgbaImage {
+        let (l, h) = (tampon.width(), tampon.height());
+        let source = tampon.as_slice();
+        let largeur = if reflet { l * 2 } else { l };
+        let mut img = image::RgbaImage::new(largeur, h);
+        for y in 0..h {
+            for x in 0..largeur {
+                let sx = if x < l { x } else { 2 * l - 1 - x };
+                let a = source[(y * l + sx) as usize].a;
+                img.put_pixel(x, y, image::Rgba([couleur[0], couleur[1], couleur[2], a]));
+            }
+        }
+        img
+    }
+
+    #[test]
+    #[ignore]
+    fn exporter_paysage_du_mod() {
+        let scene = generer(0);
+        let dossier = std::path::Path::new("../misty-client/src/main/resources/assets/misty/textures/gui/scene");
+        std::fs::create_dir_all(dossier).unwrap();
+        // couleurs du thème nuit du launcher (ui/scene.slint)
+        let cretes = [[0x24, 0x34, 0x5A], [0x1A, 0x27, 0x48], [0x12, 0x1C, 0x36], [0x0D, 0x15, 0x28]];
+        for (i, c) in scene.cretes.iter().enumerate() {
+            png(c, cretes[i], true).save(dossier.join(format!("ridge{i}.png"))).unwrap();
+        }
+        png(&scene.etoiles, [0xDB, 0xE7, 0xFF], true).save(dossier.join("stars.png")).unwrap();
+        png(&scene.etoiles_scintillantes, [0xFF, 0xFF, 0xFF], true).save(dossier.join("twinkle.png")).unwrap();
+        png(&scene.lune, [0xEA, 0xF1, 0xFF], false).save(dossier.join("moon.png")).unwrap();
+
+        // Le même paysage en données, pour l'écran de chargement : à ce moment-là, le jeu ne peut pas
+        // encore lire les textures du mod, alors il est dessiné en rectangles (voir SceneData.java).
+        let segments = |t: &Tampon| -> String {
+            let (l, h) = (t.width() as usize, t.height() as usize);
+            let px = t.as_slice();
+            (0..l)
+                .map(|x| {
+                    let mut col = String::new();
+                    let mut y = 0;
+                    while y < h {
+                        if px[y * l + x].a > 0 {
+                            let debut = y;
+                            while y < h && px[y * l + x].a > 0 {
+                                y += 1;
+                            }
+                            col.push((b'A' + debut as u8) as char);
+                            col.push((b'A' + y as u8) as char);
+                        } else {
+                            y += 1;
+                        }
+                    }
+                    col
+                })
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        let points = |t: &Tampon| -> String {
+            let (l, h) = (t.width() as usize, t.height() as usize);
+            let px = t.as_slice();
+            let mut v = Vec::new();
+            for y in 0..h {
+                for x in 0..l {
+                    if px[y * l + x].a > 0 {
+                        v.push(format!("{x}.{y}"));
+                    }
+                }
+            }
+            v.join(" ")
+        };
+        let grille = |t: &Tampon| -> String {
+            t.as_slice().iter().map(|p| if p.a == 0 { '0' } else if p.a < 255 { '2' } else { '1' }).collect()
+        };
+        let java = format!(
+            "package online.mistylauncher.client.menu;
+
+/**
+ * The night landscape as data, for the loading screen (the textures of
+ * the mod cannot be read while the game loads its resources). Written by the launcher:
+ * {{@code misty-rust/src/ui/scene.rs}}, {{@code exporter_paysage_du_mod}}. Do not edit by hand.
+ */
+final class SceneData {{
+	/** Ridges (far to near): per column of 200, the filled rows as pairs of letters ('A' = row 0, end excluded). */
+	static final String[] RIDGES = {{
+{}
+	}};
+	/** Stars (800 × 220 grid): \"x.y\" of each lit pixel. */
+	static final String STARS = \"{}\";
+	static final String TWINKLE = \"{}\";
+	/** Moon, 11 × 11: 0 empty, 1 lit, 2 crater. */
+	static final String MOON = \"{}\";
+
+	private SceneData() {{
+	}}
+}}
+",
+            scene.cretes.iter().map(|c| format!("		\"{}\"", segments(c))).collect::<Vec<_>>().join(",
+"),
+            points(&scene.etoiles),
+            points(&scene.etoiles_scintillantes),
+            grille(&scene.lune)
+        );
+        // les données contiennent parfois un antislash ('A' + 27) : échappé pour la chaîne Java
+        std::fs::write("../misty-client/src/main/java/online/mistylauncher/client/menu/SceneData.java", java.replace('\\', "\\\\")).unwrap();
+        println!(
+            "crêtes {}x{} · étoiles {}x{} · lune {}x{} à ({}, {}) taille {}",
+            scene.cretes[0].width(),
+            scene.cretes[0].height(),
+            scene.etoiles.width(),
+            scene.etoiles.height(),
+            scene.lune.width(),
+            scene.lune.height(),
+            scene.lune_x,
+            scene.lune_y,
+            scene.lune_taille
+        );
+    }
+}

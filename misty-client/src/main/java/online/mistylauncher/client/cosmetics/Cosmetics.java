@@ -14,6 +14,11 @@ public final class Cosmetics {
 	private Cosmetics() {
 	}
 
+	/** The Misty cape and elytra texture (shown in the menu and the wardrobe). */
+	public static ClientAsset.Texture texture() {
+		return MISTY;
+	}
+
 	/** The skin of a player, with their Misty cosmetic on top. */
 	public static PlayerSkin dress(final UUID player, final PlayerSkin skin) {
 		if (!MistyClient.config().cosmetics) {

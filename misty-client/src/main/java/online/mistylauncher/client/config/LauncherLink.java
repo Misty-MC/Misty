@@ -24,9 +24,34 @@ public final class LauncherLink {
 	private LauncherLink() {
 	}
 
-	/** Cosmetic equipped in the launcher. */
+	/** Cosmetic equipped in the launcher (or in the wardrobe of the game). */
 	public static Cosmetic cosmetic() {
 		return cosmetic;
+	}
+
+	/**
+	 * Equips a cosmetic from the game (the wardrobe): worn at once, and written to
+	 * {@code client.json} with {@code "from": "game"} so the launcher keeps this choice instead of
+	 * writing its own over it at the next start.
+	 */
+	public static void equip(final Cosmetic chosen) {
+		cosmetic = chosen;
+		String dir = System.getProperty("misty.launcher.dir");
+		if (dir == null || dir.isBlank()) {
+			return;
+		}
+		try {
+			Path file = Path.of(dir, "client.json");
+			JsonObject json = new JsonObject();
+			json.addProperty("cosmetic", chosen.id());
+			json.addProperty("from", "game");
+			Path temporary = Path.of(dir, "client.json.tmp");
+			Files.writeString(temporary, json.toString(), StandardCharsets.UTF_8);
+			Files.move(temporary, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+			lastModified = Files.getLastModifiedTime(file);
+		} catch (IOException | RuntimeException e) {
+			// not written: worn for this session only
+		}
 	}
 
 	public static void tick() {

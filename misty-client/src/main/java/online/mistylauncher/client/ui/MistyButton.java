@@ -18,6 +18,7 @@ public class MistyButton extends AbstractButton {
 	private boolean primary;
 	private boolean alignLeft;
 	private @Nullable Identifier icon;
+	private @Nullable Identifier texture;
 	private boolean cloud;
 	private @Nullable BooleanSupplier selected;
 
@@ -41,6 +42,12 @@ public class MistyButton extends AbstractButton {
 	/** A sprite of the GUI atlas instead of the label (the label stays for the narrator). */
 	public MistyButton icon(final Identifier sprite) {
 		this.icon = sprite;
+		return this;
+	}
+
+	/** A 16 × 16 texture (the Misty icons) instead of the label (the label stays for the narrator). */
+	public MistyButton texture(final Identifier texture) {
+		this.texture = texture;
 		return this;
 	}
 
@@ -85,6 +92,11 @@ public class MistyButton extends AbstractButton {
 		if (this.cloud) {
 			int size = Math.min(width, height) - 6;
 			Ui.logo(graphics, x + (width - size) / 2, y + (height - size) / 2, size);
+			return;
+		}
+		if (this.texture != null) {
+			int size = Math.min(width, height) - 4;
+			graphics.blit(RenderPipelines.GUI_TEXTURED, this.texture, x + (width - size) / 2, y + (height - size) / 2, 0.0F, 0.0F, size, size, 16, 16, 16, 16);
 			return;
 		}
 		if (this.icon != null) {
