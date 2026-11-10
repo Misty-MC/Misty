@@ -27,31 +27,40 @@ public final class WardrobeScreen extends MistyScreen {
 	private static final int CATEGORY_ROW = 22;
 	private static final int GAP = 8;
 
-	/** The categories: only the capes for now, the others are shown as coming. */
+	/** The categories: capes and hats, the others are shown as coming. */
 	private enum Category {
-		CAPES("misty.wardrobe.capes", "cape", 0xFF9CC0FF, true),
-		HATS("misty.wardrobe.hats", "hats", 0xFF8FE3C8, false),
-		WINGS("misty.wardrobe.wings", "wings", 0xFFC9A8FF, false),
-		PETS("misty.wardrobe.pets", "pets", 0xFFFFC46B, false),
-		EMOTES("misty.wardrobe.emotes", "emotes", 0xFFFF9CB7, false);
+		CAPES("misty.wardrobe.capes", "cape", 0xFF9CC0FF, Cosmetic.Slot.BACK, Cosmetic.NONE, Cosmetic.CAPE, Cosmetic.EARLY_CAPE),
+		HATS("misty.wardrobe.hats", "hats", 0xFF8FE3C8, Cosmetic.Slot.HAT, Cosmetic.NONE, Cosmetic.CLOUDLY),
+		WINGS("misty.wardrobe.wings", "wings", 0xFFC9A8FF, Cosmetic.Slot.NONE),
+		PETS("misty.wardrobe.pets", "pets", 0xFFFFC46B, Cosmetic.Slot.NONE),
+		EMOTES("misty.wardrobe.emotes", "emotes", 0xFFFF9CB7, Cosmetic.Slot.NONE);
 
 		final String key;
 		final Identifier icon;
 		final int color;
+		/** Where its cosmetics are worn (NONE: a category to come). */
+		final Cosmetic.Slot slot;
+		/** Its cosmetics, "nothing" first (the Misty capes come with their elytra). */
+		final Cosmetic[] items;
 		final boolean open;
 
-		Category(final String key, final String icon, final int color, final boolean open) {
+		Category(final String key, final String icon, final int color, final Cosmetic.Slot slot, final Cosmetic... items) {
 			this.key = key;
 			this.icon = MistyClient.id("textures/gui/icons/" + icon + ".png");
 			this.color = color;
-			this.open = open;
+			this.slot = slot;
+			this.items = items;
+			this.open = items.length > 0;
 		}
 	}
 
-	/** The capes you can wear (the Misty cape comes with its elytra). */
-	private static final Cosmetic[] CAPES = {Cosmetic.NONE, Cosmetic.CAPE};
+	/** The early player cape is for the accounts the Misty site counts among the first players. */
+	private static boolean locked(final Cosmetic cosmetic) {
+		return cosmetic == Cosmetic.EARLY_CAPE && !online.mistylauncher.client.net.MistyNetwork.early();
+	}
 
-	private Category category = Category.CAPES;
+	// development: -Dmisty.debug.category=HATS opens on that category
+	private Category category = "HATS".equals(System.getProperty("misty.debug.category")) ? Category.HATS : Category.CAPES;
 
 	public WardrobeScreen(final @Nullable Screen parent) {
 		super(Component.translatable("misty.wardrobe.title"), parent);
@@ -117,17 +126,22 @@ public final class WardrobeScreen extends MistyScreen {
 			int cardW = Math.min(76, (room - GAP) / 2);
 			int cardH = Math.min(96, fh - HEADER - 50);
 			int columns = Math.max(1, (room + GAP) / (cardW + GAP));
-			for (int i = 0; i < CAPES.length; i++) {
+			Cosmetic[] items = this.category.items;
+			int rows = (items.length + columns - 1) / columns;
+			// cards smaller when they need more than one row
+			int fitH = (fh - HEADER - 34 - (rows - 1) * GAP) / Math.max(1, rows);
+			cardH = Math.max(52, Math.min(cardH, fitH));
+			for (int i = 0; i < items.length; i++) {
 				int x = this.middleX() + 10 + i % columns * (cardW + GAP);
 				int y = fy + HEADER + 10 + i / columns * (cardH + GAP);
-				this.addRenderableWidget(new Card(x, y, cardW, cardH, CAPES[i]));
+				this.addRenderableWidget(new Card(x, y, cardW, cardH, this.category.slot, items[i]));
 			}
 		}
 
 		// your outfit, and done
 		int previewH = fh - HEADER - 62;
 		int previewW = Math.min(this.rightW() - 20, previewH * 3 / 5);
-		this.addRenderableWidget(new PlayerPreview(this.rightX() + (this.rightW() - previewW) / 2, fy + HEADER + 12, previewW, previewH, LauncherLink::cosmetic));
+		this.addRenderableWidget(new PlayerPreview(this.rightX() + (this.rightW() - previewW) / 2, fy + HEADER + 12, previewW, previewH, LauncherLink::outfit));
 		this.addRenderableWidget(new MistyButton(this.rightX() + 10, fy + fh - 26, this.rightW() - 20, 18, CommonComponents.GUI_DONE, this::onClose).primary());
 	}
 
@@ -177,7 +191,11 @@ public final class WardrobeScreen extends MistyScreen {
 		Component name = Component.translatable(this.category.key);
 		graphics.text(font, name, this.middleX() + 10, textY, Ui.TEXT, false);
 		if (this.category.open) {
-			String count = " [" + CAPES.length + "/" + CAPES.length + "]";
+			int owned = 0;
+			for (Cosmetic item : this.category.items) {
+				owned += locked(item) ? 0 : 1;
+			}
+			String count = " [" + owned + "/" + this.category.items.length + "]";
 			graphics.text(font, count, this.middleX() + 10 + font.width(name), textY, Ui.DIM, false);
 			if (!MistyClient.config().cosmetics) {
 				graphics.text(font, Component.translatable("misty.wardrobe.off"), this.middleX() + 10, fy + fh - 16, 0xFFFFB46B, false);
@@ -237,16 +255,20 @@ public final class WardrobeScreen extends MistyScreen {
 
 	/** One cosmetic: its picture, its name, "equipped" when worn. */
 	private static final class Card extends AbstractButton {
+		private final Cosmetic.Slot slot;
 		private final Cosmetic cosmetic;
 
-		Card(final int x, final int y, final int width, final int height, final Cosmetic cosmetic) {
+		Card(final int x, final int y, final int width, final int height, final Cosmetic.Slot slot, final Cosmetic cosmetic) {
 			super(x, y, width, height, Component.translatable("misty.cosmetic." + (cosmetic == Cosmetic.NONE ? "none" : cosmetic.id())));
+			this.slot = slot;
 			this.cosmetic = cosmetic;
 		}
 
 		@Override
 		public void onPress(final InputWithModifiers input) {
-			LauncherLink.equip(this.cosmetic);
+			if (!locked(this.cosmetic)) {
+				LauncherLink.equip(this.slot, this.cosmetic);
+			}
 		}
 
 		@Override
@@ -256,7 +278,8 @@ public final class WardrobeScreen extends MistyScreen {
 			int y = this.getY();
 			int w = this.getWidth();
 			int h = this.getHeight();
-			boolean worn = LauncherLink.cosmetic() == this.cosmetic;
+			boolean worn = LauncherLink.outfit().in(this.slot) == this.cosmetic;
+			boolean locked = locked(this.cosmetic);
 			boolean hot = this.isHoveredOrFocused();
 			// picture area on top (lighter at the bottom, like a stand), name and state under it
 			int pictureH = h - 30;
@@ -269,6 +292,8 @@ public final class WardrobeScreen extends MistyScreen {
 			switch (this.cosmetic) {
 				// front of the cape: 10 × 16 at (1, 1) of the 64 × 32 texture
 				case CAPE -> graphics.blit(RenderPipelines.GUI_TEXTURED, misty, cx - 5 * zoom, y + (pictureH - 16 * zoom) / 2, 1.0F, 1.0F, 10 * zoom, 16 * zoom, 10, 16, 64, 32);
+				case EARLY_CAPE -> graphics.blit(RenderPipelines.GUI_TEXTURED, Cosmetics.texture(Cosmetic.EARLY_CAPE).texturePath(), cx - 5 * zoom, y + (pictureH - 16 * zoom) / 2, 1.0F, 1.0F, 10 * zoom, 16 * zoom, 10, 16, 64, 32, locked ? 0xFF6F7C99 : 0xFFFFFFFF);
+				case CLOUDLY -> cloud(graphics, cx, y + pictureH / 2, Math.clamp(pictureH / 18, 1, 3));
 				case ELYTRA -> {
 				}
 				case NONE -> {
@@ -280,6 +305,16 @@ public final class WardrobeScreen extends MistyScreen {
 					}
 				}
 			}
+			if (locked) {
+				// a padlock in the corner
+				int lx = x + w - 13;
+				int ly = y + 3;
+				graphics.fill(lx + 2, ly, lx + 8, ly + 1, Ui.MUTED);
+				graphics.fill(lx + 1, ly + 1, lx + 2, ly + 4, Ui.MUTED);
+				graphics.fill(lx + 8, ly + 1, lx + 9, ly + 4, Ui.MUTED);
+				graphics.fill(lx, ly + 4, lx + 10, ly + 10, 0xFFFFC46B);
+				graphics.fill(lx + 4, ly + 6, lx + 6, ly + 8, Ui.INK);
+			}
 			if (worn) {
 				// a small check in the corner
 				Ui.panel(graphics, x + w - 13, y + 3, 10, 10, Ui.FILL);
@@ -288,12 +323,23 @@ public final class WardrobeScreen extends MistyScreen {
 
 			float nameScale = Math.min(1.0F, (w - 6) / (float)font.width(this.getMessage()));
 			Ui.centeredScaled(graphics, font, this.getMessage(), cx, y + h - 24, nameScale, worn ? 0xFFFFFFFF : Ui.TEXT, false);
-			Component state = worn ? Component.translatable("misty.wardrobe.equipped") : Component.translatable("misty.wardrobe.equip");
+			Component state = locked ? Component.translatable("misty.wardrobe.locked")
+				: worn ? Component.translatable("misty.wardrobe.equipped") : Component.translatable("misty.wardrobe.equip");
 			graphics.pose().pushMatrix();
 			graphics.pose().translate(cx, y + h - 12);
 			graphics.pose().scale(0.75F, 0.75F);
-			graphics.text(font, state, -font.width(state) / 2, 0, worn ? Ui.ACCENT : Ui.DIM, false);
+			graphics.text(font, state, -font.width(state) / 2, 0, locked ? 0xFFFFC46B : worn ? Ui.ACCENT : Ui.DIM, false);
 			graphics.pose().popMatrix();
+		}
+
+		/** Cloudly in the card: a pixel cloud, {@code px} screen pixels per cloud pixel. */
+		private static void cloud(final GuiGraphicsExtractor graphics, final int cx, final int cy, final int px) {
+			// rows of the cloud, from the top: start and length, in cloud pixels (16 wide)
+			int[][] rows = {{6, 4}, {4, 8}, {3, 10}, {1, 14}, {0, 16}, {0, 16}, {1, 14}};
+			for (int r = 0; r < rows.length; r++) {
+				int color = r < 2 ? 0xFFFFFFFF : r < 5 ? 0xFFF1F6FF : 0xFFD6E2FF;
+				graphics.fill(cx - 8 * px + rows[r][0] * px, cy - 4 * px + r * px, cx - 8 * px + (rows[r][0] + rows[r][1]) * px, cy - 4 * px + (r + 1) * px, color);
+			}
 		}
 
 		@Override

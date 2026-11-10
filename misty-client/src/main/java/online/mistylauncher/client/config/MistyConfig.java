@@ -34,6 +34,12 @@ public final class MistyConfig {
 	public boolean zoomSmooth = true;
 	/** The mouse wheel changes the zoom while the key is held. */
 	public boolean zoomScroll = true;
+	/** The wheel's change only lasts while the key is held: the next zoom starts from zoomLevel again. */
+	public boolean zoomReset = true;
+	/** The Misty cloud in front of the Misty players' name above their head. */
+	public boolean nametagBadge = true;
+	/** Your own name above your head in third person (F5). */
+	public boolean ownNametag = false;
 	/** Fullbright: everything lit, even caves and nights. */
 	public boolean fullbright = false;
 	/** State of each HUD module, by module id. */

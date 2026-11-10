@@ -27,6 +27,7 @@
 	"misty.module.keystrokes": "Touches",
 	"misty.module.clock": "Horloge",
 	"misty.module.armor": "Armure",
+	"misty.module.music": "Musique",
 	"misty.title.portals": "OÙ ALLER ?",
 	"misty.title.singleplayer": "Tes mondes",
 	"misty.title.multiplayer": "Serveurs et amis",
@@ -77,5 +78,14 @@
 	"misty.fullbright.on": "Luminosité maximale activée",
 	"misty.fullbright.off": "Luminosité maximale désactivée",
 	"misty.fullbright.before": "Sans",
-	"misty.fullbright.after": "Avec"
+	"misty.fullbright.after": "Avec",
+	"misty.option.zoomReset": "Réinitialiser le zoom",
+	"misty.option.zoomReset.tip": "La molette ne change le zoom que tant que la touche est maintenue : chaque zoom repart du niveau réglé en dessous.",
+	"misty.option.nametagBadge": "Nuage dans les pseudos",
+	"misty.option.nametagBadge.tip": "Le nuage Misty devant le pseudo des joueurs Misty, au-dessus de leur tête.",
+	"misty.option.ownNametag": "Voir mon pseudo",
+	"misty.option.ownNametag.tip": "Ton propre pseudo au-dessus de ta tête, visible en troisième personne (F5).",
+	"misty.cosmetic.early_cape": "Cape early player",
+	"misty.cosmetic.cloudly": "Cloudly",
+	"misty.wardrobe.locked": "Premiers joueurs"
 }

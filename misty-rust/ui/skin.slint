@@ -29,6 +29,12 @@ export global SkinState {
     in-out property <bool> show-cape: true;
     /// Cosmétique Misty équipé : 0 aucun · 1 cape Misty · 2 élytres Misty
     in-out property <int> misty-equip: 0;
+    /// Chapeau Cloudly porté (en plus de la cape)
+    in-out property <bool> misty-hat: false;
+    /// Ce compte a droit à la cape early player (le site le dit)
+    in property <bool> misty-early: false;
+    in property <image> misty-early-cape;
+    in property <image> misty-cloudly;
     /// Misty Client (le mod en jeu) est dans ce launcher : l'article équipé se voit en jeu
     in property <bool> misty-in-game;
     /// Version de Minecraft de Misty Client
@@ -594,7 +600,8 @@ component CaseBientot inherits Rectangle {
 component CaseMisty inherits Rectangle {
     in property <string> text;
     in property <int> genre;
-    property <bool> equipe: SkinState.misty-equip == root.genre;
+    property <bool> equipe: root.genre == 4 ? SkinState.misty-hat : SkinState.misty-equip == root.genre;
+    property <bool> verrou: root.genre == 3 && !SkinState.misty-early;
     border-radius: 12px;
     background: root.equipe ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
     border-width: root.equipe ? 2px : 1px;
@@ -625,24 +632,60 @@ component CaseMisty inherits Rectangle {
             image-fit: contain;
             image-rendering: pixelated;
         }
+        if root.genre == 3: Image {
+            x: (parent.width - self.width) / 2;
+            y: 0;
+            width: min(root.width * 0.42, (root.height - 40px) * 0.62);
+            height: self.width * 1.6;
+            source: SkinState.misty-early-cape;
+            image-fit: contain;
+            image-rendering: pixelated;
+            opacity: root.verrou ? 0.45 : 1;
+        }
+        if root.genre == 4: Image {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: min(root.width * 0.62, (root.height - 40px) * 1.2);
+            height: self.width / 2;
+            source: SkinState.misty-cloudly;
+            image-fit: contain;
+            image-rendering: pixelated;
+        }
+    }
+    // cadenas : réservée aux premiers joueurs
+    if root.verrou: Icon {
+        x: parent.width - 24px;
+        y: 6px;
+        width: 18px;
+        height: 18px;
+        text: "\u{E72E}";
+        font-size: 12px;
+        color: #FFC46B;
     }
     Text {
         x: 6px;
         y: parent.height - 24px;
         width: parent.width - 12px;
-        text: root.text;
+        text: root.verrou ? Tr.t("Cos_Early_Verrou") : root.text;
         font-size: 11px;
         font-weight: 600;
-        color: root.equipe ? Theme.accent : Theme.navy;
+        color: root.verrou ? #FFC46B : root.equipe ? Theme.accent : Theme.navy;
         horizontal-alignment: center;
         overflow: elide;
     }
     zone := TouchArea {
-        mouse-cursor: pointer;
+        mouse-cursor: root.verrou ? default : pointer;
         clicked => {
-            SkinState.misty-equip = root.equipe ? 0 : root.genre;
-            if (root.genre == 1) {
-                SkinState.show-cape = true;
+            if (root.verrou) {
+                return;
+            }
+            if (root.genre == 4) {
+                SkinState.misty-hat = !SkinState.misty-hat;
+            } else {
+                SkinState.misty-equip = root.equipe ? 0 : root.genre;
+                if (root.genre == 1 || root.genre == 3) {
+                    SkinState.show-cape = true;
+                }
             }
             SkinState.look-changed();
         }
@@ -951,7 +994,7 @@ export component SkinPanel inherits Rectangle {
                     grille := Rectangle {
                         property <length> taille: (self.width - 16px) / 3;
                         property <int> nb-capes: root.cat == 0 ? SkinState.capes.length : 0;
-                        property <int> nb-misty: root.cat <= 1 ? 1 : 0;
+                        property <int> nb-misty: root.cat == 0 ? 2 : root.cat <= 2 ? 1 : 0;
                         property <int> nb-total: max(6, Math.ceil((self.nb-capes + self.nb-misty + 2) / 3) * 3);
                         height: Math.ceil(self.nb-total / 3) * (self.taille + 8px) - 8px;
                         for c[i] in SkinState.capes: CaseCape {
@@ -963,20 +1006,28 @@ export component SkinPanel inherits Rectangle {
                             name: c.name;
                             image: c.image;
                             has-image: c.has-image;
-                            active: c.active && SkinState.misty-equip != 1;
+                            active: c.active && SkinState.misty-equip != 1 && SkinState.misty-equip != 3;
                             clicked => {
                                 SkinState.misty-equip = 0;
                                 SkinState.show-cape = true;
                                 SkinState.select-cape(c.id);
                             }
                         }
-                        if root.cat <= 1: CaseMisty {
+                        if root.cat <= 2: CaseMisty {
                             x: Math.mod(grille.nb-capes, 3) * (grille.taille + 8px);
                             y: floor(grille.nb-capes / 3) * (grille.taille + 8px);
                             width: grille.taille;
                             height: grille.taille;
-                            genre: root.cat == 0 ? 1 : 2;
-                            text: root.cat == 0 ? Tr.t("Cos_CapeMisty") : Tr.t("Cos_ElytresMisty");
+                            genre: root.cat == 0 ? 1 : root.cat == 1 ? 2 : 4;
+                            text: root.cat == 0 ? Tr.t("Cos_CapeMisty") : root.cat == 1 ? Tr.t("Cos_ElytresMisty") : "Cloudly";
+                        }
+                        if root.cat == 0: CaseMisty {
+                            x: Math.mod(grille.nb-capes + 1, 3) * (grille.taille + 8px);
+                            y: floor((grille.nb-capes + 1) / 3) * (grille.taille + 8px);
+                            width: grille.taille;
+                            height: grille.taille;
+                            genre: 3;
+                            text: Tr.t("Cos_CapeEarly");
                         }
                         for b in grille.nb-total - grille.nb-capes - grille.nb-misty: CaseBientot {
                             x: Math.mod(grille.nb-capes + grille.nb-misty + b, 3) * (grille.taille + 8px);
@@ -988,7 +1039,7 @@ export component SkinPanel inherits Rectangle {
                     }
 
                     // article Misty équipé : où il se voit en jeu (ou l'avertissement, sans Misty Client)
-                    if SkinState.misty-equip != 0: Rectangle {
+                    if SkinState.misty-equip != 0 || SkinState.misty-hat: Rectangle {
                         min-height: av.preferred-height;
                         border-radius: 12px;
                         background: SkinState.misty-in-game ? Theme.accent-soft : Theme.dark ? #FFBE5A14 : #FFF1DC;

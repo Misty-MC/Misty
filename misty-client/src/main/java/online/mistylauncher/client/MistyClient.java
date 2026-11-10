@@ -1,5 +1,6 @@
 package online.mistylauncher.client;
 
+import online.mistylauncher.client.compat.Versions;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -73,6 +74,7 @@ public final class MistyClient implements ClientModInitializer {
 		LauncherLink.tick();
 		MistyNetwork.tick(minecraft);
 		Zoom.tick();
+		online.mistylauncher.client.features.Music.tick();
 		while (fullbrightKey.consumeClick()) {
 			config.fullbright = !config.fullbright;
 			config.save();
@@ -81,8 +83,8 @@ public final class MistyClient implements ClientModInitializer {
 			}
 		}
 		while (editorKey.consumeClick()) {
-			if (minecraft.gui.screen() == null) {
-				minecraft.gui.setScreen(new HudEditorScreen(null));
+			if (Versions.screen() == null) {
+				Versions.setScreen(new HudEditorScreen(null));
 			}
 		}
 	}

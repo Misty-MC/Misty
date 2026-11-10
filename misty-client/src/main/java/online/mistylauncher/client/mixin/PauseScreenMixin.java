@@ -1,5 +1,6 @@
 package online.mistylauncher.client.mixin;
 
+import online.mistylauncher.client.compat.Versions;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -28,7 +29,7 @@ abstract class PauseScreenMixin extends Screen {
 		if (this.showPauseMenu) {
 			Component label = Component.translatable("misty.settings.title");
 			int width = this.font.width(label) + 16;
-			this.addRenderableWidget(new MistyButton(this.width - width - 8, 8, width, 18, label, () -> this.minecraft.gui.setScreen(new MistySettingsScreen(this))));
+			this.addRenderableWidget(new MistyButton(this.width - width - 8, 8, width, 18, label, () -> Versions.setScreen(new MistySettingsScreen(this))));
 		}
 	}
 }

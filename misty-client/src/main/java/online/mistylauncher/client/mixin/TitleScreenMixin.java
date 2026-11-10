@@ -1,5 +1,6 @@
 package online.mistylauncher.client.mixin;
 
+import online.mistylauncher.client.compat.Versions;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -49,13 +50,14 @@ abstract class TitleScreenMixin extends Screen {
 				net.minecraft.client.gui.screens.Screen next = switch (open) {
 					case "wardrobe" -> new online.mistylauncher.client.ui.WardrobeScreen(self);
 					case "settings" -> new online.mistylauncher.client.ui.MistySettingsScreen(self);
-					case "options" -> new net.minecraft.client.gui.screens.options.OptionsScreen(self, this.minecraft.options);
+					case "editor" -> new online.mistylauncher.client.hud.HudEditorScreen(self);
+					case "options" -> online.mistylauncher.client.compat.Versions.options(self);
 					case "singleplayer" -> new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(self);
 					case "multiplayer" -> new net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen(self);
 					default -> null;
 				};
 				if (next != null) {
-					this.minecraft.gui.setScreen(next);
+					Versions.setScreen(next);
 				}
 			}
 			ci.cancel();
@@ -69,7 +71,7 @@ abstract class TitleScreenMixin extends Screen {
 		int width = this.font.width(label) + 16;
 		TitleScreen self = (TitleScreen)(Object)this;
 		this.addRenderableWidget(new online.mistylauncher.client.ui.MistyButton(this.width - width - 8, 8, width, 18, label,
-			() -> this.minecraft.gui.setScreen(new online.mistylauncher.client.ui.MistySettingsScreen(self))));
+			() -> Versions.setScreen(new online.mistylauncher.client.ui.MistySettingsScreen(self))));
 	}
 
 	@Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true)

@@ -418,7 +418,7 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_seasonal(settings::get_bool(settings::SAISON, true));
     st.set_console_auto(settings::get_bool(settings::CONSOLE, true));
     st.set_misty_client_available(client::disponible());
-    st.set_misty_client_mc(client::VERSION_MC.into());
+    st.set_misty_client_mc(client::versions_texte().into());
     st.set_misty_client(client::active());
     st.set_prerelease(settings::get_bool(settings::MAJ_PRERELEASE, false));
     st.set_telemetry(crate::services::telemetry::active());

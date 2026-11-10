@@ -1,5 +1,6 @@
 package online.mistylauncher.client.hud;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import net.minecraft.util.Util;
 
@@ -12,11 +13,14 @@ public final class Clicks {
 	private Clicks() {
 	}
 
-	/** A mouse button went down (0 left, 1 right). */
+	/**
+	 * A mouse button went down. The game's numbers: left 0 and right 1 up to 26.2 (GLFW), left 1
+	 * and right 3 since 26.3 (SDL), hence the constants.
+	 */
 	public static void pressed(final int button) {
-		if (button == 0) {
+		if (button == InputConstants.MOUSE_BUTTON_LEFT) {
 			LEFT.enqueue(Util.getMillis());
-		} else if (button == 1) {
+		} else if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
 			RIGHT.enqueue(Util.getMillis());
 		}
 	}

@@ -27,7 +27,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import online.mistylauncher.client.MistyClient;
 import online.mistylauncher.client.config.LauncherLink;
-import online.mistylauncher.client.cosmetics.Cosmetic;
+import online.mistylauncher.client.cosmetics.Outfit;
 
 /**
  * The Misty network ({@code misty-launcher.online/api/client}): tells the other Misty players
@@ -66,7 +66,9 @@ public final class MistyNetwork {
 	private static long nextLogin;
 	private static long loginDelay = LOGIN_RETRY_MIN_MS;
 	private static long lastPresence;
-	private static Cosmetic sentCosmetic;
+	private static Outfit sentOutfit;
+	/** The Misty site counts this account among the first Misty players (early player cape). */
+	private static volatile boolean early;
 
 	private MistyNetwork() {
 	}
@@ -146,9 +148,9 @@ public final class MistyNetwork {
 					return;
 				}
 			}
-			Cosmetic cosmetic = LauncherLink.cosmetic();
-			if (now - lastPresence >= PRESENCE_EVERY_MS || cosmetic != sentCosmetic) {
-				presence(cosmetic);
+			Outfit outfit = LauncherLink.outfit();
+			if (now - lastPresence >= PRESENCE_EVERY_MS || !outfit.equals(sentOutfit)) {
+				presence(outfit);
 			}
 			lookup();
 		} catch (InterruptedException e) {
@@ -157,6 +159,11 @@ public final class MistyNetwork {
 			// site unreachable: the next step tries again
 			MistyClient.LOG.debug("Misty network", e);
 		}
+	}
+
+	/** Whether this account may wear the early player cape (the Misty site says so at sign-in). */
+	public static boolean early() {
+		return early;
 	}
 
 	private static void loginFailed() {
@@ -184,21 +191,25 @@ public final class MistyNetwork {
 			loginFailed();
 			return;
 		}
-		token = JsonParser.parseString(response.body()).getAsJsonObject().get("token").getAsString();
+		JsonObject answer = JsonParser.parseString(response.body()).getAsJsonObject();
+		token = answer.get("token").getAsString();
+		early = answer.has("early") && answer.get("early").getAsBoolean();
 		loginDelay = LOGIN_RETRY_MIN_MS;
 		lastPresence = 0;
-		sentCosmetic = null;
+		sentOutfit = null;
 	}
 
-	private static void presence(final Cosmetic cosmetic) throws IOException, InterruptedException {
+	private static void presence(final Outfit outfit) throws IOException, InterruptedException {
 		JsonObject body = new JsonObject();
-		body.addProperty("cosmetic", MistyClient.config().cosmetics ? cosmetic.id() : "");
+		boolean shown = MistyClient.config().cosmetics;
+		body.addProperty("cosmetic", shown ? outfit.back().id() : "");
+		body.addProperty("hat", shown ? outfit.hat().id() : "");
 		HttpResponse<String> response = post("/presence", body, TIMEOUT);
 		if (expired(response)) {
 			return;
 		}
 		lastPresence = System.currentTimeMillis();
-		sentCosmetic = cosmetic;
+		sentOutfit = outfit;
 	}
 
 	private static void lookup() throws IOException, InterruptedException {
@@ -226,12 +237,13 @@ public final class MistyNetwork {
 		}
 		JsonObject players = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("players");
 		for (UUID id : ask) {
-			MistyPlayers.put(id, false, Cosmetic.NONE);
+			MistyPlayers.put(id, false, Outfit.NONE);
 		}
 		for (Map.Entry<String, JsonElement> player : players.entrySet()) {
 			JsonObject data = player.getValue().getAsJsonObject();
 			String cosmetic = data.has("cosmetic") ? data.get("cosmetic").getAsString() : "";
-			MistyPlayers.put(UUID.fromString(player.getKey()), true, Cosmetic.of(cosmetic));
+			String hat = data.has("hat") ? data.get("hat").getAsString() : "";
+			MistyPlayers.put(UUID.fromString(player.getKey()), true, Outfit.of(cosmetic, hat));
 		}
 	}
 

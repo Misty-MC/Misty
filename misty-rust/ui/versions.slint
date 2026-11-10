@@ -447,7 +447,42 @@ component FonctionMisty inherits Rectangle {
     }
 }
 
-/// Panneau Misty : ce qu'apporte Misty Client, sa version, et Jouer.
+/// Une version de Misty Client, en puce.
+component PuceMisty inherits Rectangle {
+    in property <string> version;
+    in property <bool> checked;
+    callback clicked;
+    width: 150px;
+    height: 42px;
+    border-radius: 12px;
+    background: root.checked ? Theme.accent : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : Theme.glass-border;
+    animate background { duration: Theme.normal; }
+    HorizontalLayout {
+        alignment: center;
+        spacing: 8px;
+        Icon {
+            text: "\u{E753}";
+            font-size: 14px;
+            color: root.checked ? white : Theme.accent;
+            vertical-alignment: center;
+        }
+        Text {
+            text: "MISTY " + root.version;
+            font-family: Theme.pixel-font;
+            font-size: 12px;
+            color: root.checked ? white : Theme.navy;
+            vertical-alignment: center;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Panneau Misty : ce qu'apporte Misty Client, ses versions, et Jouer.
 component PanneauMisty inherits VerticalLayout {
     spacing: 14px;
     // bannière
@@ -533,35 +568,10 @@ component PanneauMisty inherits VerticalLayout {
     HorizontalLayout {
         spacing: 8px;
         alignment: start;
-        Rectangle {
-            width: 150px;
-            height: 42px;
-            border-radius: 12px;
-            background: HomeState.misty-selected ? Theme.accent : zone-version.has-hover ? Theme.glass-hover : Theme.glass-strong;
-            border-width: 1px;
-            border-color: HomeState.misty-selected ? Theme.accent : Theme.glass-border;
-            animate background { duration: Theme.normal; }
-            HorizontalLayout {
-                alignment: center;
-                spacing: 8px;
-                Icon {
-                    text: "\u{E753}";
-                    font-size: 14px;
-                    color: HomeState.misty-selected ? white : Theme.accent;
-                    vertical-alignment: center;
-                }
-                Text {
-                    text: "MISTY " + HomeState.misty-mc;
-                    font-family: Theme.pixel-font;
-                    font-size: 12px;
-                    color: HomeState.misty-selected ? white : Theme.navy;
-                    vertical-alignment: center;
-                }
-            }
-            zone-version := TouchArea {
-                mouse-cursor: pointer;
-                clicked => { HomeState.misty-select(); }
-            }
+        for v in HomeState.misty-versions: PuceMisty {
+            version: v;
+            checked: HomeState.misty-selected && v == HomeState.misty-mc;
+            clicked => { HomeState.misty-select(v); }
         }
     }
     Rectangle { vertical-stretch: 1; }
@@ -583,7 +593,7 @@ component PanneauMisty inherits VerticalLayout {
                 icon: "\u{E73E}";
                 text: Tr.t("Ver_Valider");
                 clicked => {
-                    HomeState.misty-select();
+                    HomeState.misty-select(HomeState.misty-mc);
                     HomeState.picker-open = false;
                 }
             }

@@ -1,6 +1,12 @@
 # Changelog
 ## 0.3.8-beta.1
 ### Misty Client (in game)
+- New Music module: the song playing on your computer (Spotify, Deezer, a browser…) with its cover, artist and progress, read from Windows by the launcher. Nothing to sign in to
+- New cosmetics: Cloudly, a little cloud floating over your head (worn with a cape), and the early player cape, kept for the first Misty players. Equip them in the Skin tab or the in-game wardrobe; the other Misty players see them
+- The Misty cloud now shows in the name above the Misty players' head, and a new option shows your own name tag in third person (F5)
+- Zoom: new "Reset zoom" option (on by default): the mouse wheel only changes the zoom while the key is held, the next zoom starts from your level again
+- Fixed: the modules of the HUD editor could not be moved on Minecraft 26.3 (a left click was taken for a right click), and the CPS module counted the left clicks as right clicks
+- Misty Client now runs on several Minecraft versions: 26.1.2, 26.2 and 26.3 (more to come). Pick one in the Misty Client section of the version picker. The first time Misty opens, the latest Misty Client version is the one selected
 - New Zoom module: hold C to zoom in, the mouse wheel zooms more or less, the mouse turns slower while zoomed. Smooth by default, the key can be changed in Options › Controls
 - New Fullbright module: everything is lit, caves, nights and the Nether. Turn it on in the Misty settings, or give it a key in Options › Controls
 - The Singleplayer, Multiplayer and Options menus (and every menu outside a world) now have the Misty landscape behind them, with Misty buttons, sliders, text fields and tabs

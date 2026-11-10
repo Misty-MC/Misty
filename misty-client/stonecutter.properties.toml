@@ -1,0 +1,25 @@
+# Misty Client: settings shared by every Minecraft version, then each version's own.
+# The launcher reads mod.mc_releases (misty-rust/build.rs): the Minecraft versions each jar runs on.
+mod.id = "misty-client"
+mod.name = "Misty Client"
+mod.version = "1.0.0"
+
+deps.fabric_loader = "0.20.1"
+loomx.loom_version = "1.19-SNAPSHOT"
+
+["26.1.2"]
+# Minecraft versions in fabric.mod.json
+mod.mc_compat = "26.1.2"
+# Minecraft versions the launcher starts this jar on
+mod.mc_releases = ["26.1.2"]
+deps.fabric_api = "0.155.3+26.1.2"
+
+["26.2"]
+mod.mc_compat = "~26.2"
+mod.mc_releases = ["26.2"]
+deps.fabric_api = "0.161.0+26.2"
+
+["26.3"]
+mod.mc_compat = "~26.3"
+mod.mc_releases = ["26.3"]
+deps.fabric_api = "0.166.0+26.3"

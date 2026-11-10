@@ -3606,6 +3606,7 @@ dependencies = [
  "unicode-normalization",
  "urlencoding",
  "uuid 1.29.0",
+ "windows 0.62.2",
  "windows-sys 0.59.0",
  "winreg",
  "winresource",

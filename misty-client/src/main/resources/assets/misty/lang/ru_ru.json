@@ -27,6 +27,7 @@
 	"misty.module.keystrokes": "Клавиши",
 	"misty.module.clock": "Часы",
 	"misty.module.armor": "Броня",
+	"misty.module.music": "Музыка",
 	"misty.title.portals": "КУДА?",
 	"misty.title.singleplayer": "Ваши миры",
 	"misty.title.multiplayer": "Серверы и друзья",
@@ -77,5 +78,14 @@
 	"misty.fullbright.on": "Максимальная яркость включена",
 	"misty.fullbright.off": "Максимальная яркость выключена",
 	"misty.fullbright.before": "Без",
-	"misty.fullbright.after": "С"
+	"misty.fullbright.after": "С",
+	"misty.option.zoomReset": "Сбрасывать приближение",
+	"misty.option.zoomReset.tip": "Колесо меняет приближение только пока клавиша зажата: каждое приближение начинается с уровня ниже.",
+	"misty.option.nametagBadge": "Облако в никах",
+	"misty.option.nametagBadge.tip": "Облако Misty перед ником игроков Misty над их головой.",
+	"misty.option.ownNametag": "Показывать мой ник",
+	"misty.option.ownNametag.tip": "Ваш ник над головой, виден от третьего лица (F5).",
+	"misty.cosmetic.early_cape": "Плащ первых игроков",
+	"misty.cosmetic.cloudly": "Cloudly",
+	"misty.wardrobe.locked": "Первые игроки"
 }

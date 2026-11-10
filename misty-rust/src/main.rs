@@ -42,6 +42,7 @@ fn main() {
     services::journal::info(&format!("Démarrage de Misty {} ({})", services::app_info::VERSION, services::system_info::version_windows()));
     services::telemetry::init(runtime.handle().clone());
     services::presence::demarrer(runtime.handle());
+    services::musique::demarrer();
     loc::initialiser();
     discord::definir(discord::Statut::Launcher(discord::Page::Accueil));
 
@@ -192,6 +193,16 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                 photo(&app, nom, &dossier);
             }
             st.set_focus(false);
+            // la grille des cosmétiques (capes, chapeaux), dans une fenêtre assez haute pour la voir
+            let taille = app.ui.window().size();
+            app.ui.window().set_size(slint::LogicalSize::new(1180.0, 1180.0));
+            for (cat, nom) in [(0, "0n-grille-capes"), (2, "0o-grille-chapeaux")] {
+                st.set_category(cat);
+                attendre(1500).await;
+                photo(&app, nom, &dossier);
+            }
+            app.ui.window().set_size(taille);
+            attendre(500).await;
         }
         // Fenêtre de choix de la version, puis des profils
         let accueil = app.ui.global::<HomeState>();

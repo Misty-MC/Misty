@@ -609,6 +609,29 @@ pub fn rendre_elytres(png: &[u8]) -> Option<RgbaImage> {
 
 /// Texture 64 × 32 de la cape et des élytres Misty, dessinée comme sur la boutique du site :
 /// cape en dégradé nuit avec un nuage, élytres en plumes avec un croissant de lune. PNG en mémoire.
+/// Texture de la cape early player (cape et élytres), la même que celle du mod.
+pub fn texture_early() -> &'static [u8] {
+    include_bytes!("../../../misty-client/src/main/resources/assets/misty/textures/cape/early.png")
+}
+
+/// Aperçu du chapeau Cloudly : un petit nuage en pixels, 16 × 8 agrandi 4 fois.
+pub fn apercu_cloudly() -> RgbaImage {
+    // lignes du nuage, de haut en bas : début et longueur
+    const LIGNES: [(u32, u32); 7] = [(6, 4), (4, 8), (3, 10), (1, 14), (0, 16), (0, 16), (1, 14)];
+    let mut img = RgbaImage::new(64, 32);
+    for (r, &(debut, long)) in LIGNES.iter().enumerate() {
+        let couleur = if r < 2 { [255, 255, 255, 255] } else if r < 5 { [241, 246, 255, 255] } else { [214, 226, 255, 255] };
+        for x in debut..debut + long {
+            for dy in 0..4 {
+                for dx in 0..4 {
+                    img.put_pixel(x * 4 + dx, 2 + r as u32 * 4 + dy, image::Rgba(couleur));
+                }
+            }
+        }
+    }
+    img
+}
+
 pub fn texture_misty() -> &'static [u8] {
     static PNG: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
     PNG.get_or_init(|| {

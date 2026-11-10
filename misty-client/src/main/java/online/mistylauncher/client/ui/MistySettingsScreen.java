@@ -1,5 +1,6 @@
 package online.mistylauncher.client.ui;
 
+import online.mistylauncher.client.compat.Versions;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -136,7 +137,7 @@ public final class MistySettingsScreen extends MistyScreen {
 			case HUD -> 1 + (moduleCount + hudColumns - 1) / hudColumns;
 			case ZOOM -> 4;
 			case FULLBRIGHT -> 1;
-			case COSMETICS -> 2;
+			case COSMETICS -> 3;
 		};
 		int optionsH = rows * (ROW + GAP);
 		// the preview takes what the settings leave (between 54 and 130 high)
@@ -160,8 +161,9 @@ public final class MistySettingsScreen extends MistyScreen {
 				}
 			}
 			case ZOOM -> {
-				this.option(x, y, inner, "zoom", () -> config.zoom, value -> config.zoom = value);
 				int half = (inner - GAP) / 2;
+				this.option(x, y, half, "zoom", () -> config.zoom, value -> config.zoom = value);
+				this.option(x + half + GAP, y, half, "zoomReset", () -> config.zoomReset, value -> config.zoomReset = value);
 				this.option(x, y + ROW + GAP, half, "zoomSmooth", () -> config.zoomSmooth, value -> config.zoomSmooth = value);
 				this.option(x + half + GAP, y + ROW + GAP, half, "zoomScroll", () -> config.zoomScroll, value -> config.zoomScroll = value);
 				this.addRenderableWidget(new ZoomSlider(x, y + 2 * (ROW + GAP), inner, ROW));
@@ -171,8 +173,10 @@ public final class MistySettingsScreen extends MistyScreen {
 				int half = (inner - GAP) / 2;
 				this.option(x, y, half, "cosmetics", () -> config.cosmetics, value -> config.cosmetics = value);
 				this.option(x + half + GAP, y, half, "network", () -> config.network, value -> config.network = value);
-				this.addRenderableWidget(new MistyButton(x, y + ROW + GAP, inner, ROW, Component.translatable("misty.wardrobe.open"),
-					() -> this.minecraft.gui.setScreen(new WardrobeScreen(this))));
+				this.option(x, y + ROW + GAP, half, "nametagBadge", () -> config.nametagBadge, value -> config.nametagBadge = value);
+				this.option(x + half + GAP, y + ROW + GAP, half, "ownNametag", () -> config.ownNametag, value -> config.ownNametag = value);
+				this.addRenderableWidget(new MistyButton(x, y + 2 * (ROW + GAP), inner, ROW, Component.translatable("misty.wardrobe.open"),
+					() -> Versions.setScreen(new WardrobeScreen(this))));
 			}
 		}
 
@@ -182,7 +186,7 @@ public final class MistySettingsScreen extends MistyScreen {
 			this.addRenderableWidget(new MistyButton(x, footerY, half, 18, Component.translatable("misty.settings.layout"), () -> {
 				MistyClient.config().save();
 				// back from the editor goes to where the settings were opened from, not into a loop
-				this.minecraft.gui.setScreen(new HudEditorScreen(this.parent instanceof HudEditorScreen editor ? editor.parent() : this.parent));
+				Versions.setScreen(new HudEditorScreen(this.parent instanceof HudEditorScreen editor ? editor.parent() : this.parent));
 			}));
 		}
 		this.addRenderableWidget(new MistyButton(x + half + GAP, footerY, inner - half - GAP, 18, CommonComponents.GUI_DONE, this::onClose).primary());

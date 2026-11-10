@@ -38,14 +38,18 @@ pub const MAJ_PRERELEASE: &str = "majprerelease";
 pub const MISTY_CLIENT: &str = "mistyclient";
 /// Cosmétique Misty équipé : "" aucun, "misty_cape", "misty_elytra" (voir services::client)
 pub const COSMETIQUE: &str = "cosmetique";
+/// Chapeau Misty porté : "" aucun, "cloudly" (voir services::client)
+pub const CHAPEAU: &str = "chapeau";
 /// JOUER lance la version Misty (Fabric + Misty Client)
 pub const MISTY_CHOISI: &str = "mistychoisi";
+/// Version de Minecraft choisie dans la section Misty Client ("26.3")
+pub const MISTY_VERSION: &str = "mistyversion";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
-    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, MISTY_CHOISI,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, CHAPEAU, MISTY_CHOISI, MISTY_VERSION,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

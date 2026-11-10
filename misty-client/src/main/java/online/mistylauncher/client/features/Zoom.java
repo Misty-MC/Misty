@@ -19,8 +19,11 @@ public final class Zoom {
 	/** Current magnification (1 = no zoom), eased towards the wanted one. */
 	private static float current = 1.0F;
 	private static long lastFrame = Util.getMillis();
-	/** The level changed with the wheel: saved when the key is released. */
+	/** The level changed with the wheel: saved when the key is released (unless zoomReset). */
 	private static boolean changed;
+	/** Level of this zoom (the wheel changes it); back to the setting at each new zoom when zoomReset. */
+	private static float level = Float.NaN;
+	private static boolean wasHeld;
 
 	private Zoom() {
 	}
@@ -37,7 +40,7 @@ public final class Zoom {
 	/** Zooming now: the key held in game (not in a menu). */
 	public static boolean held() {
 		MistyConfig config = MistyClient.config();
-		return config.zoom && key != null && key.isDown() && Minecraft.getInstance().gui.screen() == null;
+		return config.zoom && key != null && key.isDown() && online.mistylauncher.client.compat.Versions.screen() == null;
 	}
 
 	/** Magnification for this frame (called with the field of view). */
@@ -47,7 +50,13 @@ public final class Zoom {
 		// the game's clock can change its origin after start-up: a negative or huge gap is ignored
 		float seconds = Math.clamp((now - lastFrame) / 1000.0F, 0.0F, 0.1F);
 		lastFrame = now;
-		float wanted = held() ? Math.clamp(config.zoomLevel, MIN, MAX) : 1.0F;
+		boolean holding = held();
+		if (holding && (!wasHeld || Float.isNaN(level))) {
+			// a new zoom starts from the level of the settings
+			level = config.zoomLevel;
+		}
+		wasHeld = holding;
+		float wanted = holding ? Math.clamp(level, MIN, MAX) : 1.0F;
 		if (config.zoomSmooth) {
 			// eased: about a fifth of a second to get there
 			current += (wanted - current) * (1.0F - (float)Math.exp(-seconds * 14.0F));
@@ -75,8 +84,12 @@ public final class Zoom {
 			return false;
 		}
 		float step = amount > 0 ? 1.15F : 1.0F / 1.15F;
-		config.zoomLevel = Math.clamp(config.zoomLevel * step, MIN, MAX);
-		changed = true;
+		level = Math.clamp((Float.isNaN(level) ? config.zoomLevel : level) * step, MIN, MAX);
+		if (!config.zoomReset) {
+			// kept for the next zooms
+			config.zoomLevel = level;
+			changed = true;
+		}
 		return true;
 	}
 

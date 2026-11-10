@@ -1,5 +1,7 @@
 package online.mistylauncher.client.hud;
 
+import online.mistylauncher.client.compat.Versions;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -57,7 +59,7 @@ public final class HudEditorScreen extends MistyScreen {
 		int buttonWidth = (PANEL_WIDTH - 16 - 8) / 3;
 		this.addRenderableWidget(new MistyButton(x + 8, y, buttonWidth, 18, Component.translatable("misty.editor.settings"), () -> {
 			MistyClient.config().save();
-			this.minecraft.gui.setScreen(new MistySettingsScreen(this));
+			Versions.setScreen(new MistySettingsScreen(this));
 		}));
 		this.addRenderableWidget(new MistyButton(x + 12 + buttonWidth, y, buttonWidth, 18, Component.translatable("misty.editor.reset"), () -> {
 			HudManager.resetAll(MistyClient.config());
@@ -137,11 +139,12 @@ public final class HudEditorScreen extends MistyScreen {
 		if (module == null) {
 			return super.mouseClicked(event, doubleClick);
 		}
-		if (event.button() == 1) {
+		// the game's button numbers changed with SDL (26.3): the constants follow
+		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
 			module.reset(MistyClient.config());
 			return true;
 		}
-		if (event.button() == 0) {
+		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
 			HudManager.Bounds bounds = this.bounds(module);
 			this.dragged = module;
 			this.grabX = event.x() - bounds.x();

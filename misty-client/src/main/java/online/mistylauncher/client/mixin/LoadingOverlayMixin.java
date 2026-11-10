@@ -1,5 +1,6 @@
 package online.mistylauncher.client.mixin;
 
+import online.mistylauncher.client.compat.Versions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.LoadingOverlay;
@@ -51,7 +52,7 @@ abstract class LoadingOverlayMixin {
 		}
 		float fadeOut = this.fadeOutStart > -1L ? (now - this.fadeOutStart) / 1000.0F : -1.0F;
 		float fadeInAnim = this.fadeInStart > -1L ? (now - this.fadeInStart) / 500.0F : -1.0F;
-		Screen screen = this.minecraft.gui.screen();
+		Screen screen = Versions.screen();
 
 		// same fades as the game: what is underneath shows through while fading
 		float alpha;
@@ -59,14 +60,14 @@ abstract class LoadingOverlayMixin {
 			if (screen != null) {
 				screen.extractRenderStateWithTooltipAndSubtitles(graphics, 0, 0, a);
 			} else {
-				this.minecraft.gui.hud.extractDeferredSubtitles();
+				Versions.extractDeferredSubtitles();
 			}
 			alpha = 1.0F - Mth.clamp(fadeOut - 1.0F, 0.0F, 1.0F);
 		} else if (this.fadeIn) {
 			if (screen != null && fadeInAnim < 1.0F) {
 				screen.extractRenderStateWithTooltipAndSubtitles(graphics, mouseX, mouseY, a);
 			} else {
-				this.minecraft.gui.hud.extractDeferredSubtitles();
+				Versions.extractDeferredSubtitles();
 			}
 			alpha = Mth.clamp(fadeInAnim, 0.15F, 1.0F);
 		} else {
@@ -80,7 +81,7 @@ abstract class LoadingOverlayMixin {
 		MistyLoading.draw(graphics, graphics.guiWidth(), graphics.guiHeight(), alpha, this.currentProgress);
 
 		if (fadeOut >= 2.0F) {
-			this.minecraft.gui.setOverlay(null);
+			Versions.setOverlay(null);
 		}
 		ci.cancel();
 	}

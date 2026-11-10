@@ -1,5 +1,6 @@
 package online.mistylauncher.client.hud;
 
+import online.mistylauncher.client.compat.Versions;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -11,6 +12,7 @@ import online.mistylauncher.client.hud.modules.CoordinatesModule;
 import online.mistylauncher.client.hud.modules.CpsModule;
 import online.mistylauncher.client.hud.modules.FpsModule;
 import online.mistylauncher.client.hud.modules.KeystrokesModule;
+import online.mistylauncher.client.hud.modules.MusicModule;
 import online.mistylauncher.client.hud.modules.PingModule;
 
 /** The HUD modules: where each one sits on the screen, and their drawing in game. */
@@ -19,7 +21,7 @@ public final class HudManager {
 	public static final float MAX_SCALE = 2.0F;
 
 	private static final List<HudModule> MODULES = List.of(
-		new FpsModule(), new PingModule(), new CpsModule(), new CoordinatesModule(), new KeystrokesModule(), new ArmorModule(), new ClockModule()
+		new FpsModule(), new PingModule(), new CpsModule(), new CoordinatesModule(), new KeystrokesModule(), new ArmorModule(), new ClockModule(), new MusicModule()
 	);
 
 	/** Rectangle a module covers on the screen, in GUI pixels. */
@@ -89,7 +91,7 @@ public final class HudManager {
 
 	/** In game, under the chat and the player list. */
 	public static void render(final GuiGraphicsExtractor graphics, final Minecraft minecraft) {
-		if (!MistyClient.config().hud || minecraft.gui.screen() instanceof HudEditorScreen || minecraft.getDebugOverlay().showDebugScreen()) {
+		if (!MistyClient.config().hud || Versions.screen() instanceof HudEditorScreen || minecraft.getDebugOverlay().showDebugScreen()) {
 			return;
 		}
 		int width = graphics.guiWidth();

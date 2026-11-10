@@ -18,7 +18,7 @@
 	"mixins": ["misty-client.mixins.json"],
 	"depends": {
 		"fabricloader": ">=${loader}",
-		"minecraft": "~${minecraft}",
-		"java": ">=25"
+		"minecraft": "${minecraft}",
+		"java": ">=${java}"
 	}
 }

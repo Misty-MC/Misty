@@ -1,5 +1,6 @@
 package online.mistylauncher.client.ui;
 
+import online.mistylauncher.client.compat.Versions;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -36,12 +37,12 @@ public abstract class MistyScreen extends Screen {
 			this.extractBlurredBackground(graphics);
 		}
 		graphics.fill(0, 0, this.width, this.height, Ui.alpha(Ui.INK, this.veil()));
-		this.minecraft.gui.hud.extractDeferredSubtitles();
+		Versions.extractDeferredSubtitles();
 	}
 
 	@Override
 	public void onClose() {
-		this.minecraft.gui.setScreen(this.parent);
+		Versions.setScreen(this.parent);
 	}
 
 	@Override

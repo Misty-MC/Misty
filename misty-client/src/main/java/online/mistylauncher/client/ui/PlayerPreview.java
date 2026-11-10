@@ -1,5 +1,6 @@
 package online.mistylauncher.client.ui;
 
+import online.mistylauncher.client.compat.Versions;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -12,11 +13,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.PlayerSkin;
 import online.mistylauncher.client.cosmetics.Cosmetic;
 import online.mistylauncher.client.cosmetics.Cosmetics;
+import online.mistylauncher.client.cosmetics.HatHolder;
+import online.mistylauncher.client.cosmetics.Outfit;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -34,8 +36,10 @@ public class PlayerPreview extends AbstractWidget {
 	private static final float AUTO_TURN = 18.0F;
 	/** The player is 1.8 blocks tall: a little room above the head and under the feet. */
 	private static final float HEIGHT_IN_BLOCKS = 2.05F;
+	/** Room added above the head for a hat (it floats up to half a block over the head). */
+	private static final float HAT_ROOM = 0.5F;
 
-	private final Supplier<Cosmetic> cosmetic;
+	private final Supplier<Outfit> outfit;
 	private final AvatarRenderState state = new AvatarRenderState();
 	private float rotationX = 0.0F;
 	private float rotationY = -25.0F;
@@ -45,11 +49,11 @@ public class PlayerPreview extends AbstractWidget {
 	/** Last time the player turned it: the slow turn starts again a moment after. */
 	private long draggedAt;
 
-	public PlayerPreview(final int x, final int y, final int width, final int height, final Supplier<Cosmetic> cosmetic) {
+	public PlayerPreview(final int x, final int y, final int width, final int height, final Supplier<Outfit> outfit) {
 		super(x, y, width, height, Component.empty());
-		this.cosmetic = cosmetic;
+		this.outfit = outfit;
 		AvatarRenderState s = this.state;
-		s.entityType = EntityTypes.PLAYER;
+		s.entityType = Versions.playerType();
 		s.lightCoords = LightCoordsUtil.FULL_BRIGHT;
 		s.boundingBoxWidth = 0.6F;
 		s.boundingBoxHeight = 1.8F;
@@ -83,16 +87,13 @@ public class PlayerPreview extends AbstractWidget {
 			this.rotationY = Mth.wrapDegrees(this.rotationY + AUTO_TURN * seconds);
 		}
 
-		// what is worn: the Misty cape (its texture also holds the elytra), or the own Mojang cape;
-		// the Misty elytra alone mean no cape on the back
-		PlayerSkin skin = skin();
-		Cosmetic worn = this.cosmetic.get();
+		// what is worn: a Misty cape (its texture also holds the elytra), or the own Mojang cape;
+		// the Misty elytra alone mean no cape on the back; and the hat
+		Outfit worn = this.outfit.get();
 		AvatarRenderState s = this.state;
-		s.skin = switch (worn) {
-			case CAPE -> new PlayerSkin(skin.body(), Cosmetics.texture(), Cosmetics.texture(), skin.model(), skin.secure());
-			case ELYTRA, NONE -> skin;
-		};
-		s.showCape = worn != Cosmetic.ELYTRA && s.skin.cape() != null;
+		s.skin = worn.back() == Cosmetic.ELYTRA ? skin() : Cosmetics.wear(worn.back(), skin());
+		s.showCape = worn.back() != Cosmetic.ELYTRA && s.skin.cape() != null;
+		((HatHolder)s).misty$setHat(worn.hat());
 		s.ageInTicks = (now % 1_000_000L) / 50.0F;
 		// the whole body turns; the head looks at the mouse (as in the inventory), as long as the
 		// body faces you: seen from behind, the head goes back to straight ahead
@@ -112,8 +113,10 @@ public class PlayerPreview extends AbstractWidget {
 		s.xRot = this.headPitch;
 
 		// like the inventory: the model centred in its area, seen from a little above or below
-		float scale = this.getHeight() / HEIGHT_IN_BLOCKS;
-		Vector3f translation = new Vector3f(0.0F, s.boundingBoxHeight / 2.0F + 0.0625F, 0.0F);
+		float room = worn.hat() == Cosmetic.NONE ? 0.0F : HAT_ROOM;
+		float scale = this.getHeight() / (HEIGHT_IN_BLOCKS + room);
+		// the extra room goes above the head: the feet stay where they were
+		Vector3f translation = new Vector3f(0.0F, s.boundingBoxHeight / 2.0F + 0.0625F + room / 2.0F, 0.0F);
 		Quaternionf camera = new Quaternionf().rotateX(this.rotationX * Mth.DEG_TO_RAD);
 		Quaternionf pose = new Quaternionf().rotateZ((float)Math.PI).mul(camera);
 		graphics.entity(s, scale, translation, pose, camera, this.getX(), this.getY(), this.getRight(), this.getBottom());

@@ -190,15 +190,19 @@ pub fn installer(app: &Rc<App>) {
         a.home.borrow_mut().profil = profil;
         maj_mode_profil(&a);
     });
-    // Versions Misty : Fabric + Misty Client, sur la version de Minecraft du mod
+    // Section Misty Client : Fabric + Misty Client, sur une des versions de Minecraft du mod
     s.set_misty_available(client::disponible());
-    s.set_misty_mc(client::VERSION_MC.into());
-    s.set_misty_art(super::picker::illustration(&super::picker::cle_groupe(client::VERSION_MC, 0)));
+    let versions: Vec<String> = client::versions().iter().rev().map(|v| v.to_string()).collect();
+    s.set_misty_versions(modele_textes(&versions));
+    let misty = version_misty();
+    s.set_misty_mc(misty.as_str().into());
+    s.set_misty_art(super::picker::illustration(&super::picker::cle_groupe(&misty, 0)));
     let a = app.clone();
-    s.on_misty_select(move || misty_choisir(&a));
+    s.on_misty_select(move |v| misty_choisir(&a, v.to_string()));
     let a = app.clone();
     s.on_misty_play(move || {
-        misty_choisir(&a);
+        let v = h(&a).get_misty_mc().to_string();
+        misty_choisir(&a, v);
         h(&a).set_picker_open(false);
         let a = a.clone();
         lancer(async move { jouer(&a).await });
@@ -318,8 +322,10 @@ pub async fn initialiser(app: &Rc<App>) {
 
     statut(app, &loc::t("Home_ChargementVersions"));
     charger_versions(app).await;
-    if settings::get_bool(settings::MISTY_CHOISI, false) && client::disponible() && app.home.borrow().profil.is_none() {
-        misty_choisir(app);
+    // tout premier démarrage (rien de choisi avant) : Misty Client, sur sa version la plus récente
+    let premier = settings::get(settings::LAST_VERSION).is_empty() && settings::get(settings::MISTY_CHOISI).is_empty();
+    if (premier || settings::get_bool(settings::MISTY_CHOISI, false)) && client::disponible() && app.home.borrow().profil.is_none() {
+        misty_choisir(app, version_misty());
     } else {
         charger_derniere_version(app);
     }
@@ -588,7 +594,7 @@ fn maj_mode_profil(app: &Rc<App>) {
         }
         None if s.get_misty_selected() => {
             s.set_card_label("MISTY CLIENT".into());
-            s.set_card_version(client::VERSION_MC.into());
+            s.set_card_version(s.get_misty_mc());
             s.set_card_loader("MISTY".into());
             s.set_has_card_icon(false);
         }
@@ -855,7 +861,7 @@ async fn version_choisie(app: &Rc<App>, i: i32) {
 async fn jouer(app: &Rc<App>) {
     let misty = h(app).get_misty_selected() && app.home.borrow().profil.is_none() && client::disponible();
     let (instance, version, mode) = if misty {
-        (None, client::VERSION_MC.to_string(), loaders::FABRIC.to_string())
+        (None, h(app).get_misty_mc().to_string(), loaders::FABRIC.to_string())
     } else {
         let e = app.home.borrow();
         let mode_rapide = e.modes.get(h(app).get_mode_index().max(0) as usize).cloned().unwrap_or_else(|| loaders::VANILLA.into());
@@ -1179,13 +1185,26 @@ async fn horizon_supprimer(app: &Rc<App>, tag: String) {
     horizon_afficher(app);
 }
 
-/// La version Misty devient le jeu lancé par JOUER : jeu rapide sur la version du mod, en Fabric,
+/// La version Misty choisie avant (gardée dans les réglages), sinon la plus récente.
+fn version_misty() -> String {
+    let choisie = settings::get(settings::MISTY_VERSION);
+    if client::existe(&choisie) {
+        choisie
+    } else {
+        client::derniere().to_string()
+    }
+}
+
+/// Cette version Misty devient le jeu lancé par JOUER : jeu rapide sur cette version, en Fabric,
 /// avec Misty Client (même si le réglage « Misty Client en jeu » est coupé).
-fn misty_choisir(app: &Rc<App>) {
-    if !client::disponible() {
+fn misty_choisir(app: &Rc<App>, version: String) {
+    if !client::existe(&version) {
         return;
     }
     let s = h(app);
+    s.set_misty_mc(version.as_str().into());
+    s.set_misty_art(super::picker::illustration(&super::picker::cle_groupe(&version, 0)));
+    settings::set(settings::MISTY_VERSION, &version);
     s.set_horizon_selected(false);
     s.set_misty_selected(true);
     s.set_picker_misty(true);
@@ -1198,7 +1217,7 @@ fn misty_choisir(app: &Rc<App>) {
             h(&a).set_profile_index(0);
         }
         a.home.borrow_mut().loader_voulu = Some(loaders::FABRIC.to_string());
-        aller_a_version(&a, client::VERSION_MC.to_string()).await;
+        aller_a_version(&a, version).await;
         maj_mode_profil(&a);
     });
     maj_mode_profil(app);

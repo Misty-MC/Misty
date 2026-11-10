@@ -56,14 +56,21 @@ pub fn installer(app: &Rc<App>) {
     if let Some(e) = skins::rendre_elytres(skins::texture_misty()) {
         st.set_misty_elytra(Image::from_rgba8(images::tampon(&e)));
     }
-    // l'article Misty équipé la dernière fois l'est toujours
+    if let Some(c) = skins::rendre_cape(skins::texture_early()) {
+        st.set_misty_early_cape(Image::from_rgba8(images::tampon(&c)));
+    }
+    st.set_misty_cloudly(Image::from_rgba8(images::tampon(&skins::apercu_cloudly())));
+    // les articles Misty équipés la dernière fois le sont toujours
     st.set_misty_equip(match client::cosmetique().as_str() {
         client::CAPE => 1,
         client::ELYTRES => 2,
+        client::CAPE_EARLY => 3,
         _ => 0,
     });
+    st.set_misty_hat(client::chapeau() == client::CLOUDLY);
+    verifier_early(app);
     st.set_misty_in_game(client::disponible());
-    st.set_misty_mc(client::VERSION_MC.into());
+    st.set_misty_mc(client::versions_texte().into());
     client::ecrire_lien();
 
     let a = app.clone();
@@ -117,6 +124,7 @@ fn tenue(app: &App) -> (Option<Vec<u8>>, bool) {
     match st.get_misty_equip() {
         1 => (Some(skins::texture_misty().to_vec()), st.get_elytra()),
         2 => (Some(skins::texture_misty().to_vec()), true),
+        3 => (Some(skins::texture_early().to_vec()), st.get_elytra()),
         _ => {
             let cape = if st.get_show_cape() {
                 let e = app.skin.borrow();
@@ -129,6 +137,19 @@ fn tenue(app: &App) -> (Option<Vec<u8>>, bool) {
     }
 }
 
+/// La cape early player : demandée au site pour le compte Microsoft connecté (sans compte : non).
+fn verifier_early(app: &Rc<App>) {
+    let Some(uuid) = account::session().map(|s| s.uuid) else {
+        s(app).set_misty_early(false);
+        return;
+    };
+    let a = app.clone();
+    lancer(async move {
+        let early = client::early(&uuid).await;
+        s(&a).set_misty_early(early);
+    });
+}
+
 /// Changement de tenue (cape montrée ou non, élytres, article Misty) : on recalcule le personnage.
 fn changer_tenue(app: &Rc<App>) {
     let st = s(app);
@@ -136,8 +157,10 @@ fn changer_tenue(app: &Rc<App>) {
     client::equiper(match st.get_misty_equip() {
         1 => client::CAPE,
         2 => client::ELYTRES,
+        3 => client::CAPE_EARLY,
         _ => "",
     });
+    client::equiper_chapeau(if st.get_misty_hat() { client::CLOUDLY } else { "" });
     // Sans compte et sans rien d'essayé : Steve tel quel
     if account::session().is_none() && st.get_misty_equip() == 0 && !st.get_elytra() {
         afficher_steve(app, false);

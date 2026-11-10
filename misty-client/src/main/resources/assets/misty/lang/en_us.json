@@ -27,6 +27,7 @@
 	"misty.module.keystrokes": "Keystrokes",
 	"misty.module.clock": "Clock",
 	"misty.module.armor": "Armor",
+	"misty.module.music": "Music",
 	"misty.title.portals": "WHERE TO?",
 	"misty.title.singleplayer": "Your worlds",
 	"misty.title.multiplayer": "Servers and friends",
@@ -77,5 +78,14 @@
 	"misty.fullbright.on": "Fullbright on",
 	"misty.fullbright.off": "Fullbright off",
 	"misty.fullbright.before": "Without",
-	"misty.fullbright.after": "With"
+	"misty.fullbright.after": "With",
+	"misty.option.zoomReset": "Reset zoom",
+	"misty.option.zoomReset.tip": "The wheel's change only lasts while the key is held: each zoom starts from the level set below.",
+	"misty.option.nametagBadge": "Cloud in name tags",
+	"misty.option.nametagBadge.tip": "The Misty cloud in front of the Misty players' name above their head.",
+	"misty.option.ownNametag": "Show my name tag",
+	"misty.option.ownNametag.tip": "Your own name above your head, seen in third person (F5).",
+	"misty.cosmetic.early_cape": "Early player cape",
+	"misty.cosmetic.cloudly": "Cloudly",
+	"misty.wardrobe.locked": "Early players"
 }

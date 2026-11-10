@@ -16,6 +16,7 @@ pub mod journal;
 pub mod loc;
 pub mod modpack;
 pub mod modrinth;
+pub mod musique;
 pub mod packs;
 pub mod paths;
 pub mod presence;

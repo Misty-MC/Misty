@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import online.mistylauncher.client.cosmetics.Cosmetic;
+import online.mistylauncher.client.cosmetics.Outfit;
 
 /**
  * What the launcher chose for this player: it writes {@code client.json} in its data folder and
@@ -17,16 +18,21 @@ import online.mistylauncher.client.cosmetics.Cosmetic;
 public final class LauncherLink {
 	private static final int CHECK_EVERY_TICKS = 40;
 
-	private static volatile Cosmetic cosmetic = Cosmetic.NONE;
+	private static volatile Outfit outfit = Outfit.NONE;
 	private static FileTime lastModified;
 	private static int ticks;
 
 	private LauncherLink() {
 	}
 
-	/** Cosmetic equipped in the launcher (or in the wardrobe of the game). */
+	/** Outfit chosen in the launcher (or in the wardrobe of the game). */
+	public static Outfit outfit() {
+		return outfit;
+	}
+
+	/** What is worn on the back. */
 	public static Cosmetic cosmetic() {
-		return cosmetic;
+		return outfit.back();
 	}
 
 	/**
@@ -34,8 +40,8 @@ public final class LauncherLink {
 	 * {@code client.json} with {@code "from": "game"} so the launcher keeps this choice instead of
 	 * writing its own over it at the next start.
 	 */
-	public static void equip(final Cosmetic chosen) {
-		cosmetic = chosen;
+	public static void equip(final Cosmetic.Slot slot, final Cosmetic chosen) {
+		outfit = outfit.with(slot, chosen);
 		String dir = System.getProperty("misty.launcher.dir");
 		if (dir == null || dir.isBlank()) {
 			return;
@@ -43,7 +49,8 @@ public final class LauncherLink {
 		try {
 			Path file = Path.of(dir, "client.json");
 			JsonObject json = new JsonObject();
-			json.addProperty("cosmetic", chosen.id());
+			json.addProperty("cosmetic", outfit.back().id());
+			json.addProperty("hat", outfit.hat().id());
 			json.addProperty("from", "game");
 			Path temporary = Path.of(dir, "client.json.tmp");
 			Files.writeString(temporary, json.toString(), StandardCharsets.UTF_8);
@@ -69,7 +76,7 @@ public final class LauncherLink {
 		try {
 			Path file = Path.of(dir, "client.json");
 			if (!Files.isRegularFile(file)) {
-				cosmetic = Cosmetic.NONE;
+				outfit = Outfit.NONE;
 				lastModified = null;
 				return;
 			}
@@ -79,7 +86,7 @@ public final class LauncherLink {
 			}
 			lastModified = modified;
 			JsonObject json = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
-			cosmetic = json.has("cosmetic") ? Cosmetic.of(json.get("cosmetic").getAsString()) : Cosmetic.NONE;
+			outfit = Outfit.of(json.has("cosmetic") ? json.get("cosmetic").getAsString() : "", json.has("hat") ? json.get("hat").getAsString() : "");
 		} catch (IOException | RuntimeException e) {
 			// half-written or unreadable file: keep what we had, the next check reads it again
 			lastModified = null;

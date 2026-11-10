@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.client.Minecraft;
 import online.mistylauncher.client.config.LauncherLink;
 import online.mistylauncher.client.cosmetics.Cosmetic;
+import online.mistylauncher.client.cosmetics.Outfit;
 
 /**
  * Who plays with Misty among the players around, and what they wear. Filled by
@@ -13,7 +14,7 @@ import online.mistylauncher.client.cosmetics.Cosmetic;
  */
 public final class MistyPlayers {
 	/** An answer of the Misty network about one player ({@code misty} false: not a Misty player). */
-	record Entry(boolean misty, Cosmetic cosmetic, long fetchedAt) {
+	record Entry(boolean misty, Outfit outfit, long fetchedAt) {
 	}
 
 	private static final Map<UUID, Entry> KNOWN = new ConcurrentHashMap<>();
@@ -34,20 +35,26 @@ public final class MistyPlayers {
 		return entry != null && entry.misty();
 	}
 
-	public static Cosmetic cosmetic(final UUID id) {
+	/** What a player wears (yourself: what the launcher or the wardrobe chose). */
+	public static Outfit outfit(final UUID id) {
 		if (isSelf(id)) {
-			return LauncherLink.cosmetic();
+			return LauncherLink.outfit();
 		}
 		Entry entry = KNOWN.get(id);
-		return entry != null && entry.misty() ? entry.cosmetic() : Cosmetic.NONE;
+		return entry != null && entry.misty() ? entry.outfit() : Outfit.NONE;
+	}
+
+	/** What a player wears on the back. */
+	public static Cosmetic cosmetic(final UUID id) {
+		return outfit(id).back();
 	}
 
 	static Entry get(final UUID id) {
 		return KNOWN.get(id);
 	}
 
-	static void put(final UUID id, final boolean misty, final Cosmetic cosmetic) {
-		KNOWN.put(id, new Entry(misty, cosmetic, System.currentTimeMillis()));
+	static void put(final UUID id, final boolean misty, final Outfit outfit) {
+		KNOWN.put(id, new Entry(misty, outfit, System.currentTimeMillis()));
 	}
 
 	static void clear() {

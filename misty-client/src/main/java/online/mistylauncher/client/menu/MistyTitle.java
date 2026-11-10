@@ -1,5 +1,6 @@
 package online.mistylauncher.client.menu;
 
+import online.mistylauncher.client.compat.Versions;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
@@ -112,13 +113,13 @@ public final class MistyTitle {
 		int entryH = entryHeight(height);
 
 		add.accept(new Portal(entryX(0), top, entryH, "menu.singleplayer", "misty.title.singleplayer", "singleplayer",
-			() -> minecraft.gui.setScreen(new SelectWorldScreen(screen))));
+			() -> Versions.setScreen(new SelectWorldScreen(screen))));
 		Portal multiplayer = new Portal(entryX(1), top + step, entryH, "menu.multiplayer", "misty.title.multiplayer", "multiplayer", () -> {
 			Screen next = minecraft.options.skipMultiplayerWarning ? new JoinMultiplayerScreen(screen) : new SafetyScreen(screen);
-			minecraft.gui.setScreen(next);
+			Versions.setScreen(next);
 		});
 		Portal realms = new Portal(entryX(2), top + 2 * step, entryH, "menu.online", "misty.title.realms", "realms",
-			() -> minecraft.gui.setScreen(new RealmsMainScreen(screen)));
+			() -> Versions.setScreen(new RealmsMainScreen(screen)));
 		if (multiplayerDisabled != null) {
 			multiplayer.active = false;
 			realms.active = false;
@@ -128,12 +129,12 @@ public final class MistyTitle {
 		add.accept(multiplayer);
 		add.accept(realms);
 		add.accept(new Portal(entryX(3), top + 3 * step, entryH, "menu.options", "misty.title.options", "options",
-			() -> minecraft.gui.setScreen(new OptionsScreen(screen, minecraft.options))));
+			() -> Versions.setScreen(online.mistylauncher.client.compat.Versions.options(screen))));
 		add.accept(new Portal(entryX(4), top + 4 * step, entryH, "menu.quit", "misty.title.quit", "quit", minecraft::stop));
 
 		// you, bottom left: your head opens the wardrobe
 		MistyButton you = new MistyButton(14, height - 50, 36, 36, Component.translatable("misty.wardrobe.title"),
-			() -> minecraft.gui.setScreen(new WardrobeScreen(screen))) {
+			() -> Versions.setScreen(new WardrobeScreen(screen))) {
 			@Override
 			protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
 			}
@@ -146,27 +147,27 @@ public final class MistyTitle {
 			int center = characterCenter(width);
 			int characterY = characterTop(height);
 			int characterH = characterHeight(height);
-			add.accept(new PlayerPreview(center - CHARACTER_W / 2, characterY, CHARACTER_W, characterH, LauncherLink::cosmetic));
+			add.accept(new PlayerPreview(center - CHARACTER_W / 2, characterY, CHARACTER_W, characterH, LauncherLink::outfit));
 			add.accept(new MistyButton(center - 50, characterY + characterH + 18, 100, 18, Component.translatable("misty.wardrobe.open"),
-				() -> minecraft.gui.setScreen(new WardrobeScreen(screen))).primary());
+				() -> Versions.setScreen(new WardrobeScreen(screen))).primary());
 		}
 
 		// top right: language, accessibility, Misty settings
 		int iconY = 10;
 		int iconX = width - 10 - 3 * ICON - 2 * 4;
 		add.accept(icon(iconX, iconY, "options.language", MistyClient.id("textures/gui/icons/language.png"),
-			() -> minecraft.gui.setScreen(new LanguageSelectScreen(screen, minecraft.options, minecraft.getLanguageManager()))));
+			() -> Versions.setScreen(new LanguageSelectScreen(screen, minecraft.options, minecraft.getLanguageManager()))));
 		add.accept(icon(iconX + ICON + 4, iconY, "options.accessibility", MistyClient.id("textures/gui/icons/accessibility.png"),
-			() -> minecraft.gui.setScreen(new AccessibilityOptionsScreen(screen, minecraft.options))));
+			() -> Versions.setScreen(new AccessibilityOptionsScreen(screen, minecraft.options))));
 		MistyButton settings = new MistyButton(iconX + 2 * (ICON + 4), iconY, ICON, ICON, Component.translatable("misty.settings.title"),
-			() -> minecraft.gui.setScreen(new MistySettingsScreen(screen))).cloud();
+			() -> Versions.setScreen(new MistySettingsScreen(screen))).cloud();
 		settings.setTooltip(Tooltip.create(Component.translatable("misty.settings.title")));
 		add.accept(settings);
 
 		// required by Mojang on every title screen: the copyright line, which opens the credits
 		int copyrightWidth = minecraft.font.width(COPYRIGHT);
 		add.accept(new PlainTextButton(width - copyrightWidth - 4, height - 12, copyrightWidth, 10, COPYRIGHT,
-			button -> minecraft.gui.setScreen(new CreditsAndAttributionScreen(screen)), minecraft.font));
+			button -> Versions.setScreen(new CreditsAndAttributionScreen(screen)), minecraft.font));
 	}
 
 	private static MistyButton icon(final int x, final int y, final String key, final Identifier texture, final Runnable onPress) {
@@ -239,7 +240,7 @@ public final class MistyTitle {
 		Ui.card(graphics, frameX, frameY, 36, 36, 0xE00E1527, Ui.alpha(Ui.ACCENT, 0.7F));
 		PlayerFaceExtractor.extractRenderState(graphics, PlayerPreview.skin(), frameX + 4, frameY + 4, 28);
 		graphics.text(font, name, frameX + 44, frameY + 9, Ui.TEXT, false);
-		graphics.text(font, Component.translatable("misty.title.wearing", cosmeticName(LauncherLink.cosmetic())), frameX + 44, frameY + 21, Ui.DIM, false);
+		graphics.text(font, Component.translatable("misty.title.wearing", outfitName(LauncherLink.outfit())), frameX + 44, frameY + 21, Ui.DIM, false);
 
 		// your name above your head, like in the game, and what you wear under your feet
 		if (panel(width)) {
@@ -248,7 +249,7 @@ public final class MistyTitle {
 			int nameW = font.width(name) + 8;
 			graphics.fill(center - nameW / 2, top - 12, center + nameW / 2, top - 1, 0x66000000);
 			Ui.centered(graphics, font, Component.literal(name), center, top - 10, 0xFFFFFFFF);
-			Ui.centered(graphics, font, cosmeticName(LauncherLink.cosmetic()), center, top + characterHeight(height) + 5, Ui.MUTED);
+			Ui.centered(graphics, font, outfitName(LauncherLink.outfit()), center, top + characterHeight(height) + 5, Ui.MUTED);
 		}
 
 		// versions, bottom right, above the copyright
@@ -258,6 +259,17 @@ public final class MistyTitle {
 
 	private static Component cosmeticName(final Cosmetic cosmetic) {
 		return Component.translatable("misty.cosmetic." + (cosmetic == Cosmetic.NONE ? "none" : cosmetic.id()));
+	}
+
+	/** "Misty cape + Cloudly", or "nothing". */
+	private static Component outfitName(final online.mistylauncher.client.cosmetics.Outfit outfit) {
+		if (outfit.hat() == Cosmetic.NONE) {
+			return cosmeticName(outfit.back());
+		}
+		if (outfit.back() == Cosmetic.NONE) {
+			return cosmeticName(outfit.hat());
+		}
+		return Component.empty().append(cosmeticName(outfit.back())).append(" + ").append(cosmeticName(outfit.hat()));
 	}
 
 	private static void scaledLeft(final GuiGraphicsExtractor graphics, final Font font, final Component text, final int x, final int y, final float scale, final int color) {
