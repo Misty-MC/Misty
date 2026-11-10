@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"package": "online.mistylauncher.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ChatComponentMixin",
+		"ChatListenerMixin",
+		"HudMixin",
+		"MouseHandlerMixin",
+		"PauseScreenMixin",
+		"PlayerInfoMixin",
+		"PlayerTabOverlayMixin",
+		"TitleScreenMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

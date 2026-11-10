@@ -1,5 +1,13 @@
 # Changelog
 ## 0.3.8
+### Misty Client (in game)
+- New: Misty now comes into the game, like PvP clients. Misty Client is a mod built into the launcher, installed on its own in **Fabric 26.3** profiles (nothing to download, switchable in Settings)
+- Misty main menu instead of the Minecraft one: the cloud, your account, and the same entries as before
+- HUD: FPS, ping, clicks per second, coordinates, keystrokes, armor and clock. Press Right Shift in game to arrange it: drag a module to move it, click to turn it on or off, scroll to resize
+- The Misty cloud shows in front of the Misty players, in the player list (Tab) and in the chat
+- The Misty cape and elytra of the Skin tab are now really equipped: you wear them in game, the other Misty players see them, and your choice is kept. Equip one while the game runs and it appears right away
+- To recognize each other, the game proves your Microsoft account to the Misty site the way it does to a server (your Minecraft token never leaves the game) and tells it you are online and what you wear. "Misty network" in the in-game Misty settings turns this off
+
 ### Modpacks
 - Modpacks can now be updated: a new button on a modpack profile lists its versions (the installed one is marked) and switches to the one you pick. The modpack's mods and configs are replaced, your worlds, options and the mods you added yourself are kept
 - An imported modpack file (`.mrpack` or CurseForge `.zip`) is recognized on Modrinth or CurseForge when it is published there, so it can be updated too

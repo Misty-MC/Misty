@@ -1,0 +1,71 @@
+package online.mistylauncher.client;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
+import online.mistylauncher.client.config.LauncherLink;
+import online.mistylauncher.client.config.MistyConfig;
+import online.mistylauncher.client.hud.HudEditorScreen;
+import online.mistylauncher.client.hud.HudManager;
+import online.mistylauncher.client.net.MistyNetwork;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Misty Client: the in-game side of the Misty launcher (custom menu, HUD, Misty badge in the
+ * player list and the chat, Misty cosmetics).
+ */
+public final class MistyClient implements ClientModInitializer {
+	public static final String ID = "misty";
+	public static final Logger LOG = LoggerFactory.getLogger("Misty");
+
+	private static MistyConfig config = new MistyConfig();
+	private static KeyMapping editorKey;
+
+	public static MistyConfig config() {
+		return config;
+	}
+
+	public static Identifier id(final String path) {
+		return Identifier.fromNamespaceAndPath(ID, path);
+	}
+
+	/** Version of the mod, as written in fabric.mod.json ("1.0.0+mc26.3" gives "1.0.0"). */
+	public static String version() {
+		return FabricLoader.getInstance()
+			.getModContainer("misty-client")
+			.map(mod -> mod.getMetadata().getVersion().getFriendlyString().split("\\+")[0])
+			.orElse("dev");
+	}
+
+	@Override
+	public void onInitializeClient() {
+		config = MistyConfig.load();
+		HudManager.init(config);
+		LauncherLink.refresh();
+
+		editorKey = KeyMappingHelper.registerKeyMapping(
+			new KeyMapping("key.misty.editor", InputConstants.KEY_RSHIFT, KeyMapping.Category.register(id("misty")))
+		);
+
+		ClientTickEvents.END_CLIENT_TICK.register(MistyClient::tick);
+		ClientLifecycleEvents.CLIENT_STARTED.register(MistyNetwork::start);
+		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> MistyNetwork.stop());
+	}
+
+	private static void tick(final Minecraft minecraft) {
+		LauncherLink.tick();
+		MistyNetwork.tick(minecraft);
+		while (editorKey.consumeClick()) {
+			if (minecraft.gui.screen() == null) {
+				minecraft.gui.setScreen(new HudEditorScreen(null));
+			}
+		}
+	}
+}

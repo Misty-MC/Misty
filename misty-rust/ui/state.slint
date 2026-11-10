@@ -433,6 +433,11 @@ export global SettingsState {
     callback rich-toggled(bool);
     in-out property <bool> console-auto: true;
     callback console-auto-toggled(bool);
+    /// Misty Client (le mod en jeu) : dans cet exe ou non, sa version de Minecraft, et le réglage
+    in property <bool> misty-client-available;
+    in property <string> misty-client-mc;
+    in-out property <bool> misty-client: true;
+    callback misty-client-toggled(bool);
     in-out property <bool> telemetry;
     callback telemetry-toggled(bool);
     in-out property <bool> prerelease;

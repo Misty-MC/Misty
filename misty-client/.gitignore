@@ -1,0 +1,10 @@
+# Gradle
+.gradle/
+build/
+# Game folder of `gradlew runClient`
+run/
+# Editors
+.idea/
+.vscode/
+*.iml
+bin/

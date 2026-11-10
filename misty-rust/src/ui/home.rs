@@ -897,6 +897,9 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         Some(i) => format!("{} · {version} {mode}", i.nom),
         None => format!("Minecraft {version} · {mode}"),
     };
+    // Misty Client : posé dans les mods du profil s'il le supporte, retiré sinon
+    crate::services::client::preparer(&options.dossier_jeu, version, mode);
+    crate::services::client::ecrire_lien();
     let partie = journal::nouvelle_partie(&titre);
     if super::console::auto() {
         super::console::ouvrir(app);

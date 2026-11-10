@@ -2,7 +2,7 @@
 
 use super::{dialogs, images, lancer, modele, App};
 use crate::services::skins::{self, Profil};
-use crate::services::{account, loc};
+use crate::services::{account, client, loc};
 use crate::{CapeItem, HomeState, SkinState};
 use slint::{ComponentHandle, Image, Model};
 use std::rc::Rc;
@@ -56,6 +56,15 @@ pub fn installer(app: &Rc<App>) {
     if let Some(e) = skins::rendre_elytres(skins::texture_misty()) {
         st.set_misty_elytra(Image::from_rgba8(images::tampon(&e)));
     }
+    // l'article Misty équipé la dernière fois l'est toujours
+    st.set_misty_equip(match client::cosmetique().as_str() {
+        client::CAPE => 1,
+        client::ELYTRES => 2,
+        _ => 0,
+    });
+    st.set_misty_in_game(client::disponible());
+    st.set_misty_mc(client::VERSION_MC.into());
+    client::ecrire_lien();
 
     let a = app.clone();
     st.on_open(move || {
@@ -123,6 +132,12 @@ fn tenue(app: &App) -> (Option<Vec<u8>>, bool) {
 /// Changement de tenue (cape montrée ou non, élytres, article Misty) : on recalcule le personnage.
 fn changer_tenue(app: &Rc<App>) {
     let st = s(app);
+    // l'article Misty choisi est équipé : Misty Client le montre en jeu
+    client::equiper(match st.get_misty_equip() {
+        1 => client::CAPE,
+        2 => client::ELYTRES,
+        _ => "",
+    });
     // Sans compte et sans rien d'essayé : Steve tel quel
     if account::session().is_none() && st.get_misty_equip() == 0 && !st.get_elytra() {
         afficher_steve(app, false);

@@ -2,7 +2,7 @@
 //! comportement, ressources, dépannage.
 
 use super::{dialogs, lancer, modele, App};
-use crate::services::{account, app_info, discord, loc, paths, pseudos, settings, shortcut, storage, system_info};
+use crate::services::{account, app_info, client, discord, loc, paths, pseudos, settings, shortcut, storage, system_info};
 use crate::{LangItem, PseudoRow, SettingsState, StorageRow};
 use slint::ComponentHandle;
 use std::path::Path;
@@ -197,6 +197,7 @@ pub fn installer(app: &Rc<App>) {
         discord::reappliquer();
     });
     st.on_console_auto_toggled(|actif| settings::set_bool(settings::CONSOLE, actif));
+    st.on_misty_client_toggled(|actif| settings::set_bool(settings::MISTY_CLIENT, actif));
     st.on_prerelease_toggled(|actif| {
         settings::set_bool(settings::MAJ_PRERELEASE, actif);
         crate::services::journal::info(&format!("Mises à jour pré-release : {}", if actif { "oui" } else { "non" }));
@@ -416,6 +417,9 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_downloads(settings::telechargements() as f32);
     st.set_seasonal(settings::get_bool(settings::SAISON, true));
     st.set_console_auto(settings::get_bool(settings::CONSOLE, true));
+    st.set_misty_client_available(client::disponible());
+    st.set_misty_client_mc(client::VERSION_MC.into());
+    st.set_misty_client(client::active());
     st.set_prerelease(settings::get_bool(settings::MAJ_PRERELEASE, false));
     st.set_telemetry(crate::services::telemetry::active());
     st.set_bg_blur(settings::fond_flou() as f32);

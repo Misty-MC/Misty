@@ -35,6 +35,15 @@ $publish = Join-Path $racine "publish"
 $dossier = Join-Path $publish "Misty-$version"
 $zip = Join-Path $publish "Misty-$version.zip"
 
+# ── Misty Client (le mod en jeu, intégré à l'exe par misty-rust\build.rs) : nécessite un JDK 25 ──
+Push-Location (Join-Path $racine "misty-client")
+try {
+    .\gradlew.bat build
+    if ($LASTEXITCODE -ne 0) { throw "gradlew build (Misty Client) a échoué" }
+} finally {
+    Pop-Location
+}
+
 # ── Compilation (release : optimisée, sans console) ──
 Push-Location $projet
 try {

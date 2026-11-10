@@ -1008,6 +1008,13 @@ export component SettingsModal inherits Rectangle {
                                 checked <=> SettingsState.rich;
                                 toggled(v) => { SettingsState.rich-toggled(v); }
                             }
+                            if SettingsState.misty-client-available: Separateur { }
+                            if SettingsState.misty-client-available: LigneInterrupteur {
+                                titre: Tr.t("Param_MistyClient");
+                                texte: Tr.t("Param_MistyClient_Texte") + " Fabric " + SettingsState.misty-client-mc + ".";
+                                checked <=> SettingsState.misty-client;
+                                toggled(v) => { SettingsState.misty-client-toggled(v); }
+                            }
                             Separateur { }
                             LigneInterrupteur {
                                 titre: Tr.t("Param_Console");

@@ -27,8 +27,12 @@ export global SkinState {
     in-out property <bool> elytra: false;
     /// Montrer la cape Mojang portée
     in-out property <bool> show-cape: true;
-    /// Essai d'un cosmétique Misty : 0 aucun · 1 cape Misty · 2 élytres Misty
+    /// Cosmétique Misty équipé : 0 aucun · 1 cape Misty · 2 élytres Misty
     in-out property <int> misty-equip: 0;
+    /// Misty Client (le mod en jeu) est dans ce launcher : l'article équipé se voit en jeu
+    in property <bool> misty-in-game;
+    /// Version de Minecraft de Misty Client
+    in property <string> misty-mc;
     /// Aperçus de la cape et des élytres Misty (face extérieure de la texture)
     in property <image> misty-cape;
     in property <image> misty-elytra;
@@ -983,28 +987,28 @@ export component SkinPanel inherits Rectangle {
                         }
                     }
 
-                    // avertissement : l'article Misty n'apparaît pas encore en jeu
+                    // article Misty équipé : où il se voit en jeu (ou l'avertissement, sans Misty Client)
                     if SkinState.misty-equip != 0: Rectangle {
                         min-height: av.preferred-height;
                         border-radius: 12px;
-                        background: Theme.dark ? #FFBE5A14 : #FFF1DC;
+                        background: SkinState.misty-in-game ? Theme.accent-soft : Theme.dark ? #FFBE5A14 : #FFF1DC;
                         border-width: 1px;
-                        border-color: Theme.dark ? #FFBE5A59 : #F0B35E;
+                        border-color: SkinState.misty-in-game ? Theme.accent.with-alpha(0.35) : Theme.dark ? #FFBE5A59 : #F0B35E;
                         av := HorizontalLayout {
                             padding: 11px;
                             spacing: 10px;
                             Icon {
                                 width: 16px;
                                 vertical-alignment: top;
-                                text: "\u{E7BA}";
+                                text: SkinState.misty-in-game ? "\u{E73E}" : "\u{E7BA}";
                                 font-size: 14px;
-                                color: #FFC56B;
+                                color: SkinState.misty-in-game ? Theme.accent : #FFC56B;
                             }
                             Text {
                                 horizontal-stretch: 1;
-                                text: Tr.t("Cos_PasEnJeu");
+                                text: SkinState.misty-in-game ? Tr.t("Cos_EnJeu") + "\n" + Tr.t("Cos_EnJeu_Profil") + " Fabric " + SkinState.misty-mc : Tr.t("Cos_PasEnJeu");
                                 font-size: 13px;
-                                color: Theme.dark ? #FFD99A : #6B4210;
+                                color: SkinState.misty-in-game ? Theme.text : Theme.dark ? #FFD99A : #6B4210;
                                 wrap: word-wrap;
                             }
                         }

@@ -34,12 +34,16 @@ pub const TELEMETRIE: &str = "telemetrie";
 pub const TELEMETRIE_ID: &str = "telemetrieid";
 /// Mises à jour : proposer aussi les pré-releases (bêtas) de GitHub
 pub const MAJ_PRERELEASE: &str = "majprerelease";
+/// Misty Client en jeu (menu, HUD, badge et cosmétiques Misty) sur les profils compatibles
+pub const MISTY_CLIENT: &str = "mistyclient";
+/// Cosmétique Misty équipé : "" aucun, "misty_cape", "misty_elytra" (voir services::client)
+pub const COSMETIQUE: &str = "cosmetique";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
-    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

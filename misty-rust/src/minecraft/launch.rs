@@ -3,7 +3,7 @@
 use super::install::{self, VersionInstallee};
 use super::version::{self, regles_ok};
 use super::McDirs;
-use crate::services::app_info;
+use crate::services::{app_info, paths};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -103,6 +103,8 @@ pub fn preparer(dirs: &McDirs, v: &VersionInstallee, options: &Options) -> anyho
         "-Dlog4j2.formatMsgNoLookups=true".into(),
         "-Dminecraft.launcher.brand=misty".into(),
         format!("-Dminecraft.launcher.version={}", app_info::VERSION),
+        // Lu par Misty Client (le mod) pour trouver client.json : voir services::client
+        format!("-Dmisty.launcher.dir={}", paths::data_dir().to_string_lossy()),
     ];
 
     let arguments = v.json.get("arguments");

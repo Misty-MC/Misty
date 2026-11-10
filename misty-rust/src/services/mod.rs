@@ -4,6 +4,7 @@
 pub mod account;
 pub mod app_info;
 pub mod catalogue;
+pub mod client;
 pub mod content;
 pub mod curseforge;
 pub mod discord;

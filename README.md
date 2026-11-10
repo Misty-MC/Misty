@@ -42,6 +42,7 @@ Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe
 - **Modrinth and CurseForge content**: search and install mods, resource packs, datapacks and shaders filtered by the profile's version and loader, with required dependencies. Files added by hand are identified by hash (Modrinth) or fingerprint (CurseForge)
 - **Modpacks** (`.mrpack` and CurseForge): one click creates a ready-to-play profile
 - **Mod loaders**: Forge, NeoForge, Fabric, Quilt, OptiFine and LiteLoader
+- **Misty Client in game** (Fabric 26.3 profiles): Misty main menu, HUD you can arrange (FPS, CPS, keystrokes, coordinates…), the Misty cloud next to Misty players in the player list and the chat, Misty cape and elytra
 - **Skins and capes**: 3D preview (walk, elytra, front / side / back), cape switching, local cache that survives Mojang's rate limit
 - **Texture pack editor** (experimental): drawing tools, recent colors, pack icon, export, live reload from an external editor
 - **Accounts**: several Microsoft accounts and offline accounts
@@ -70,12 +71,14 @@ cargo build --release  # final exe: target\release\Misty.exe
 cargo test -- --ignored --nocapture   # uses the Internet and your Misty folder, never launches the game
 ```
 
+**Misty Client** (the in-game mod, see [misty-client/](misty-client/README.md)): build it first with `gradlew build` in `misty-client` (JDK 25) and the launcher embeds it. Without it, the launcher still builds, just without the in-game features.
+
 **CurseForge API key**: CurseForge requires a personal (free) key from [console.curseforge.com](https://console.curseforge.com). Put it in `misty-rust/curseforge.key` (git-ignored) or in the `MISTY_CURSEFORGE_KEY` environment variable; it is embedded in the exe at build time. Without it, Modrinth still works.
 
 ## 🚀 Publishing a release
 
 1. Bump `VERSION` in [misty-rust/src/services/app_info.rs](misty-rust/src/services/app_info.rs) and `version` in [misty-rust/Cargo.toml](misty-rust/Cargo.toml), then add the entry to [CHANGELOG.md](CHANGELOG.md) (embedded in the exe, shown in "Patch notes").
-2. Run the release script (needs [Inno Setup 6](https://jrsoftware.org/isdl.php): `winget install JRSoftware.InnoSetup`):
+2. Run the release script (needs a JDK 25 for Misty Client and [Inno Setup 6](https://jrsoftware.org/isdl.php): `winget install JRSoftware.InnoSetup`):
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File installer\build.ps1
@@ -92,6 +95,7 @@ cargo test -- --ignored --nocapture   # uses the Internet and your Misty folder,
 ```
 CHANGELOG.md           patch notes (embedded in the exe)
 installer/             release script (build.ps1) + Inno Setup installer (Misty.iss)
+misty-client/          Misty Client: the in-game Fabric mod (Java), embedded in the exe
 misty-rust/
 ├── build.rs           compiles the UI, embeds the icon, CurseForge key and changelog
 ├── assets/            icon, Silkscreen pixel font (OFL), flags
