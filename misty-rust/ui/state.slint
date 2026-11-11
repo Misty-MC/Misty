@@ -281,6 +281,12 @@ export struct ContentItem {
     icon: image,
     has-icon: bool,
     active: bool,
+    /// Où le mod s'installe (d'après Modrinth) : 0 inconnu, 1 client, 2 serveur, 3 les deux
+    side: int,
+    /// Version disponible (vide = à jour ou inconnu)
+    update: string,
+    /// Mise à jour en cours
+    updating: bool,
 }
 
 export global InstanceState {
@@ -319,6 +325,11 @@ export global InstanceState {
     callback filter-text-changed(string);
     callback toggle(int);
     callback remove(int);
+    /// Nombre de mises à jour disponibles dans le profil (bouton « Tout mettre à jour »)
+    in property <int> updates-count;
+    in property <bool> updating-all;
+    callback update-item(int);
+    callback update-all();
 }
 
 // ───────────────────────── Explorateur Modrinth / CurseForge ─────────────────────────

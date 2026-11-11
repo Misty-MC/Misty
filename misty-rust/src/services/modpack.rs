@@ -560,6 +560,8 @@ async fn fichiers_curseforge(manifeste: &curseforge::ManifestCF, instance: &Inst
                 version_nom: Some(fichier.display_name.clone()),
                 icone_url: m.and_then(|m| m.logo.as_ref()).and_then(|l| l.thumbnail_url.clone()),
                 type_: type_.to_string(),
+                client_side: Some(fichier.environnement().0),
+                server_side: Some(fichier.environnement().1),
             },
             bloque: FichierBloque { nom: titre, page: curseforge::page_fichier(m, entree.project_id, entree.file_id), dossier: nom_dossier },
             destination,
@@ -639,6 +641,7 @@ fn trouve_sur_modrinth(
         version_nom: Some(version.version_number.clone()),
         icone_url: icone,
         type_: b.meta.type_.clone(),
+        ..Default::default()
     };
     b.destination = destination;
 }

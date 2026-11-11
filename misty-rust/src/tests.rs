@@ -118,3 +118,22 @@ async fn horizon_preparation() {
     }
     assert!(horizon::est_prepare(&build, &ex), "pas prêt après la préparation");
 }
+
+/// Mises à jour et côté client / serveur du contenu de chaque profil (réseau).
+#[tokio::test]
+#[ignore]
+async fn majs_et_environnement() {
+    use crate::services::{content, instances};
+    loc::initialiser();
+    println!("CurseForge : {}", crate::services::curseforge::disponible());
+    for inst in instances::lister() {
+        let contenus = content::identifier(&inst, content::lister(&inst)).await.unwrap();
+        let (majs, contenus) = content::verifier(&inst, contenus).await.unwrap_or_else(|e| panic!("{} : {e:#}", inst.nom));
+        println!("== {} ({} {} {}) : {} fichiers, {} mises à jour", inst.nom, inst.version_mc, inst.loader, inst.id, contenus.len(), majs.len());
+        for c in &contenus {
+            let rel = content::relatif(&inst, &c.chemin_fichier);
+            let src = c.meta.as_ref().map(|m| m.source().to_string()).unwrap_or_default();
+            println!("  {:<40} {:<10} {:?} {}", c.titre(), src, c.environnement(), majs.get(&rel).map(|m| format!("-> {}", m.version_nom)).unwrap_or_default());
+        }
+    }
+}

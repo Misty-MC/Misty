@@ -62,6 +62,28 @@ component CaseMisty inherits Rectangle {
     }
 }
 
+/// Pastille « Client » / « Serveur » / « Client + serveur » d'un mod (renseignée par Modrinth).
+component SideChip inherits Rectangle {
+    /// 1 client, 2 serveur, 3 les deux
+    in property <int> side;
+    property <color> teinte: root.side == 1 ? #13B24C : root.side == 2 ? #F08A24 : #2F8CFF;
+    height: 18px;
+    width: label.preferred-width + 14px;
+    border-radius: 9px;
+    background: root.teinte.with-alpha(0.18);
+    border-width: 1px;
+    border-color: root.teinte.with-alpha(0.55);
+    label := Text {
+        text: root.side == 1 ? Tr.t("Env_Client") : root.side == 2 ? Tr.t("Env_Serveur") : Tr.t("Env_LesDeux");
+        font-family: Theme.ui-font;
+        font-size: 10px;
+        font-weight: 700;
+        color: root.teinte.brighter(0.25);
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
 export component InstancePage inherits Rectangle {
     VerticalLayout {
         padding-left: 26px;
@@ -254,6 +276,14 @@ export component InstancePage inherits Rectangle {
                     }
                 }
                 Rectangle { horizontal-stretch: 1; }
+                if InstanceState.updates-count > 0: MButton {
+                    kind: 3;
+                    icon: "\u{E896}";
+                    icon-spin: InstanceState.updating-all;
+                    enabled: !InstanceState.updating-all;
+                    text: Tr.t("Instance_ToutMettreAJour") + " (" + InstanceState.updates-count + ")";
+                    clicked => { InstanceState.update-all(); }
+                }
                 GlassInput {
                     width: 240px;
                     search: true;
@@ -294,20 +324,58 @@ export component InstancePage inherits Rectangle {
                                 horizontal-stretch: 1;
                                 alignment: center;
                                 spacing: 2px;
-                                Text {
-                                    text: c.title;
-                                    font-family: Theme.ui-font;
-                                    font-weight: 600;
-                                    font-size: 14px;
-                                    color: Theme.navy;
-                                    overflow: elide;
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text {
+                                        horizontal-stretch: 0;
+                                        text: c.title;
+                                        font-family: Theme.ui-font;
+                                        font-weight: 600;
+                                        font-size: 14px;
+                                        color: Theme.navy;
+                                        overflow: elide;
+                                    }
+                                    if c.side > 0: VerticalLayout {
+                                        alignment: center;
+                                        SideChip { side: c.side; }
+                                    }
+                                    Rectangle { horizontal-stretch: 1; }
                                 }
-                                Text {
-                                    text: c.details;
-                                    font-family: Theme.ui-font;
-                                    font-size: 12px;
-                                    color: Theme.text-muted;
-                                    overflow: elide;
+                                HorizontalLayout {
+                                    spacing: 6px;
+                                    Text {
+                                        horizontal-stretch: 0;
+                                        text: c.details;
+                                        font-family: Theme.ui-font;
+                                        font-size: 12px;
+                                        color: Theme.text-muted;
+                                        overflow: elide;
+                                    }
+                                    if c.update != "": Text {
+                                        horizontal-stretch: 0;
+                                        text: "→ " + c.update;
+                                        font-family: Theme.ui-font;
+                                        font-size: 12px;
+                                        font-weight: 700;
+                                        color: Theme.green-dark;
+                                        overflow: elide;
+                                    }
+                                    Rectangle { horizontal-stretch: 1; }
+                                }
+                            }
+                            if c.update != "": VerticalLayout {
+                                alignment: center;
+                                IconButton {
+                                    width: 36px;
+                                    height: 36px;
+                                    icon: c.updating ? "\u{E895}" : "\u{E896}";
+                                    icon-size: 13px;
+                                    enabled: !c.updating;
+                                    fond: Theme.green-dark.with-alpha(0.2);
+                                    bord: Theme.green-dark.with-alpha(0.6);
+                                    encre: Theme.green-dark;
+                                    tooltip: Tr.t("Instance_MettreAJour") + " → " + c.update;
+                                    clicked => { InstanceState.update-item(i); }
                                 }
                             }
                             ToggleSwitch {

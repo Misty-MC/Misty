@@ -2,11 +2,12 @@
 
 use super::{browser, dialogs, images, lancer, maj_ligne, modele, modele_textes, App};
 use crate::services::catalogue::{ProjetDistant, MODRINTH};
-use crate::services::content::{self, ContenuInstalle};
+use crate::services::content::{self, ContenuInstalle, MajDispo};
 use crate::services::instances::{self, Instance};
 use crate::services::{client, export, loc, packs, system_info};
 use crate::{BadgeItem, ContentItem, InstanceState};
 use slint::{Color, ComponentHandle, ModelRc};
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 #[derive(Default)]
@@ -22,6 +23,10 @@ pub struct Etat {
     empreinte: u64,
     /// Chargement de la liste en cours
     chargement: bool,
+    /// Mises à jour disponibles (chemin relatif → version), cherchées à l'ouverture du profil
+    majs: HashMap<String, MajDispo>,
+    /// Fichiers en cours de mise à jour (chemins relatifs)
+    majs_en_cours: HashSet<String>,
 }
 
 fn s(app: &App) -> InstanceState<'_> {
@@ -129,6 +134,27 @@ pub fn installer(app: &Rc<App>) {
     st.on_remove(move |i| {
         let a = a.clone();
         lancer(async move { supprimer_contenu(&a, i as usize).await });
+    });
+    let a = app.clone();
+    st.on_update_item(move |i| {
+        let a = a.clone();
+        lancer(async move {
+            if let Some((_, contenu)) = contenu_affiche(&a, i as usize) {
+                mettre_a_jour(&a, vec![contenu]).await;
+            }
+        });
+    });
+    let a = app.clone();
+    st.on_update_all(move || {
+        let a = a.clone();
+        lancer(async move {
+            let liste: Vec<ContenuInstalle> = {
+                let e = a.instance.borrow();
+                let Some(inst) = e.instance.as_ref() else { return };
+                e.contenus.iter().filter(|c| e.majs.contains_key(&content::relatif(inst, &c.chemin_fichier))).cloned().collect()
+            };
+            mettre_a_jour(&a, liste).await;
+        });
     });
 
     // Fichiers ajoutés à la main (glissés dans le dossier mods, etc.) : la liste se recharge seule
@@ -258,8 +284,14 @@ async fn mettre_a_jour_pack(app: &Rc<App>) {
 
 /// Affiche un profil (appelé à chaque ouverture de la page).
 pub fn ouvrir(app: &Rc<App>, inst: Instance) {
-    app.instance.borrow_mut().instance = Some(inst);
+    {
+        let mut e = app.instance.borrow_mut();
+        e.instance = Some(inst);
+        e.majs.clear();
+        e.majs_en_cours.clear();
+    }
     let st = s(app);
+    st.set_updating_all(false);
     st.set_renaming(false);
     st.set_status("".into());
     st.set_tab(0);
@@ -269,7 +301,105 @@ pub fn ouvrir(app: &Rc<App>, inst: Instance) {
     browser::oublier_instance(app); // l'explorateur sera reconfiguré à la première ouverture de l'onglet
     super::naviguer(app, super::page::INSTANCE);
     let a = app.clone();
-    lancer(async move { charger_contenu(&a).await });
+    lancer(async move {
+        charger_contenu(&a).await;
+        verifier_majs(&a).await;
+    });
+}
+
+/// Cherche les mises à jour du contenu et le côté client / serveur des mods (en arrière-plan).
+async fn verifier_majs(app: &Rc<App>) {
+    let Some(inst) = instance(app) else { return };
+    let contenus = app.instance.borrow().contenus.clone();
+    if contenus.is_empty() {
+        return;
+    }
+    let i = inst.clone();
+    let resultat = app.bg(async move { content::verifier(&i, contenus).await }).await;
+    if instance(app).map(|x| x.id) != Some(inst.id) {
+        return; // un autre profil a été ouvert entre-temps
+    }
+    match resultat {
+        Ok((majs, contenus)) => {
+            {
+                let mut e = app.instance.borrow_mut();
+                e.majs = majs;
+                // métadonnées complétées (client / serveur), si la liste n'a pas changé entre-temps
+                if e.contenus.len() == contenus.len()
+                    && e.contenus.iter().zip(&contenus).all(|(a, b)| a.chemin_fichier == b.chemin_fichier)
+                {
+                    e.contenus = contenus;
+                }
+            }
+            appliquer_filtre(app);
+        }
+        Err(e) => crate::services::journal::info(&format!("Recherche des mises à jour impossible : {e:#}")),
+    }
+}
+
+/// Installe les mises à jour connues de ces fichiers, l'un après l'autre.
+async fn mettre_a_jour(app: &Rc<App>, liste: Vec<ContenuInstalle>) {
+    let Some(inst) = instance(app) else { return };
+    let taches: Vec<(ContenuInstalle, String, MajDispo)> = {
+        let mut e = app.instance.borrow_mut();
+        let taches: Vec<_> = liste
+            .into_iter()
+            .filter_map(|c| {
+                let rel = content::relatif(&inst, &c.chemin_fichier);
+                let maj = e.majs.get(&rel)?.clone();
+                (!e.majs_en_cours.contains(&rel)).then_some((c, rel, maj))
+            })
+            .collect();
+        e.majs_en_cours.extend(taches.iter().map(|(_, r, _)| r.clone()));
+        taches
+    };
+    if taches.is_empty() {
+        return;
+    }
+    let tout = taches.len() > 1;
+    if tout {
+        s(app).set_updating_all(true);
+    }
+    appliquer_filtre(app);
+
+    let mut erreurs = Vec::new();
+    let mut faits = Vec::new();
+    for (contenu, rel, maj) in taches {
+        let progression = app.progression(|ui, texte| ui.global::<InstanceState>().set_status(texte.into()));
+        let (i, c, m) = (inst.clone(), contenu.clone(), maj.clone());
+        let resultat = app.bg(async move { content::mettre_a_jour(&i, &c, &m, Some(progression)).await }).await;
+        if instance(app).map(|x| x.id) != Some(inst.id.clone()) {
+            return; // profil fermé : la liste sera relue à la prochaine ouverture
+        }
+        {
+            let mut e = app.instance.borrow_mut();
+            e.majs_en_cours.remove(&rel);
+            if resultat.is_ok() {
+                e.majs.remove(&rel);
+            }
+        }
+        match resultat {
+            Ok(_) => faits.push(contenu.titre()),
+            Err(e) => erreurs.push(format!("{} : {e:#}", contenu.titre())),
+        }
+    }
+    s(app).set_updating_all(false);
+
+    let i = inst.clone();
+    let contenus = app.bloquant(move || content::lister(&i)).await;
+    app.instance.borrow_mut().contenus = contenus;
+    appliquer_filtre(app);
+    s(app).set_status(
+        match faits.len() {
+            0 => String::new(),
+            1 => loc::tf("Instance_MisAJour", &[&faits[0]]),
+            n => loc::tf("Instance_MisAJourN", &[&n]),
+        }
+        .into(),
+    );
+    if !erreurs.is_empty() {
+        dialogs::erreur(app, &loc::t("Instance_MajImpossible"), &erreurs.join("\n\n")).await;
+    }
 }
 
 pub fn langue_changee(app: &Rc<App>) {
@@ -386,8 +516,9 @@ async fn charger_contenu(app: &Rc<App>) {
 
 fn appliquer_filtre(app: &Rc<App>) {
     let texte = s(app).get_filter_text().trim().to_lowercase();
-    let (visibles, items, nb) = {
+    let (visibles, items, nb, nb_majs) = {
         let e = app.instance.borrow();
+        let rel = |c: &ContenuInstalle| e.instance.as_ref().map(|i| content::relatif(i, &c.chemin_fichier)).unwrap_or_default();
         let visibles: Vec<usize> = (0..e.contenus.len())
             .filter(|&i| {
                 let c = &e.contenus[i];
@@ -399,6 +530,7 @@ fn appliquer_filtre(app: &Rc<App>) {
             .iter()
             .map(|&i| {
                 let c = &e.contenus[i];
+                let r = rel(c);
                 (
                     ContentItem {
                         title: c.titre().into(),
@@ -406,13 +538,18 @@ fn appliquer_filtre(app: &Rc<App>) {
                         icon: images::vide(),
                         has_icon: false,
                         active: c.actif(),
+                        side: c.environnement().code(),
+                        update: e.majs.get(&r).map(|m| m.version_nom.clone()).unwrap_or_default().into(),
+                        updating: e.majs_en_cours.contains(&r),
                     },
                     c.icone_url(),
                 )
             })
             .collect();
-        (visibles, items, e.contenus.len())
+        let nb_majs = e.contenus.iter().filter(|c| e.majs.contains_key(&rel(c))).count();
+        (visibles, items, e.contenus.len(), nb_majs)
     };
+    s(app).set_updates_count(nb_majs as i32);
 
     let urls: Vec<Option<String>> = items.iter().map(|(_, u)| u.clone()).collect();
     let m = modele(items.into_iter().map(|(c, _)| c).collect());

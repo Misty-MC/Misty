@@ -48,6 +48,9 @@ pub struct ProjetDetail {
     #[serde(default)]
     pub title: String,
     pub icon_url: Option<String>,
+    /// required / optional / unsupported / unknown
+    pub client_side: Option<String>,
+    pub server_side: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -187,6 +190,22 @@ pub async fn versions_par_hash(sha1: &[String]) -> anyhow::Result<HashMap<String
     let corps = serde_json::json!({ "hashes": sha1, "algorithm": "sha1" });
     let reponse = http::client()
         .post(format!("{BASE}version_files"))
+        .json(&corps)
+        .send()
+        .await?
+        .error_for_status()?;
+    Ok(reponse.json().await?)
+}
+
+/// Dernière version compatible (loaders + version de Minecraft) de chaque fichier, par SHA-1.
+/// Renvoie hash du fichier installé → version la plus récente.
+pub async fn dernieres_versions(sha1: &[String], loaders: &[&str], version_mc: &str) -> anyhow::Result<HashMap<String, VersionModrinth>> {
+    if sha1.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let corps = serde_json::json!({ "hashes": sha1, "algorithm": "sha1", "loaders": loaders, "game_versions": [version_mc] });
+    let reponse = http::client()
+        .post(format!("{BASE}version_files/update"))
         .json(&corps)
         .send()
         .await?

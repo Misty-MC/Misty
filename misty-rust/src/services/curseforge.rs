@@ -99,6 +99,23 @@ pub struct ModCF {
     #[serde(default)]
     pub categories: Vec<NomCF>,
     pub links: Option<LiensCF>,
+    /// Dernier fichier par (version de Minecraft, loader, type de version).
+    #[serde(default)]
+    pub latest_files_indexes: Vec<IndexFichierCF>,
+}
+
+#[derive(Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexFichierCF {
+    #[serde(default)]
+    pub game_version: String,
+    pub file_id: i64,
+    #[serde(default)]
+    pub filename: String,
+    /// 1 = release, 2 = bêta, 3 = alpha.
+    #[serde(default)]
+    pub release_type: i64,
+    pub mod_loader: Option<i64>,
 }
 
 #[derive(Deserialize, Clone, Default)]
@@ -156,6 +173,18 @@ fn vrai() -> bool {
 impl FichierCF {
     pub fn sha1(&self) -> Option<&str> {
         self.hashes.iter().find(|h| h.algo == 1).map(|h| h.value.as_str())
+    }
+
+    /// Côtés client / serveur au format Modrinth, d'après les étiquettes « Client » / « Server »
+    /// que CurseForge ajoute aux versions du fichier ("unknown" si l'auteur n'a rien indiqué).
+    pub fn environnement(&self) -> (String, String) {
+        let a = |nom: &str| self.game_versions.iter().any(|v| v.eq_ignore_ascii_case(nom));
+        let (client, serveur) = (a("Client"), a("Server"));
+        if !client && !serveur {
+            return ("unknown".into(), "unknown".into());
+        }
+        let cote = |oui: bool| if oui { "optional" } else { "unsupported" }.to_string();
+        (cote(client), cote(serveur))
     }
 }
 
