@@ -131,10 +131,9 @@ fn boucle(rx: mpsc::Receiver<Message>) {
 
         // Connexion à la demande (Discord a pu être lancé après Misty)
         if client.is_none() {
-            if let Ok(mut c) = DiscordIpcClient::new(app_info::DISCORD_APP_ID) {
-                if c.connect().is_ok() {
-                    client = Some(c);
-                }
+            let mut c = DiscordIpcClient::new(app_info::DISCORD_APP_ID);
+            if c.connect().is_ok() {
+                client = Some(c);
             }
         }
         let Some(c) = client.as_mut() else { continue };
