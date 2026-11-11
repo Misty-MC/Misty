@@ -8,9 +8,9 @@
 use crate::services::{account, loc};
 use std::io::Write;
 use std::sync::{Arc, Mutex};
-use tao::event::{Event, WindowEvent};
-use tao::event_loop::{ControlFlow, EventLoopBuilder};
-use tao::window::WindowBuilder;
+use winit::dpi::LogicalSize;
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::{ControlFlow, EventLoop};
 use wry::{WebContext, WebViewBuilder};
 
 enum Fin {
@@ -21,13 +21,17 @@ enum Fin {
 pub fn executer() {
     loc::initialiser();
 
-    let event_loop = EventLoopBuilder::<Fin>::with_user_event().build();
+    let event_loop = EventLoop::<Fin>::with_user_event()
+        .build()
+        .expect("boucle d'événements");
     let proxy = event_loop.create_proxy();
 
-    let fenetre = WindowBuilder::new()
-        .with_title(format!("Misty — {}", loc::t("Compte_SeConnecter")))
-        .with_inner_size(tao::dpi::LogicalSize::new(520.0, 680.0))
-        .build(&event_loop)
+    let fenetre = event_loop
+        .create_window(
+            winit::window::Window::default_attributes()
+                .with_title(format!("Misty — {}", loc::t("Compte_SeConnecter")))
+                .with_inner_size(LogicalSize::new(520.0, 680.0)),
+        )
         .expect("fenêtre de connexion");
 
     // Cookies stockés dans le dossier de Misty (pas à côté de l'exe)
@@ -46,7 +50,10 @@ pub fn executer() {
                 *fini = true;
                 let fin = match parametre(&url, "code") {
                     Some(code) => Fin::Code(code),
-                    None => Fin::Erreur(parametre(&url, "error_description").unwrap_or_else(|| loc::t("Compte_Annule"))),
+                    None => Fin::Erreur(
+                        parametre(&url, "error_description")
+                            .unwrap_or_else(|| loc::t("Compte_Annule")),
+                    ),
                 };
                 let _ = proxy.send_event(fin);
             }
@@ -60,8 +67,8 @@ pub fn executer() {
         .build(&fenetre)
         .expect("WebView (WebView2 est-il installé ?)");
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+    let _ = event_loop.run(move |event, controle| {
+        controle.set_control_flow(ControlFlow::Wait);
         match event {
             Event::UserEvent(fin) => {
                 let ligne = match fin {
@@ -71,10 +78,13 @@ pub fn executer() {
                 let mut sortie = std::io::stdout();
                 let _ = writeln!(sortie, "{ligne}");
                 let _ = sortie.flush();
-                *control_flow = ControlFlow::Exit;
+                controle.exit();
             }
-            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                *control_flow = ControlFlow::Exit;
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                controle.exit();
             }
             _ => {}
         }
@@ -86,6 +96,10 @@ fn parametre(url: &str, nom: &str) -> Option<String> {
     let requete = url.split_once(['?', '#'])?.1;
     requete.split(['&', '#']).find_map(|p| {
         let (k, v) = p.split_once('=')?;
-        (k == nom).then(|| urlencoding::decode(&v.replace('+', " ")).map(|s| s.into_owned()).unwrap_or_default())
+        (k == nom).then(|| {
+            urlencoding::decode(&v.replace('+', " "))
+                .map(|s| s.into_owned())
+                .unwrap_or_default()
+        })
     })
 }
