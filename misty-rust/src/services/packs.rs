@@ -88,10 +88,10 @@ fn extraire_template(jar: &Path, dossier: &Path, version_mc: &str) -> anyhow::Re
     // Avant la 1.6, les textures sont à la racine du jar (terrain.png, gui/, mob/...), pas dans assets/minecraft/textures/.
     // On les range quand même dans assets/minecraft/textures/ du template pour que l'éditeur fonctionne partout ;
     // l'export remet l'ancienne disposition (voir `exporter`).
-    let ancien = !zip.file_names().any(|n| n.starts_with(RACINE_TEXTURES));
+    let ancien = !zip.file_names().any(|n| n.is_ok_and(|n| n.starts_with(RACINE_TEXTURES)));
     for i in 0..zip.len() {
         let mut entree = zip.by_index(i)?;
-        let nom = entree.name().to_string();
+        let nom = entree.name()?.to_string();
         if nom == "version.json" {
             let mut texte = String::new();
             entree.read_to_string(&mut texte)?;

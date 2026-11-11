@@ -164,7 +164,7 @@ pub fn extraire_natives(libs: &[FichierLib], dossier: &Path) -> anyhow::Result<(
         let Ok(mut zip) = zip::ZipArchive::new(f) else { continue };
         for i in 0..zip.len() {
             let mut entree = zip.by_index(i)?;
-            let nom = entree.name().to_string();
+            let nom = entree.name()?.to_string();
             if nom.ends_with('/') || nom.starts_with("META-INF") || lib.exclure.iter().any(|e| nom.starts_with(e.as_str())) {
                 continue;
             }

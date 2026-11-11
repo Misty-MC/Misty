@@ -775,7 +775,7 @@ fn extraire(zip: &mut zip::ZipArchive<std::fs::File>, prefixe: &str, racine: &Pa
     let prefixe_min = prefixe.to_lowercase();
     for i in 0..zip.len() {
         let mut entree = zip.by_index(i)?;
-        let nom = entree.name().replace('\\', "/");
+        let nom = entree.name()?.replace('\\', "/");
         if !nom.to_lowercase().starts_with(&prefixe_min) || nom.ends_with('/') {
             continue; // hors du préfixe, ou dossier
         }

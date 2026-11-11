@@ -170,7 +170,7 @@ mod tests {
         for avec in [true, false] {
             exporter(&instance, &sortie, avec).unwrap();
             let mut zip = zip::ZipArchive::new(fs::File::open(&sortie).unwrap()).unwrap();
-            let noms: Vec<String> = zip.file_names().map(str::to_string).collect();
+            let noms: Vec<String> = zip.file_names().map(|n| n.unwrap().to_string()).collect();
             assert!(noms.contains(&"overrides/mods/sodium.jar".to_string()));
             assert!(noms.contains(&"overrides/options.txt".to_string()));
             assert!(!noms.iter().any(|n| n.contains("saves")));
