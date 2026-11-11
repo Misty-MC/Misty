@@ -39,7 +39,7 @@ unicode-normalization = "0.1"
 urlencoding = "2"
 open = "5"
 rfd = "0.15"
-discord-rich-presence = "0.2"
+discord-rich-presence = "1.1"
 sys-locale = "0.3"
 md5 = "0.7"
 uuid = { version = "1", features = ["v4"] }
