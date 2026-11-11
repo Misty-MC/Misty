@@ -1,12 +1,32 @@
 # Changelog
-## 0.3.8-beta.1
+## 0.3.8-beta.2
 ### Misty Client (in game)
+- Misty Client now runs on Minecraft 1.21.11, 26.1, 26.1.1, 26.1.2, 26.2 and 26.3. Pick one in the Misty Client section of the version picker
+- Modpacks that ship an older Fabric Loader no longer crash with Misty Client: it now asks only for the loader it really needs (0.17.3 on 1.21.11, 0.18.4 on 26.1 and 26.2, 0.19.3 on 26.3)
+- If a part of Misty Client does not fit a Minecraft version, only that feature is turned off: the game no longer crashes
+- Old Misty Client files are cleaned up: at each start, Misty looks at every Misty Client jar in the profile's mods, keeps only the newest one for this Minecraft version and deletes the others
 - New Music module: the song playing on your computer (Spotify, Deezer, a browser…) with its cover, artist and progress, read from Windows by the launcher. Nothing to sign in to
 - New cosmetics: Cloudly, a little cloud floating over your head (worn with a cape), and the early player cape, kept for the first Misty players. Equip them in the Skin tab or the in-game wardrobe; the other Misty players see them
 - The Misty cloud now shows in the name above the Misty players' head, and a new option shows your own name tag in third person (F5)
 - Zoom: new "Reset zoom" option (on by default): the mouse wheel only changes the zoom while the key is held, the next zoom starts from your level again
 - Fixed: the modules of the HUD editor could not be moved on Minecraft 26.3 (a left click was taken for a right click), and the CPS module counted the left clicks as right clicks
-- Misty Client now runs on several Minecraft versions: 26.1.2, 26.2 and 26.3 (more to come). Pick one in the Misty Client section of the version picker. The first time Misty opens, the latest Misty Client version is the one selected
+
+### Profiles
+- New "Export the modpack" button on a profile: saves it as a `.mrpack` file (mods, configs, resource packs, shaders and options, without the worlds) that Misty, the Modrinth App and Prism can import. Misty Client goes with it when its box is ticked
+- New "Misty Client" box next to Content and Discover on Fabric profiles of a Minecraft version Misty Client runs on: ticked, the mod is added to the profile; unticked, it is removed. Each profile keeps its own choice
+- The "Misty Client" setting moved to Settings › Troubleshooting: it now chooses whether the box is ticked by default
+
+### Home and versions
+- The Misty Client versions of the version picker wrap onto several lines instead of pushing the panel off the window
+
+### Skin studio
+- The 3D preview draws about four times faster
+
+### Discord
+- The small image of the Discord status is now your player head
+
+## 0.3.8-beta.1
+### Misty Client (in game)
 - New Zoom module: hold C to zoom in, the mouse wheel zooms more or less, the mouse turns slower while zoomed. Smooth by default, the key can be changed in Options › Controls
 - New Fullbright module: everything is lit, caves, nights and the Nether. Turn it on in the Misty settings, or give it a key in Options › Controls
 - The Singleplayer, Multiplayer and Options menus (and every menu outside a world) now have the Misty landscape behind them, with Misty buttons, sliders, text fields and tabs

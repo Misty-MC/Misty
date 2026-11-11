@@ -301,6 +301,11 @@ export global InstanceState {
 
     /// Profil créé depuis un modpack connu (Modrinth / CurseForge) : il peut être mis à jour
     in property <bool> is-modpack;
+    // Misty Client dans ce profil : la case n'apparaît que pour un profil Fabric d'une version où le mod existe
+    in property <bool> misty-available;
+    in-out property <bool> misty-on;
+    callback misty-toggled(bool);
+    callback export();
     callback update-pack();
     callback back();
     callback play();

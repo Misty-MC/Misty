@@ -950,7 +950,8 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
     };
     // Misty Client : posé dans les mods du profil s'il le supporte, retiré sinon (toujours posé
     // quand on lance la version Misty)
-    client::preparer(&options.dossier_jeu, version, mode, misty);
+    let voulu = misty || instance.as_ref().map(client::voulu).unwrap_or_else(client::active);
+    client::preparer(&options.dossier_jeu, version, mode, voulu);
     client::ecrire_lien();
     let partie = journal::nouvelle_partie(&titre);
     if super::console::auto() {

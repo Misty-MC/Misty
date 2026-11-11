@@ -46,6 +46,10 @@ pub struct Instance {
     pub cree_le: DateTime<Local>,
     #[serde(default, deserialize_with = "date_option")]
     pub dernier_lancement: Option<DateTime<Local>>,
+    /// Misty Client dans ce profil (case de la page du profil). None : le réglage par défaut
+    /// (Options → Dépannage).
+    #[serde(default)]
+    pub misty_client: Option<bool>,
 }
 
 fn vanilla() -> String {
@@ -155,6 +159,7 @@ pub fn creer(nom: &str, version_mc: &str, loader: &str, loader_version: Option<S
         modpack_version_id: None,
         cree_le: Local::now(),
         dernier_lancement: None,
+        misty_client: None,
     };
     for sous_dossier in ["mods", "resourcepacks", "shaderpacks", "saves"] {
         fs::create_dir_all(instance.dossier().join(sous_dossier))?;

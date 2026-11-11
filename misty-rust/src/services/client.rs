@@ -11,6 +11,7 @@
 //! le dossier de Misty (`-Dmisty.launcher.dir`) : le mod y lit `client.json`, où le launcher
 //! écrit le cosmétique équipé.
 
+use super::instances::Instance;
 use super::{journal, paths, settings};
 use crate::minecraft::loaders;
 use std::fs;
@@ -63,9 +64,15 @@ pub fn versions_texte() -> String {
     versions().join(", ")
 }
 
-/// Misty Client en jeu dans les profils Fabric (réglage, activé de base).
+/// Case « Misty Client » cochée de base dans les profils Fabric (Options → Dépannage, activé de
+/// base). Vaut aussi pour le jeu rapide en Fabric.
 pub fn active() -> bool {
     settings::get_bool(settings::MISTY_CLIENT, true)
+}
+
+/// Misty Client voulu dans ce profil : sa case, ou le réglage par défaut s'il n'y a pas touché.
+pub fn voulu(instance: &Instance) -> bool {
+    instance.misty_client.unwrap_or_else(active)
 }
 
 /// Le mod tourne-t-il sur ce profil ? (Fabric, sur une version de Minecraft où il existe)
@@ -73,26 +80,82 @@ pub fn compatible(version_mc: &str, mode: &str) -> bool {
     mode == loaders::FABRIC && jar(version_mc).is_some()
 }
 
-/// Avant de lancer le jeu : pose le mod dans `mods` (ou le met à jour) si Misty Client est activé
-/// (ou que la section Misty Client est lancée : `force`) et que le profil le supporte, sinon le
-/// retire (un mod d'une autre version de Minecraft empêcherait le jeu de démarrer).
-pub fn preparer(dossier_jeu: &Path, version_mc: &str, mode: &str, force: bool) {
-    let chemin = dossier_jeu.join("mods").join(FICHIER);
-    match jar(version_mc).filter(|_| (active() || force) && compatible(version_mc, mode)) {
-        Some(jar) => {
-            if fs::read(&chemin).is_ok_and(|actuel| actuel == jar) {
-                return;
-            }
-            let ecrit = fs::create_dir_all(dossier_jeu.join("mods")).and_then(|_| fs::write(&chemin, jar));
-            if let Err(e) = ecrit {
-                journal::info(&format!("Misty Client non installé dans {} : {e}", chemin.display()));
-            }
+/// Version d'un jar de Misty Client, lue dans son fabric.mod.json ("1.0.0+mc26.2"). None : ce
+/// n'est pas Misty Client.
+fn version_du_jar(contenu: impl std::io::Read + std::io::Seek) -> Option<String> {
+    let mut zip = zip::ZipArchive::new(contenu).ok()?;
+    let mut fichier = zip.by_name("fabric.mod.json").ok()?;
+    let mut texte = String::new();
+    std::io::Read::read_to_string(&mut fichier, &mut texte).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&texte).ok()?;
+    (json["id"].as_str() == Some("misty-client")).then(|| json["version"].as_str().unwrap_or_default().to_string())
+}
+
+/// "1.0.0+mc26.2" → ("1.0.0", "26.2")
+fn decouper(version: &str) -> (&str, &str) {
+    version.split_once("+mc").unwrap_or((version, ""))
+}
+
+/// Le jar du mod pour cette version et son nom de fichier avec la version
+/// ("misty-client-1.0.0+mc26.2.jar"), pour l'export d'un profil.
+pub fn jar_a_exporter(version_mc: &str) -> Option<(String, &'static [u8])> {
+    let jar = jar(version_mc)?;
+    let version = version_du_jar(std::io::Cursor::new(jar)).unwrap_or_default();
+    Some((format!("misty-client-{version}.jar"), jar))
+}
+
+/// Les jars de Misty Client d'un dossier `mods`, avec leur version : quel que soit leur nom (un
+/// modpack exporté les nomme avec leur version, d'anciens launchers « misty-client.jar »).
+pub fn jars_presents(mods: &Path) -> Vec<(std::path::PathBuf, String)> {
+    let Ok(lecture) = fs::read_dir(mods) else { return Vec::new() };
+    lecture
+        .flatten()
+        .map(|f| f.path())
+        .filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("jar")))
+        .filter_map(|p| {
+            let version = version_du_jar(fs::File::open(&p).ok()?)?;
+            Some((p, version))
+        })
+        .collect()
+}
+
+/// Avant de lancer le jeu : pose le mod dans `mods` (ou le met à jour) si `voulu` et que le profil
+/// le supporte, sinon le retire (un mod d'une autre version de Minecraft empêcherait le jeu de
+/// démarrer). Les jars du mod déjà là sont comparés au nôtre : les anciens (ou ceux d'une autre
+/// version de Minecraft) sont supprimés, pour qu'il n'en reste jamais qu'un ; un plus récent que
+/// celui du launcher (modpack exporté par un launcher plus à jour) est gardé.
+pub fn preparer(dossier_jeu: &Path, version_mc: &str, mode: &str, voulu: bool) {
+    let mods = dossier_jeu.join("mods");
+    let presents = jars_presents(&mods);
+    let notre = jar(version_mc).filter(|_| voulu && compatible(version_mc, mode));
+    let Some(notre) = notre else {
+        for (chemin, _) in presents {
+            let _ = fs::remove_file(&chemin);
         }
-        None => {
-            if chemin.exists() {
-                let _ = fs::remove_file(&chemin);
-            }
+        return;
+    };
+    let version = version_du_jar(std::io::Cursor::new(notre)).unwrap_or_default();
+    let (numero, mc) = decouper(&version);
+
+    // le plus récent des jars déjà là, s'il est pour cette version de Minecraft et plus récent que le nôtre
+    let garde = presents
+        .iter()
+        .filter(|(_, v)| decouper(v).1 == mc && super::update::comparer_versions(decouper(v).0, numero).is_gt())
+        .max_by(|a, b| super::update::comparer_versions(decouper(&a.1).0, decouper(&b.1).0))
+        .map(|(p, _)| p.clone());
+    let chemin = garde.clone().unwrap_or_else(|| mods.join(FICHIER));
+    for (autre, v) in &presents {
+        if *autre != chemin {
+            journal::info(&format!("Ancien Misty Client retiré : {} ({v})", autre.display()));
+            let _ = fs::remove_file(autre);
         }
+    }
+    if garde.is_some() || fs::read(&chemin).is_ok_and(|actuel| actuel == notre) {
+        return;
+    }
+    let ecrit = fs::create_dir_all(&mods).and_then(|_| fs::write(&chemin, notre));
+    if let Err(e) = ecrit {
+        journal::info(&format!("Misty Client non installé dans {} : {e}", chemin.display()));
     }
 }
 
@@ -191,6 +254,43 @@ mod tests {
         // ordre des versions (build.rs) : de la plus ancienne à la plus récente
         let v = versions();
         assert!(v.windows(2).all(|p| crate::services::update::comparer_versions(p[0], p[1]).is_lt()));
+    }
+
+    /// Un faux jar de Misty Client (juste son fabric.mod.json).
+    fn faux_jar(version: &str) -> Vec<u8> {
+        use std::io::Write;
+        let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        zip.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default()).unwrap();
+        write!(zip, r#"{{"id": "misty-client", "version": "{version}"}}"#).unwrap();
+        zip.finish().unwrap().into_inner()
+    }
+
+    /// Les anciens jars du mod (autre nom, autre version de Minecraft) sont retirés, un seul reste.
+    #[test]
+    fn un_seul_jar_du_mod() {
+        let Some(mc) = versions().last().copied() else { return };
+        let dossier = std::env::temp_dir().join(format!("misty-test-mods-{}", std::process::id()));
+        let mods = dossier.join("mods");
+        let _ = fs::remove_dir_all(&dossier);
+        fs::create_dir_all(&mods).unwrap();
+        fs::write(mods.join("misty-client-0.0.1+mc{mc}.jar".replace("{mc}", mc)), faux_jar(&format!("0.0.1+mc{mc}"))).unwrap();
+        fs::write(mods.join("ancien.jar"), faux_jar("9.9.9+mc0.0")).unwrap();
+        fs::write(mods.join("autre-mod.jar"), b"pas un zip").unwrap();
+        preparer(&dossier, mc, loaders::FABRIC, true);
+        let restants = jars_presents(&mods);
+        assert_eq!(restants.len(), 1, "{restants:?}");
+        assert_eq!(restants[0].0, mods.join(FICHIER));
+        assert!(mods.join("autre-mod.jar").exists());
+        // décoché : plus aucun
+        preparer(&dossier, mc, loaders::FABRIC, false);
+        assert!(jars_presents(&mods).is_empty());
+        // un plus récent que celui du launcher est gardé
+        fs::write(mods.join("recent.jar"), faux_jar(&format!("99.0.0+mc{mc}"))).unwrap();
+        preparer(&dossier, mc, loaders::FABRIC, true);
+        let restants = jars_presents(&mods);
+        assert_eq!(restants.len(), 1);
+        assert_eq!(restants[0].0, mods.join("recent.jar"));
+        let _ = fs::remove_dir_all(&dossier);
     }
 
     /// La cape du mod est celle que le launcher dessine dans l'onglet Skin : mêmes pixels.

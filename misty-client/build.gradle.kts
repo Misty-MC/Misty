@@ -55,7 +55,9 @@ tasks {
 		val props = mapOf(
 			"version" to version.toString(),
 			"minecraft" to sc.properties["mod.mc_compat"],
-			"loader" to sc.properties["deps.fabric_loader"],
+			// the oldest Fabric Loader the jar runs on (the bundled Fabric API modules need it), not the
+			// one it is built with: modpacks often ship an older loader
+			"loader" to sc.properties["mod.loader_min"],
 			"java" to requiredJava.majorVersion,
 		)
 		val mixinProps = mapOf("java" to "JAVA_${requiredJava.majorVersion}")

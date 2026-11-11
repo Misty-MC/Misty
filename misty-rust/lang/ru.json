@@ -640,8 +640,8 @@
   "Console_Suivre": "Следить",
   "Console_Envoye": "Отправлено! Код отчёта {0} (скопирован): сообщите его в Discord, чтобы получить помощь.",
   "Console_EnvoiImpossible": "Не удалось отправить логи",
-  "Param_MistyClient": "Misty Client в игре",
-  "Param_MistyClient_Texte": "Добавляет главное меню Misty, настраиваемый HUD (правый Shift), облако Misty рядом с игроками Misty в списке игроков и в чате, а также косметику Misty. Устанавливается сам в совместимые профили:",
+  "Param_MistyClient": "Misty Client включён по умолчанию",
+  "Param_MistyClient_Texte": "По умолчанию отмечает флажок «Misty Client» в профилях Fabric (затем каждый профиль хранит свой выбор). Мод добавляет главное меню Misty, настраиваемый HUD (правый Shift), облако Misty рядом с игроками Misty и косметику Misty. Версии:",
   "Param_Console": "Открывать консоль при запуске игры",
   "Param_Console_Texte": "Показывает логи игры в реальном времени поверх лаунчера. Кнопка рядом с «Играть» открывает её в любой момент.",
   "Param_Telemetrie": "Отправлять анонимные данные",
@@ -694,5 +694,14 @@
   "Misty_F_Cosmetiques": "Косметика",
   "Misty_F_Cosmetiques_Texte": "Плащ и элитры Misty из вкладки «Скин», видны другим игрокам Misty.",
   "Misty_Info": "Misty сам устанавливает Fabric и мод Misty Client, ничего настраивать не нужно.",
-  "Misty_Jouer": "Играть"
+  "Misty_Jouer": "Играть",
+  "Instance_MistyClient": "Misty Client",
+  "Instance_Exporter": "Экспортировать модпак",
+  "Export_Titre": "Экспорт профиля",
+  "Export_EnCours": "Экспорт…",
+  "Export_Fini": "Модпак экспортирован",
+  "Export_Fini_Texte": "{0} готов: им можно поделиться, он импортируется в Misty, Modrinth App или Prism.",
+  "Export_OuvrirDossier": "Открыть папку",
+  "Export_Erreur": "Не удалось экспортировать",
+  "Export_JamaisLance": "Запустите профиль один раз перед экспортом (версия загрузчика ещё неизвестна)."
 }

@@ -4,7 +4,7 @@ use super::{browser, dialogs, images, lancer, maj_ligne, modele, modele_textes, 
 use crate::services::catalogue::{ProjetDistant, MODRINTH};
 use crate::services::content::{self, ContenuInstalle};
 use crate::services::instances::{self, Instance};
-use crate::services::{loc, packs, system_info};
+use crate::services::{client, export, loc, packs, system_info};
 use crate::{BadgeItem, ContentItem, InstanceState};
 use slint::{Color, ComponentHandle, ModelRc};
 use std::rc::Rc;
@@ -52,6 +52,19 @@ pub fn installer(app: &Rc<App>) {
         if let Some(i) = instance(&a) {
             system_info::ouvrir_dossier(&i.dossier());
         }
+    });
+    let a = app.clone();
+    st.on_misty_toggled(move |on| {
+        let mut e = a.instance.borrow_mut();
+        if let Some(inst) = e.instance.as_mut() {
+            inst.misty_client = Some(on);
+            let _ = instances::sauver(inst);
+        }
+    });
+    let a = app.clone();
+    st.on_export(move || {
+        let a = a.clone();
+        lancer(async move { exporter(&a).await });
     });
     let a = app.clone();
     st.on_change_icon(move || {
@@ -287,6 +300,8 @@ fn maj_en_tete(app: &Rc<App>) {
     }
     st.set_badges(modele(badges));
     st.set_is_modpack(i.est_modpack());
+    st.set_misty_available(client::compatible(&i.version_mc, &i.loader));
+    st.set_misty_on(client::voulu(&i));
 
     st.set_has_icon(false);
     let (fichier, url, id) = (i.chemin_icone(), i.icone_url.clone(), i.id.clone());
@@ -601,5 +616,31 @@ async fn changer_icone(app: &Rc<App>) {
             maj_en_tete(app);
         }
         Err(e) => dialogs::erreur(app, &loc::t("Instance_ImageIllisible"), &e.to_string()).await,
+    }
+}
+
+/// Exporte le profil en modpack .mrpack, avec Misty Client si sa case est cochée.
+async fn exporter(app: &Rc<App>) {
+    let Some(i) = instance(app) else { return };
+    let nom_fichier: String = i.nom.chars().map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' { c } else { '_' }).collect();
+    let nom_fichier = format!("{}.mrpack", nom_fichier.trim());
+    let Some(destination) = dialogs::enregistrer_fichier(&loc::t("Export_Titre"), &nom_fichier, "Modpack Modrinth", "mrpack").await else {
+        return;
+    };
+    let avec_misty = client::voulu(&i);
+    s(app).set_status(loc::t("Export_EnCours").into());
+    let (inst, chemin) = (i.clone(), destination.clone());
+    let resultat = app.bloquant(move || export::exporter(&inst, &chemin, avec_misty)).await;
+    s(app).set_status("".into());
+    match resultat {
+        Ok(()) => {
+            let nom = destination.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            if dialogs::confirmer(app, &loc::t("Export_Fini"), &loc::tf("Export_Fini_Texte", &[&nom]), Some(&loc::t("Export_OuvrirDossier")), Some(&loc::t("Commun_Fermer")), false).await {
+                if let Some(dossier) = destination.parent() {
+                    system_info::ouvrir_dossier(dossier);
+                }
+            }
+        }
+        Err(e) => dialogs::erreur(app, &loc::t("Export_Erreur"), &e.to_string()).await,
     }
 }

@@ -8,6 +8,7 @@ pub mod client;
 pub mod content;
 pub mod curseforge;
 pub mod discord;
+pub mod export;
 pub mod download;
 pub mod horizon;
 pub mod http;

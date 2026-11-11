@@ -6,6 +6,62 @@ import { Icon, PixelLabel, BodyText, SectionTitle, Badge, Thumb, IconButton, MBu
 import { ContentBrowser } from "browser.slint";
 import { ListView } from "std-widgets.slint";
 
+/// Case « Misty Client » : le mod Misty dans ce profil (cochée de base, voir Options → Dépannage).
+component CaseMisty inherits Rectangle {
+    height: 36px;
+    min-width: contenu.preferred-width;
+    horizontal-stretch: 0;
+    border-radius: 18px;
+    border-width: 1.5px;
+    border-color: touch.has-hover ? Theme.accent : Theme.glass-border;
+    background: touch.has-hover ? Theme.glass-hover : Theme.glass;
+    animate background, border-color { duration: Theme.normal; easing: ease-out; }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            InstanceState.misty-on = !InstanceState.misty-on;
+            InstanceState.misty-toggled(InstanceState.misty-on);
+        }
+    }
+    contenu := HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 14px;
+        spacing: 8px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 5px;
+                border-width: 1.5px;
+                border-color: InstanceState.misty-on ? Theme.accent : Theme.navy2;
+                background: InstanceState.misty-on ? Theme.accent : transparent;
+                animate background, border-color { duration: Theme.normal; }
+                if InstanceState.misty-on: Icon {
+                    text: "\u{E73E}";
+                    font-size: 11px;
+                    color: white;
+                }
+            }
+        }
+        Icon {
+            text: "\u{E753}";
+            font-size: 13px;
+            color: Theme.accent;
+            vertical-alignment: center;
+        }
+        Text {
+            text: Tr.t("Instance_MistyClient");
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.navy;
+            vertical-alignment: center;
+        }
+    }
+}
+
 export component InstancePage inherits Rectangle {
     VerticalLayout {
         padding-left: 26px;
@@ -103,6 +159,14 @@ export component InstancePage inherits Rectangle {
                 VerticalLayout {
                     alignment: center;
                     IconButton {
+                        icon: "\u{EDE1}";
+                        tooltip: Tr.t("Instance_Exporter");
+                        clicked => { InstanceState.export(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
                         icon: "\u{E8B9}";
                         tooltip: Tr.t("Instance_Icone");
                         clicked => { InstanceState.change-icon(); }
@@ -161,6 +225,7 @@ export component InstancePage inherits Rectangle {
                     InstanceState.tab-changed(1);
                 }
             }
+            if InstanceState.misty-available: CaseMisty { }
             Text {
                 horizontal-stretch: 1;
                 text: InstanceState.status;

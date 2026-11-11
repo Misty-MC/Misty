@@ -640,8 +640,8 @@
   "Console_Suivre": "Follow",
   "Console_Envoye": "Sent! Report code {0} (copied): give it on Discord to get help.",
   "Console_EnvoiImpossible": "Could not send the logs",
-  "Param_MistyClient": "Misty Client in game",
-  "Param_MistyClient_Texte": "Adds the Misty main menu, a HUD you can arrange (Right Shift), the Misty cloud next to Misty players in the player list and the chat, and the Misty cosmetics. Installed on its own in the profiles that support it:",
+  "Param_MistyClient": "Misty Client ticked by default",
+  "Param_MistyClient_Texte": "Ticks the \"Misty Client\" box of Fabric profiles by default (each profile then keeps its own choice). The mod adds the Misty main menu, a HUD you can arrange (Right Shift), the Misty cloud next to Misty players and the Misty cosmetics. Versions:",
   "Param_Console": "Open the console when the game starts",
   "Param_Console_Texte": "Shows the game logs live over the launcher. You can always open it with the button next to Play.",
   "Param_Telemetrie": "Send anonymous usage data",
@@ -694,5 +694,14 @@
   "Misty_F_Cosmetiques": "Cosmetics",
   "Misty_F_Cosmetiques_Texte": "The Misty cape and elytra of the Skin tab, seen by the other Misty players.",
   "Misty_Info": "Misty installs Fabric and the Misty Client mod for you, nothing to set up.",
-  "Misty_Jouer": "Play"
+  "Misty_Jouer": "Play",
+  "Instance_MistyClient": "Misty Client",
+  "Instance_Exporter": "Export the modpack",
+  "Export_Titre": "Export the profile",
+  "Export_EnCours": "Exporting…",
+  "Export_Fini": "Modpack exported",
+  "Export_Fini_Texte": "{0} is ready: you can share it, it imports into Misty, the Modrinth App or Prism.",
+  "Export_OuvrirDossier": "Open the folder",
+  "Export_Erreur": "Export failed",
+  "Export_JamaisLance": "Launch the profile once before exporting it (the loader version is not known yet)."
 }
