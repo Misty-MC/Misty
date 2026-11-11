@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.network.chat.Component;
@@ -54,7 +53,9 @@ public class PlayerPreview extends AbstractWidget {
 		this.outfit = outfit;
 		AvatarRenderState s = this.state;
 		s.entityType = Versions.playerType();
+		//? if >=1.21.9 {
 		s.lightCoords = LightCoordsUtil.FULL_BRIGHT;
+		//?}
 		s.boundingBoxWidth = 0.6F;
 		s.boundingBoxHeight = 1.8F;
 		s.eyeHeight = 1.62F;
@@ -75,7 +76,11 @@ public class PlayerPreview extends AbstractWidget {
 	/** The local player's skin. */
 	public static PlayerSkin skin() {
 		Minecraft minecraft = Minecraft.getInstance();
+		//? if >=1.21.9 {
 		return minecraft.getSkinManager().createLookup(minecraft.getGameProfile(), false).get();
+		//?} else {
+		/*return minecraft.getSkinManager().getInsecureSkin(minecraft.getGameProfile());
+		*///?}
 	}
 
 	@Override
@@ -92,7 +97,7 @@ public class PlayerPreview extends AbstractWidget {
 		Outfit worn = this.outfit.get();
 		AvatarRenderState s = this.state;
 		s.skin = worn.back() == Cosmetic.ELYTRA ? skin() : Cosmetics.wear(worn.back(), skin());
-		s.showCape = worn.back() != Cosmetic.ELYTRA && s.skin.cape() != null;
+		s.showCape = worn.back() != Cosmetic.ELYTRA && Cosmetics.hasCape(s.skin);
 		((HatHolder)s).misty$setHat(worn.hat());
 		s.ageInTicks = (now % 1_000_000L) / 50.0F;
 		// the whole body turns; the head looks at the mouse (as in the inventory), as long as the
@@ -123,7 +128,11 @@ public class PlayerPreview extends AbstractWidget {
 	}
 
 	@Override
-	protected void onDrag(final MouseButtonEvent event, final double dragX, final double dragY) {
+	//? if >=1.21.9 {
+	protected void onDrag(final net.minecraft.client.input.MouseButtonEvent event, final double dragX, final double dragY) {
+	//?} else {
+	/*protected void onDrag(final double mouseX, final double mouseY, final double dragX, final double dragY) {
+	*///?}
 		this.rotationX = Mth.clamp(this.rotationX + (float)dragY * 1.5F, -35.0F, 35.0F);
 		this.rotationY += (float)dragX * 2.5F;
 		this.draggedAt = Util.getMillis();

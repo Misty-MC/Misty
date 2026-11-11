@@ -9,7 +9,6 @@ import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.model.player.PlayerModel;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
@@ -39,7 +38,12 @@ public final class CloudHatLayer extends RenderLayer<AvatarRenderState, PlayerMo
 	/** The cloud: a wide base and puffs, a pixel above the head (y -8 is the top of the head). */
 	private static LayerDefinition createLayer() {
 		MeshDefinition mesh = PlayerModel.createMesh(CubeDeformation.NONE, false);
+		//? if >=1.21.9 {
 		PartDefinition root = mesh.getRoot().clearRecursively();
+		//?} else {
+		/*PartDefinition root = mesh.getRoot();
+		clear(root);
+		*///?}
 		PartDefinition head = root.getChild("head");
 		head.addOrReplaceChild("cloud", CubeListBuilder.create()
 			.texOffs(0, 0).addBox(-5.0F, -12.5F, -4.0F, 10.0F, 3.0F, 8.0F)
@@ -51,8 +55,28 @@ public final class CloudHatLayer extends RenderLayer<AvatarRenderState, PlayerMo
 		return LayerDefinition.create(mesh, 64, 64);
 	}
 
+	// Before 1.21.9 there is no clearRecursively(): the cubes of every part are removed by hand,
+	// the parts themselves kept (the model looks them up by name)
+	//? if <1.21.9 {
+	/*private static void clear(final PartDefinition part) {
+		for (var child : new java.util.ArrayList<>(part.getChildren())) {
+			var grandChildren = new java.util.ArrayList<>(child.getValue().getChildren());
+			PartDefinition emptied = part.clearChild(child.getKey());
+			for (var grandChild : grandChildren) {
+				emptied.addOrReplaceChild(grandChild.getKey(), grandChild.getValue());
+			}
+			clear(emptied);
+		}
+	}
+	*///?}
+
+	//? if >=1.21.9 {
 	@Override
-	public void submit(final PoseStack pose, final SubmitNodeCollector collector, final int light, final AvatarRenderState state, final float yRot, final float xRot) {
+	public void submit(final PoseStack pose, final net.minecraft.client.renderer.SubmitNodeCollector collector, final int light, final AvatarRenderState state, final float yRot, final float xRot) {
+	//?} else {
+	/*@Override
+	public void render(final PoseStack pose, final net.minecraft.client.renderer.MultiBufferSource buffers, final int light, final AvatarRenderState state, final float yRot, final float xRot) {
+	*///?}
 		if (((HatHolder)state).misty$hat() != Cosmetic.CLOUDLY || state.isInvisible) {
 			return;
 		}
@@ -62,8 +86,11 @@ public final class CloudHatLayer extends RenderLayer<AvatarRenderState, PlayerMo
 		int overlay = LivingEntityRenderer.getOverlayCoords(state, 0.0F);
 		//? if >=26.3 {
 		collector.submitModel(this.model, state, pose, RenderTypes.entityTranslucent(TEXTURE), GLOW, overlay, state.outlineColor);
-		//?} else {
+		//?} else if >=1.21.9 {
 		/*collector.submitModel(this.model, state, pose, RenderTypes.entityTranslucent(TEXTURE), GLOW, overlay, state.outlineColor, null);
+		*///?} else {
+		/*this.model.setupAnim(state);
+		this.model.renderToBuffer(pose, buffers.getBuffer(RenderTypes.entityTranslucent(TEXTURE)), GLOW, overlay);
 		*///?}
 		pose.popPose();
 	}

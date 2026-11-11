@@ -6,8 +6,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
+import online.mistylauncher.client.compat.Versions;
 import online.mistylauncher.client.MistyClient;
 import online.mistylauncher.client.net.MistyPlayers;
 import org.jspecify.annotations.Nullable;
@@ -16,7 +16,11 @@ import org.jspecify.annotations.Nullable;
 public final class Badge {
 	/** The cloud is a glyph of the font {@code misty:icons}: it flows with the text everywhere. */
 	private static final Component ICON = Component.literal("")
-		.withStyle(Style.EMPTY.withFont(new FontDescription.Resource(MistyClient.id("icons"))).withColor(0xFFFFFF));
+		//? if >=1.21.9 {
+		.withStyle(Style.EMPTY.withFont(new net.minecraft.network.chat.FontDescription.Resource(MistyClient.id("icons"))).withColor(0xFFFFFF));
+		//?} else {
+		/*.withStyle(Style.EMPTY.withFont(MistyClient.id("icons")).withColor(0xFFFFFF));
+		*///?}
 	/** A chat line is "name, then one of these, then the message" on about every server. */
 	private static final String SEPARATORS = ":>»→›";
 	/** The name must start within this many characters (ranks and prefixes come before it). */
@@ -34,7 +38,7 @@ public final class Badge {
 
 	/** Name of the player list. */
 	public static Component playerList(final PlayerInfo info, final Component name) {
-		return MistyPlayers.isMisty(info.getProfile().id()) ? prefix(name) : name;
+		return MistyPlayers.isMisty(Versions.id(info.getProfile())) ? prefix(name) : name;
 	}
 
 	public static void sender(final @Nullable UUID id) {
@@ -62,10 +66,10 @@ public final class Badge {
 		int first = Integer.MAX_VALUE;
 		boolean misty = false;
 		for (PlayerInfo info : players) {
-			int at = nameBeforeSeparator(line, info.getProfile().name());
+			int at = nameBeforeSeparator(line, Versions.name(info.getProfile()));
 			if (at >= 0 && at < first) {
 				first = at;
-				misty = MistyPlayers.isMisty(info.getProfile().id());
+				misty = MistyPlayers.isMisty(Versions.id(info.getProfile()));
 			}
 		}
 		return misty;

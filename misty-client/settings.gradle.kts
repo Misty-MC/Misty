@@ -17,7 +17,7 @@ plugins {
 stonecutter {
 	create(rootProject) {
 		// Minecraft versions Misty Client is built for (settings in stonecutter.properties.toml)
-		versions("26.1.2", "26.2", "26.3")
+		versions("1.21.11", "26.1.2", "26.2", "26.3")
 		// the version the sources are written for (the others are made from it)
 		vcsVersion = "26.3"
 	}

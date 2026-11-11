@@ -5,7 +5,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import online.mistylauncher.client.MistyClient;
@@ -133,36 +132,68 @@ public final class HudEditorScreen extends MistyScreen {
 		graphics.text(this.font, text, x + 4, y + 2, Ui.TEXT, false);
 	}
 
+	// The mouse events: one object since 1.21.9, the position and the button before
+	//? if >=1.21.9 {
 	@Override
-	public boolean mouseClicked(final MouseButtonEvent event, final boolean doubleClick) {
-		HudModule module = this.moduleAt(event.x(), event.y());
-		if (module == null) {
-			return super.mouseClicked(event, doubleClick);
-		}
-		// the game's button numbers changed with SDL (26.3): the constants follow
-		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
-			module.reset(MistyClient.config());
-			return true;
-		}
-		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
-			HudManager.Bounds bounds = this.bounds(module);
-			this.dragged = module;
-			this.grabX = event.x() - bounds.x();
-			this.grabY = event.y() - bounds.y();
-			this.pressX = event.x();
-			this.pressY = event.y();
-			this.moved = false;
-			return true;
-		}
-		return false;
+	public boolean mouseClicked(final net.minecraft.client.input.MouseButtonEvent event, final boolean doubleClick) {
+		return this.press(event.x(), event.y(), event.button()) || super.mouseClicked(event, doubleClick);
 	}
 
 	@Override
-	public boolean mouseDragged(final MouseButtonEvent event, final double dx, final double dy) {
-		if (this.dragged == null) {
-			return super.mouseDragged(event, dx, dy);
+	public boolean mouseDragged(final net.minecraft.client.input.MouseButtonEvent event, final double dx, final double dy) {
+		return this.drag(event.x(), event.y()) || super.mouseDragged(event, dx, dy);
+	}
+
+	@Override
+	public boolean mouseReleased(final net.minecraft.client.input.MouseButtonEvent event) {
+		return this.release() || super.mouseReleased(event);
+	}
+	//?} else {
+	/*@Override
+	public boolean mouseClicked(final double x, final double y, final int button) {
+		return this.press(x, y, button) || super.mouseClicked(x, y, button);
+	}
+
+	@Override
+	public boolean mouseDragged(final double x, final double y, final int button, final double dx, final double dy) {
+		return this.drag(x, y) || super.mouseDragged(x, y, button, dx, dy);
+	}
+
+	@Override
+	public boolean mouseReleased(final double x, final double y, final int button) {
+		return this.release() || super.mouseReleased(x, y, button);
+	}
+	*///?}
+
+	/** A click on a module: right resets it, left grabs it. False: not on a module. */
+	private boolean press(final double x, final double y, final int button) {
+		HudModule module = this.moduleAt(x, y);
+		if (module == null) {
+			return false;
 		}
-		this.dragTo(event.x(), event.y());
+		// the game's button numbers changed with SDL (26.3): the constants follow
+		if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
+			module.reset(MistyClient.config());
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT) {
+			HudManager.Bounds bounds = this.bounds(module);
+			this.dragged = module;
+			this.grabX = x - bounds.x();
+			this.grabY = y - bounds.y();
+			this.pressX = x;
+			this.pressY = y;
+			this.moved = false;
+			return true;
+		}
+		return true;
+	}
+
+	private boolean drag(final double x, final double y) {
+		if (this.dragged == null) {
+			return false;
+		}
+		this.dragTo(x, y);
 		return true;
 	}
 
@@ -208,10 +239,10 @@ public final class HudEditorScreen extends MistyScreen {
 		return value;
 	}
 
-	@Override
-	public boolean mouseReleased(final MouseButtonEvent event) {
+	/** The grabbed module let go: a click without moving turns it on or off. */
+	private boolean release() {
 		if (this.dragged == null) {
-			return super.mouseReleased(event);
+			return false;
 		}
 		if (!this.moved) {
 			MistyConfig.Module state = this.dragged.state();

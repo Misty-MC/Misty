@@ -287,12 +287,12 @@ public final class WardrobeScreen extends MistyScreen {
 			graphics.fillGradient(x + 1, y + 1, x + w - 1, y + pictureH, 0x00000000, 0x30FFFFFF);
 
 			int cx = x + w / 2;
-			Identifier misty = Cosmetics.texture().texturePath();
+			Identifier misty = Cosmetics.texturePath();
 			int zoom = Math.clamp((pictureH - 8) / 16, 1, 4);
 			switch (this.cosmetic) {
 				// front of the cape: 10 × 16 at (1, 1) of the 64 × 32 texture
 				case CAPE -> graphics.blit(RenderPipelines.GUI_TEXTURED, misty, cx - 5 * zoom, y + (pictureH - 16 * zoom) / 2, 1.0F, 1.0F, 10 * zoom, 16 * zoom, 10, 16, 64, 32);
-				case EARLY_CAPE -> graphics.blit(RenderPipelines.GUI_TEXTURED, Cosmetics.texture(Cosmetic.EARLY_CAPE).texturePath(), cx - 5 * zoom, y + (pictureH - 16 * zoom) / 2, 1.0F, 1.0F, 10 * zoom, 16 * zoom, 10, 16, 64, 32, locked ? 0xFF6F7C99 : 0xFFFFFFFF);
+				case EARLY_CAPE -> graphics.blit(RenderPipelines.GUI_TEXTURED, Cosmetics.texturePath(Cosmetic.EARLY_CAPE), cx - 5 * zoom, y + (pictureH - 16 * zoom) / 2, 1.0F, 1.0F, 10 * zoom, 16 * zoom, 10, 16, 64, 32, locked ? 0xFF6F7C99 : 0xFFFFFFFF);
 				case CLOUDLY -> cloud(graphics, cx, y + pictureH / 2, Math.clamp(pictureH / 18, 1, 3));
 				case ELYTRA -> {
 				}

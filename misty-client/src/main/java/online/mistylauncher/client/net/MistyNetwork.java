@@ -25,6 +25,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import online.mistylauncher.client.compat.Versions;
 import online.mistylauncher.client.MistyClient;
 import online.mistylauncher.client.config.LauncherLink;
 import online.mistylauncher.client.cosmetics.Outfit;
@@ -100,7 +101,7 @@ public final class MistyNetwork {
 		UUID self = client.getUser().getProfileId();
 		List<UUID> ids = new ArrayList<>();
 		for (PlayerInfo info : connection.getOnlinePlayers()) {
-			UUID id = info.getProfile().id();
+			UUID id = Versions.id(info.getProfile());
 			// version 4 only: real accounts (offline and NPC ids are other versions)
 			if (!id.equals(self) && id.version() == 4) {
 				ids.add(id);
@@ -177,7 +178,11 @@ public final class MistyNetwork {
 		RANDOM.nextBytes(random);
 		String serverId = HexFormat.of().formatHex(random);
 		try {
+			//? if >=1.21.9 {
 			minecraft.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverId);
+			//?} else {
+			/*minecraft.getMinecraftSessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverId);
+			*///?}
 		} catch (AuthenticationException e) {
 			// offline account, or Mojang unreachable
 			loginFailed();

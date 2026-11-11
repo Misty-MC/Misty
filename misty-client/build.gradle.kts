@@ -19,10 +19,16 @@ dependencies {
 	minecraft("com.mojang:minecraft:${sc.current.version}")
 	// Mojang's names on the obfuscated versions, like the unobfuscated ones
 	loomx.applyMojangMappings()
+	// @Nullable everywhere (Minecraft only ships it since 1.21.11)
+	compileOnly("org.jspecify:jspecify:1.0.0")
 	modImplementation("net.fabricmc:fabric-loader:${sc.properties["deps.fabric_loader"]}")
 
 	// Only the Fabric API modules the mod uses, shipped inside the jar: nothing else to install
-	for (it in listOf("fabric-api-base", "fabric-resource-loader-v1", "fabric-key-mapping-api-v1", "fabric-lifecycle-events-v1")) {
+	// the key binding module was renamed in 26.1
+	val keys = if (sc.current.parsed >= "26.1") "fabric-key-mapping-api-v1" else "fabric-key-binding-api-v1"
+	// the mod's own textures and translations are loaded by resource-loader-v0 up to 1.21.10
+	val resources = if (sc.current.parsed >= "1.21.11") "fabric-resource-loader-v1" else "fabric-resource-loader-v0"
+	for (it in listOf("fabric-api-base", resources, keys, "fabric-lifecycle-events-v1")) {
 		val module = fabricApi.module(it, sc.properties["deps.fabric_api"])
 		modImplementation(module)
 		include(module)
@@ -33,6 +39,9 @@ loom {
 	runConfigs.all {
 		// one game folder for every version
 		runDirectory = rootProject.file("run")
+		// check every Misty hook at startup (see MistyClient)
+		vmArg("-Dmisty.audit=true")
+		vmArg("-Dmixin.debug.countInjections=true")
 	}
 }
 

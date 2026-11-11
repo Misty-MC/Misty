@@ -1,6 +1,7 @@
 {
 	"required": true,
 	"package": "online.mistylauncher.client.mixin",
+	"plugin": "online.mistylauncher.client.compat.MistyMixinPlugin",
 	"compatibilityLevel": "${java}",
 	"client": [
 		"AvatarRendererMixin",
@@ -22,6 +23,6 @@
 		"TitleScreenMixin"
 	],
 	"injectors": {
-		"defaultRequire": 1
+		"defaultRequire": 0
 	}
 }

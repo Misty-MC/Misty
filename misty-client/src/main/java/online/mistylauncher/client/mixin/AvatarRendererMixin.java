@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.player.Player;
 import online.mistylauncher.client.MistyClient;
 import online.mistylauncher.client.cosmetics.CloudHatLayer;
@@ -27,11 +26,14 @@ abstract class AvatarRendererMixin {
 		((LivingEntityRendererAccessor)this).misty$addLayer(new CloudHatLayer(parent));
 	}
 
-	@Inject(
-		method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
-		at = @At("TAIL")
-	)
-	private void misty$hat(final Avatar entity, final AvatarRenderState state, final float partialTicks, final CallbackInfo ci) {
+	// the method name is split in two: stonecutter.gradle.kts renames the screens' "extractRenderState", not this one
+	//? if >=1.21.9 {
+	@Inject(method = "extract" + "RenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
+	private void misty$hat(final net.minecraft.world.entity.Avatar entity, final AvatarRenderState state, final float partialTicks, final CallbackInfo ci) {
+	//?} else {
+	/*@Inject(method = "extract" + "RenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;F)V", at = @At("TAIL"))
+	private void misty$hat(final net.minecraft.client.player.AbstractClientPlayer entity, final AvatarRenderState state, final float partialTicks, final CallbackInfo ci) {
+	*///?}
 		Cosmetic hat = entity instanceof Player player && MistyClient.config().cosmetics ? MistyPlayers.outfit(player.getUUID()).hat() : Cosmetic.NONE;
 		((HatHolder)state).misty$setHat(hat);
 	}

@@ -2,7 +2,6 @@ package online.mistylauncher.client.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.MouseHandler;
-import net.minecraft.client.input.MouseButtonInfo;
 import online.mistylauncher.client.features.Zoom;
 import online.mistylauncher.client.hud.Clicks;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,12 +12,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Counts the mouse clicks for the CPS module; the zoom slows the mouse and takes the wheel. */
 @Mixin(MouseHandler.class)
 abstract class MouseHandlerMixin {
+	//? if >=1.21.9 {
 	@Inject(method = "onButton", at = @At("HEAD"))
-	private void misty$click(final long handle, final MouseButtonInfo button, final int action, final CallbackInfo ci) {
+	private void misty$click(final long handle, final net.minecraft.client.input.MouseButtonInfo button, final int action, final CallbackInfo ci) {
 		if (action == 1) {
 			Clicks.pressed(button.button());
 		}
 	}
+	//?} else {
+	/*@Inject(method = "onPress", at = @At("HEAD"))
+	private void misty$click(final long handle, final int button, final int action, final int modifiers, final CallbackInfo ci) {
+		if (action == 1) {
+			Clicks.pressed(button);
+		}
+	}
+	*///?}
 
 	/** Zoomed in: the mouse turns slower (the sensitivity option read by turnPlayer). */
 	@ModifyExpressionValue(method = "turnPlayer", at = @At(value = "INVOKE", target = "Ljava/lang/Double;doubleValue()D", ordinal = 0))

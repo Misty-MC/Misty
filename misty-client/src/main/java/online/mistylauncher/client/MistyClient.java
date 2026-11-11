@@ -59,7 +59,12 @@ public final class MistyClient implements ClientModInitializer {
 		HudManager.init(config);
 		LauncherLink.refresh();
 
+		// the keys of the controls screen, under "Misty Client" (key.category.misty.misty)
+		//? if >=1.21.9 {
 		KeyMapping.Category category = KeyMapping.Category.register(id("misty"));
+		//?} else {
+		/*String category = "key.category.misty.misty";
+		*///?}
 		editorKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.misty.editor", InputConstants.KEY_RSHIFT, category));
 		// zoom: held (C, like OptiFine); fullbright: a switch, no key until the player picks one
 		Zoom.bind(KeyMappingHelper.registerKeyMapping(new KeyMapping("key.misty.zoom", InputConstants.KEY_C, category)));
@@ -67,6 +72,11 @@ public final class MistyClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(MistyClient::tick);
 		ClientLifecycleEvents.CLIENT_STARTED.register(MistyNetwork::start);
+		// gradlew runClient: every hook is applied right away, and the ones that found nothing are
+		// logged (mixin.debug.countInjections), to check a Minecraft version quickly
+		if (Boolean.getBoolean("misty.audit")) {
+			ClientLifecycleEvents.CLIENT_STARTED.register(minecraft -> org.spongepowered.asm.mixin.MixinEnvironment.getCurrentEnvironment().audit());
+		}
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> MistyNetwork.stop());
 	}
 
@@ -79,7 +89,7 @@ public final class MistyClient implements ClientModInitializer {
 			config.fullbright = !config.fullbright;
 			config.save();
 			if (minecraft.player != null) {
-				minecraft.player.sendOverlayMessage(Component.translatable(config.fullbright ? "misty.fullbright.on" : "misty.fullbright.off"));
+				Versions.overlayMessage(Component.translatable(config.fullbright ? "misty.fullbright.on" : "misty.fullbright.off"));
 			}
 		}
 		while (editorKey.consumeClick()) {

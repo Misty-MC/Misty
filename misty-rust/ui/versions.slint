@@ -565,10 +565,14 @@ component PanneauMisty inherits VerticalLayout {
         text: Tr.t("Ver_Onglet_Versions");
         font-size: 10.5px;
     }
-    HorizontalLayout {
-        spacing: 8px;
-        alignment: start;
-        for v in HomeState.misty-versions: PuceMisty {
+    // en grille : autant de puces par ligne que la place le permet, puis on passe à la ligne
+    Rectangle {
+        property <int> colonnes: max(1, floor((self.width + 8px) / 158px));
+        min-width: 0;
+        height: ceil(HomeState.misty-versions.length / self.colonnes) * 50px - 8px;
+        for v[i] in HomeState.misty-versions: PuceMisty {
+            x: mod(i, parent.colonnes) * 158px;
+            y: floor(i / parent.colonnes) * 50px;
             version: v;
             checked: HomeState.misty-selected && v == HomeState.misty-mc;
             clicked => { HomeState.misty-select(v); }

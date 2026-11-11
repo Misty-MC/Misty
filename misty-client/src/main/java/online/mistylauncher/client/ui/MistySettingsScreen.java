@@ -343,7 +343,7 @@ public final class MistySettingsScreen extends MistyScreen {
 		int bob = Math.round((float)Math.sin(seconds * 2.0F) * 2.0F);
 		// the cape, swaying
 		int zoom = Math.max(1, Math.min(3, (h - 30) / 18));
-		Identifier misty = Cosmetics.texture().texturePath();
+		Identifier misty = Cosmetics.texturePath();
 		graphics.blit(RenderPipelines.GUI_TEXTURED, misty, cx - 5 * zoom, y + 22 + bob, 1.0F, 1.0F, 10 * zoom, 16 * zoom, 10, 16, 64, 32);
 		// the name tag: the Misty cloud before the name, like in the player list and the chat
 		String name = Minecraft.getInstance().getUser().getName();

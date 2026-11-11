@@ -3,6 +3,7 @@ package online.mistylauncher.client.mixin;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.world.entity.player.PlayerSkin;
+import online.mistylauncher.client.compat.Versions;
 import online.mistylauncher.client.cosmetics.Cosmetics;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,6 +21,6 @@ abstract class PlayerInfoMixin {
 
 	@Inject(method = "getSkin", at = @At("RETURN"), cancellable = true)
 	private void misty$dress(final CallbackInfoReturnable<PlayerSkin> cir) {
-		cir.setReturnValue(Cosmetics.dress(this.profile.id(), cir.getReturnValue()));
+		cir.setReturnValue(Cosmetics.dress(Versions.id(this.profile), cir.getReturnValue()));
 	}
 }
