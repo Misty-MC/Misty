@@ -24,7 +24,7 @@ version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3b7f7f85a7e5f68090000ed7622545829afd484d210358702ae4cb97dd0c320"
 dependencies = [
- "uuid 1.29.0",
+ "uuid 1.29.1",
 ]
 
 [[package]]
@@ -3585,7 +3585,7 @@ dependencies = [
  "tokio",
  "unicode-normalization",
  "urlencoding",
- "uuid 1.29.0",
+ "uuid 1.29.1",
  "windows 0.62.2",
  "windows-sys 0.59.0",
  "winreg",
@@ -6626,9 +6626,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.29.0"
+version = "1.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
+checksum = "4a06f08a856b009bc7bbaf7d3e79808595d032dd19074c0c2ef26e49e03e6bdc"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -7974,7 +7974,7 @@ dependencies = [
  "serde_repr",
  "tracing",
  "uds_windows",
- "uuid 1.29.0",
+ "uuid 1.29.1",
  "windows-sys 0.61.2",
  "winnow 1.0.4",
  "zbus_macros",
