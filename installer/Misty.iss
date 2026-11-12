@@ -3,6 +3,9 @@
 ;
 ; Structure installée (compatible avec la mise à jour automatique, voir misty-rust\src\services\update.rs) :
 ;   %LOCALAPPDATA%\Programs\Misty\Misty-<version>\Misty.exe
+;   %LOCALAPPDATA%\Programs\Misty\Misty.exe : lanceur fixe (le même exe), visé par les raccourcis. Son chemin
+;   ne change jamais, contrairement au dossier de la version : une épingle de la barre des tâches survit
+;   aux mises à jour. Il démarre la version la plus récente (misty-rust\src\services\lanceur.rs).
 ; Pas de droits administrateur nécessaires. Les données (versions, mondes, profils) restent dans %LOCALAPPDATA%\Misty.
 ; Plus besoin de .NET : Misty.exe contient tout.
 
@@ -73,10 +76,12 @@ Type: filesandordirs; Name: "{app}\Misty-*"
 
 [Files]
 Source: "{#Source}\*"; DestDir: "{app}\{#Dossier}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#Source}\Misty.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\Misty"; Filename: "{app}\{#Dossier}\Misty.exe"; WorkingDir: "{app}\{#Dossier}"
-Name: "{autodesktop}\Misty"; Filename: "{app}\{#Dossier}\Misty.exe"; WorkingDir: "{app}\{#Dossier}"; Tasks: desktopicon
+; AppUserModelID : le même que Misty (lanceur.rs : AUMID), pour un seul bouton dans la barre des tâches
+Name: "{autoprograms}\Misty"; Filename: "{app}\Misty.exe"; WorkingDir: "{app}"; AppUserModelID: "MistyMC.Misty"
+Name: "{autodesktop}\Misty"; Filename: "{app}\Misty.exe"; WorkingDir: "{app}"; AppUserModelID: "MistyMC.Misty"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#Dossier}\Misty.exe"; Description: "{cm:Lancer}"; Flags: nowait postinstall skipifsilent

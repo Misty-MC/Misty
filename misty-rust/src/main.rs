@@ -28,11 +28,20 @@ thread_local! {
 }
 
 fn main() {
+    // Lanceur fixe (<racine>\Misty.exe, visé par les raccourcis et les épingles) : il démarre la
+    // version la plus récente et se ferme
+    if services::lanceur::relayer() {
+        return;
+    }
+
     // Mode « fenêtre de connexion Microsoft » (lancé par le launcher lui-même)
     if std::env::args().any(|a| a == "--ms-login") {
         ms_login::executer();
         return;
     }
+
+    // même bouton de barre des tâches que les raccourcis et les épingles de Misty
+    services::lanceur::identifier_processus();
 
     // Runtime pour le réseau et les fichiers (le thread principal reste à l'interface)
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("runtime tokio");
@@ -308,6 +317,16 @@ fn preparer_fenetre(app: &ui::App) {
         }
         #[cfg(windows)]
         coins_arrondis(w);
+        // ce que Windows relance quand on épingle la fenêtre : le lanceur fixe
+        #[cfg(windows)]
+        {
+            use slint::winit_030::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+            if let Ok(h) = w.window_handle() {
+                if let RawWindowHandle::Win32(h) = h.as_raw() {
+                    services::lanceur::marquer_fenetre(h.hwnd.get());
+                }
+            }
+        }
     });
 }
 

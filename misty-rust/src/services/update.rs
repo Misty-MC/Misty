@@ -299,14 +299,16 @@ pub async fn finaliser() -> anyhow::Result<bool> {
 
     tokio::time::sleep(std::time::Duration::from_secs(1)).await; // laisse le temps à l'ancien exe de se fermer
 
+    // le lanceur fixe démarre désormais cette version ; les raccourcis et les épingles sont
+    // redirigés vers lui juste après (ui::demarrer)
+    super::lanceur::installer(true);
+
     let raccourci = settings::get(settings::RACCOURCI);
     if !raccourci.is_empty() {
         let _ = shortcut::creer(Path::new(&raccourci));
     }
 
-    // Installé avec le setup : ses raccourcis (menu Démarrer, bureau) et l'entrée
-    // "Applications installées" pointent encore vers l'ancien dossier
-    shortcut::rediriger(&ancien);
+    // Installé avec le setup : l'entrée "Applications installées" pointe encore vers l'ancien dossier
     maj_entree_desinstallation();
 
     if Path::new(&ancien).exists() {

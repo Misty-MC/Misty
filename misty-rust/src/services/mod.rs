@@ -14,6 +14,7 @@ pub mod horizon;
 pub mod http;
 pub mod instances;
 pub mod journal;
+pub mod lanceur;
 pub mod loc;
 pub mod modpack;
 pub mod modrinth;

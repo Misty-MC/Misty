@@ -322,8 +322,11 @@ pub async fn demarrer(app: Rc<App>) {
         Ok(false) => {}
         Err(e) => dialogs::erreur(&app, &loc::t("Maj_Nettoyage"), &loc::tf("Maj_Nettoyage_Texte", &[&e])).await,
     }
-    // raccourcis (épingles de la barre des tâches comprises) qui visent une version supprimée
-    std::thread::spawn(|| crate::services::shortcut::rediriger(""));
+    // lanceur fixe, et raccourcis (épingles de la barre des tâches comprises) redirigés vers lui
+    std::thread::spawn(|| {
+        crate::services::lanceur::installer(false);
+        crate::services::lanceur::rediriger_raccourcis();
+    });
 
     home::initialiser(&app).await;
     app.ui.global::<AppState>().set_ready(true);
