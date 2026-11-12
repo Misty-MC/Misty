@@ -47,7 +47,7 @@ uuid = { version = "1", features = ["v4"] }
 # Connexion Microsoft (fenêtre web lancée dans un sous-processus)
 wry = { version = "0.57", default-features = false }
 winit = "0.30"
-winreg = "0.55"
+winreg = "0.56"
 mslnk = "0.1"
 windows-sys = { version = "0.61", features = ["Win32_System_SystemInformation", "Win32_Foundation", "Win32_Graphics_Dwm"] }
 # Musique en jeu : morceau lu par les contrôles multimédia de Windows (services/musique.rs)
