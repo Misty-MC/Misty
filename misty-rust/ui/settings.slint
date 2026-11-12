@@ -1,5 +1,6 @@
 // Fenêtre des options (posée par-dessus le launcher, fond flouté), classée par catégories :
-// apparence, langue, comptes, Java et mémoire, versions, comportement, ressources, dépannage.
+// apparence, langue, comptes, mémoire, comportement, ressources, dépannage. Chaque catégorie a un en-tête
+// et ses réglages sont groupés dans des cartes, avec une marge intérieure.
 
 import { Theme, Tr } from "theme.slint";
 import { SettingsState, StorageRow } from "state.slint";
@@ -486,30 +487,95 @@ component Avertissement inherits Rectangle {
     }
 }
 
-/// Bloc de dépannage : titre, bouton, explication (comme sur Modrinth).
+/// Bloc d'action : titre, explication, puis les boutons.
 component BlocAction inherits VerticalLayout {
     in property <string> titre;
     in property <string> texte;
-    spacing: 10px;
+    spacing: 6px;
     Text {
         text: root.titre;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 700;
         color: Theme.navy;
+        wrap: word-wrap;
     }
+    if root.texte != "": BodyText { text: root.texte; }
     HorizontalLayout {
         alignment: start;
         spacing: 10px;
+        padding-top: 8px;
         @children
     }
-    BodyText { text: root.texte; }
+}
+
+/// Groupe de réglages : une carte arrondie avec une marge intérieure, pour qu'aucun bouton ni
+/// interrupteur ne touche un bord.
+component Carte inherits Rectangle {
+    in property <length> spacing: 18px;
+    border-radius: 18px;
+    background: Theme.glass;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    min-height: corps.preferred-height;
+    corps := VerticalLayout {
+        padding-top: 20px;
+        padding-bottom: 20px;
+        padding-left: 22px;
+        padding-right: 22px;
+        spacing: root.spacing;
+        @children
+    }
+}
+
+/// En-tête de la catégorie : pastille avec l'icône, titre et sous-titre.
+component EnteteSection inherits HorizontalLayout {
+    in property <string> icon;
+    in property <string> titre;
+    in property <string> texte;
+    spacing: 16px;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            background: Theme.accent-soft;
+            border-width: 1px;
+            border-color: Theme.accent.with-alpha(0.35);
+            Icon {
+                text: root.icon;
+                font-size: 20px;
+                color: Theme.accent;
+            }
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 2px;
+        Text {
+            text: root.titre;
+            font-family: Theme.ui-font;
+            font-size: 22px;
+            font-weight: 800;
+            color: Theme.navy;
+            overflow: elide;
+        }
+        Text {
+            text: root.texte;
+            font-size: 13px;
+            color: Theme.text-muted;
+            wrap: word-wrap;
+        }
+    }
 }
 
 /// Contenu d'une catégorie : apparaît en fondu en glissant légèrement.
 component Volet inherits VerticalLayout {
     opacity: 0;
     property <length> decalage: 10px;
-    padding-left: self.decalage;
+    padding-top: self.decalage;
+    padding-bottom: 10px - self.decalage;
     animate opacity { duration: 240ms; easing: ease-out; }
     animate decalage { duration: 320ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
     init => {
@@ -526,6 +592,9 @@ export component SettingsModal inherits Rectangle {
 
     // Position de l'indicateur pour chaque entrée (groupes de 26 px, entrées de 38 px + 4 px)
     property <[length]> positions: [26px, 68px, 136px, 178px, 246px, 314px, 356px, 398px];
+    // En-tête de chaque catégorie
+    property <[string]> icones: ["\u{E771}", "\u{E774}", "\u{E77B}", "\u{E716}", "\u{E9D9}", "\u{E9E9}", "\u{EDA2}", "\u{E90F}"];
+    property <[string]> titres: ["Param_Apparence", "Param_Langue", "Param_Microsoft", "Param_HorsLigne", "Param_Memoire", "Param_Comportement", "Param_Ressources", "Param_Depannage"];
 
     opacity: root.ouvert ? 1 : 0;
     visible: self.opacity > 0.01 && !SettingsState.capturing;
@@ -551,8 +620,8 @@ export component SettingsModal inherits Rectangle {
     }
 
     carte := Rectangle {
-        width: min(1000px, parent.width - 120px);
-        height: min(720px, parent.height - 70px);
+        width: min(1040px, parent.width - 80px);
+        height: min(740px, parent.height - 60px);
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2 + (root.ouvert ? 0px : 18px);
         border-radius: 24px;
@@ -568,136 +637,106 @@ export component SettingsModal inherits Rectangle {
         clip: true;
         TouchArea { }
 
-        VerticalLayout {
-            // ═══ En-tête ═══
+        HorizontalLayout {
+            // ═══ Colonne de navigation ═══
             Rectangle {
-                height: 78px;
-                HorizontalLayout {
-                    padding-left: 28px;
-                    padding-right: 22px;
+                width: 252px;
+                background: Theme.surface-2;
+
+                VerticalLayout {
+                    padding: 16px;
+                    padding-top: 22px;
                     spacing: 12px;
-                    Text {
-                        horizontal-stretch: 1;
-                        text: Tr.t("Param_Titre");
-                        font-family: Theme.ui-font;
-                        font-size: 24px;
-                        font-weight: 800;
-                        color: Theme.navy;
-                        vertical-alignment: center;
+
+                    // Titre de la fenêtre
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-bottom: 4px;
+                        Text {
+                            text: Tr.t("Param_Titre");
+                            font-family: Theme.ui-font;
+                            font-size: 24px;
+                            font-weight: 800;
+                            color: Theme.navy;
+                            overflow: elide;
+                        }
                     }
-                    VerticalLayout {
-                        alignment: center;
+
+                    ScrollView {
+                        vertical-stretch: 1;
+                        content-width: self.visible-width;
+                        content-height: 440px;
+
                         Rectangle {
-                            width: 40px;
-                            height: 40px;
-                            border-radius: 20px;
-                            background: fermer.pressed ? Theme.glass-strong : fermer.has-hover ? Theme.glass-hover : Theme.glass;
-                            border-width: 1px;
-                            border-color: fermer.has-hover ? Theme.accent : Theme.glass-border;
-                            transform-scale: fermer.pressed ? 0.88 : 1;
-                            transform-rotation: fermer.has-hover ? 90deg : 0deg;
-                            animate background, border-color { duration: Theme.fast; }
-                            animate transform-scale { duration: 140ms; easing: ease-out; }
-                            animate transform-rotation { duration: 260ms; easing: ease-out; }
-                            Icon {
-                                text: "\u{E8BB}";
-                                font-size: 12px;
-                                color: Theme.navy;
+                            width: parent.visible-width;
+                            height: 440px;
+
+                            // indicateur qui glisse sous l'entrée choisie
+                            Rectangle {
+                                x: 0;
+                                y: root.positions[root.section];
+                                width: parent.width;
+                                height: 38px;
+                                border-radius: 12px;
+                                background: Theme.accent-soft;
+                                border-width: 1px;
+                                border-color: Theme.accent.with-alpha(0.35);
+                                animate y { duration: 380ms; easing: cubic-bezier(0.34, 1.25, 0.64, 1); }
+                                // trait lumineux à gauche
+                                Rectangle {
+                                    x: 0px;
+                                    y: 10px;
+                                    width: 3px;
+                                    height: parent.height - 20px;
+                                    border-radius: 2px;
+                                    background: Theme.accent;
+                                    drop-shadow-blur: 8px;
+                                    drop-shadow-color: Theme.accent;
+                                }
                             }
-                            fermer := TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => { SettingsState.close(); }
-                            }
+
+                            GroupeNav { y: 0px; width: parent.width; text: Tr.t("Param_Groupe_Affichage"); }
+                            EntreeNav { y: 26px; width: parent.width; icon: root.icones[0]; text: Tr.t("Param_Apparence"); checked: root.section == 0; clicked => { SettingsState.section = 0; } }
+                            EntreeNav { y: 68px; width: parent.width; icon: root.icones[1]; text: Tr.t("Param_Langue"); checked: root.section == 1; clicked => { SettingsState.section = 1; } }
+
+                            GroupeNav { y: 110px; width: parent.width; text: Tr.t("Param_Groupe_Comptes"); }
+                            EntreeNav { y: 136px; width: parent.width; icon: root.icones[2]; text: Tr.t("Param_Microsoft"); checked: root.section == 2; clicked => { SettingsState.section = 2; } }
+                            EntreeNav { y: 178px; width: parent.width; icon: root.icones[3]; text: Tr.t("Param_HorsLigne"); checked: root.section == 3; clicked => { SettingsState.section = 3; } }
+
+                            GroupeNav { y: 220px; width: parent.width; text: Tr.t("Param_Groupe_Jeu"); }
+                            EntreeNav { y: 246px; width: parent.width; icon: root.icones[4]; text: Tr.t("Param_Memoire"); checked: root.section == 4; clicked => { SettingsState.section = 4; } }
+
+                            GroupeNav { y: 288px; width: parent.width; text: Tr.t("Param_Groupe_Launcher"); }
+                            EntreeNav { y: 314px; width: parent.width; icon: root.icones[5]; text: Tr.t("Param_Comportement"); checked: root.section == 5; clicked => { SettingsState.section = 5; } }
+                            EntreeNav { y: 356px; width: parent.width; icon: root.icones[6]; text: Tr.t("Param_Ressources"); checked: root.section == 6; clicked => { SettingsState.section = 6; } }
+                            EntreeNav { y: 398px; width: parent.width; icon: root.icones[7]; text: Tr.t("Param_Depannage"); checked: root.section == 7; clicked => { SettingsState.section = 7; } }
                         }
                     }
-                }
-                Rectangle {
-                    y: parent.height - 1px;
-                    height: 1px;
-                    background: Theme.line;
-                }
-            }
 
-            HorizontalLayout {
-                vertical-stretch: 1;
-
-                // ═══ Colonne de navigation ═══
-                Rectangle {
-                    width: 260px;
-                    background: Theme.surface-2;
-
-                    VerticalLayout {
-                        padding: 14px;
-                        padding-top: 6px;
-                        spacing: 10px;
-
-                        ScrollView {
-                            vertical-stretch: 1;
-                            content-width: self.visible-width;
-                            content-height: 480px;
-
-                            Rectangle {
-                                width: parent.visible-width;
-                                height: 480px;
-
-                                // indicateur qui glisse sous l'entrée choisie
-                                Rectangle {
-                                    x: 0;
-                                    y: root.positions[root.section];
-                                    width: parent.width;
-                                    height: 38px;
-                                    border-radius: 12px;
-                                    background: Theme.accent-soft;
-                                    border-width: 1px;
-                                    border-color: Theme.accent.with-alpha(0.35);
-                                    animate y { duration: 380ms; easing: cubic-bezier(0.34, 1.25, 0.64, 1); }
-                                    // trait lumineux à gauche
-                                    Rectangle {
-                                        x: 0px;
-                                        y: 10px;
-                                        width: 3px;
-                                        height: parent.height - 20px;
-                                        border-radius: 2px;
-                                        background: Theme.accent;
-                                        drop-shadow-blur: 8px;
-                                        drop-shadow-color: Theme.accent;
-                                    }
-                                }
-
-                                GroupeNav { y: 0px; width: parent.width; text: Tr.t("Param_Groupe_Affichage"); }
-                                EntreeNav { y: 26px; width: parent.width; icon: "\u{E771}"; text: Tr.t("Param_Apparence"); checked: root.section == 0; clicked => { SettingsState.section = 0; } }
-                                EntreeNav { y: 68px; width: parent.width; icon: "\u{E774}"; text: Tr.t("Param_Langue"); checked: root.section == 1; clicked => { SettingsState.section = 1; } }
-
-                                GroupeNav { y: 110px; width: parent.width; text: Tr.t("Param_Groupe_Comptes"); }
-                                EntreeNav { y: 136px; width: parent.width; icon: "\u{E77B}"; text: Tr.t("Param_Microsoft"); checked: root.section == 2; clicked => { SettingsState.section = 2; } }
-                                EntreeNav { y: 178px; width: parent.width; icon: "\u{E716}"; text: Tr.t("Param_HorsLigne"); checked: root.section == 3; clicked => { SettingsState.section = 3; } }
-
-                                GroupeNav { y: 220px; width: parent.width; text: Tr.t("Param_Groupe_Jeu"); }
-                                EntreeNav { y: 246px; width: parent.width; icon: "\u{E9D9}"; text: Tr.t("Param_Memoire"); checked: root.section == 4; clicked => { SettingsState.section = 4; } }
-
-                                GroupeNav { y: 288px; width: parent.width; text: Tr.t("Param_Groupe_Launcher"); }
-                                EntreeNav { y: 314px; width: parent.width; icon: "\u{E9E9}"; text: Tr.t("Param_Comportement"); checked: root.section == 5; clicked => { SettingsState.section = 5; } }
-                                EntreeNav { y: 356px; width: parent.width; icon: "\u{EDA2}"; text: Tr.t("Param_Ressources"); checked: root.section == 6; clicked => { SettingsState.section = 6; } }
-                                EntreeNav { y: 398px; width: parent.width; icon: "\u{E90F}"; text: Tr.t("Param_Depannage"); checked: root.section == 7; clicked => { SettingsState.section = 7; } }
-                            }
-                        }
-
-                        // Pied de colonne : version de Misty et de Windows (comme « Modrinth App 0.23.1 »)
-                        Separateur { }
+                    // Pied de colonne : version de Misty et de Windows, dans une petite carte
+                    Rectangle {
+                        height: 56px;
+                        border-radius: 14px;
+                        background: Theme.glass;
+                        border-width: 1px;
+                        border-color: Theme.glass-border;
                         HorizontalLayout {
-                            padding-left: 6px;
-                            padding-top: 2px;
-                            spacing: 12px;
-                            Rectangle {
-                                width: 34px;
-                                height: 34px;
-                                border-radius: 10px;
-                                background: Theme.dark ? #162140 : #1C2335;
-                                Image {
-                                    width: 24px;
-                                    height: 24px;
-                                    source: @image-url("../assets/logo-nuage.png");
-                                    image-fit: contain;
+                            padding-left: 11px;
+                            padding-right: 12px;
+                            spacing: 11px;
+                            VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    width: 34px;
+                                    height: 34px;
+                                    border-radius: 10px;
+                                    background: Theme.dark ? #162140 : #1C2335;
+                                    Image {
+                                        width: 24px;
+                                        height: 24px;
+                                        source: @image-url("../assets/logo-nuage.png");
+                                        image-fit: contain;
+                                    }
                                 }
                             }
                             VerticalLayout {
@@ -705,45 +744,68 @@ export component SettingsModal inherits Rectangle {
                                 spacing: 1px;
                                 Text {
                                     text: SettingsState.about-text;
-                                    font-size: 12.5px;
+                                    font-size: 12px;
                                     font-weight: 600;
                                     color: Theme.navy2;
                                     overflow: elide;
                                 }
                                 Text {
                                     text: SettingsState.system-text;
-                                    font-size: 12px;
+                                    font-size: 11.5px;
                                     color: Theme.text-muted;
                                     overflow: elide;
                                 }
                             }
                         }
                     }
-                    Rectangle {
-                        x: parent.width - 1px;
-                        width: 1px;
-                        background: Theme.line;
-                    }
                 }
+                Rectangle {
+                    x: parent.width - 1px;
+                    width: 1px;
+                    background: Theme.line;
+                }
+            }
 
-                // ═══ Contenu de la catégorie choisie ═══
+            // ═══ Contenu de la catégorie choisie ═══
+            Rectangle {
+                horizontal-stretch: 1;
+
                 ScrollView {
-                    horizontal-stretch: 1;
+                    width: parent.width;
+                    height: parent.height;
                     content-width: self.visible-width;
                     content-height: contenu.preferred-height;
 
                     contenu := VerticalLayout {
                         width: parent.visible-width;
-                        padding: 30px;
-                        padding-top: 26px;
-                        padding-right: 34px;
+                        padding-left: 36px;
+                        padding-right: 40px;
+                        padding-top: 30px;
+                        padding-bottom: 36px;
+                        spacing: 24px;
                         alignment: start;
+
+                        // marge à droite pour la croix de fermeture
+                        HorizontalLayout {
+                            padding-right: 52px;
+                            EnteteSection {
+                                icon: root.icones[root.section];
+                                titre: Tr.t(root.titres[root.section]);
+                                texte: root.section == 0 ? Tr.t("Param_Apparence_Sous")
+                                    : root.section == 1 ? Tr.t("Param_Langue_Sous")
+                                    : root.section == 2 ? Tr.t("Param_Microsoft_Sous")
+                                    : root.section == 3 ? Tr.t("Param_HorsLigne_Sous")
+                                    : root.section == 4 ? Tr.t("Param_Memoire_Sous")
+                                    : root.section == 5 ? Tr.t("Param_Comportement_Sous")
+                                    : root.section == 6 ? Tr.t("Param_Ressources_Sous")
+                                    : Tr.t("Param_Depannage_Sous");
+                            }
+                        }
 
                         // ── Apparence ──
                         if root.section == 0: Volet {
-                            spacing: 22px;
-                            VerticalLayout {
-                                spacing: 14px;
+                            spacing: 16px;
+                            Carte {
                                 Entete {
                                     titre: Tr.t("Param_Theme");
                                     texte: Tr.t("Param_Theme_Texte");
@@ -756,6 +818,7 @@ export component SettingsModal inherits Rectangle {
                                     border-color: Theme.accent.with-alpha(0.5);
                                     HorizontalLayout {
                                         padding-left: 14px;
+                                        padding-right: 14px;
                                         spacing: 10px;
                                         Icon {
                                             width: 16px;
@@ -770,6 +833,7 @@ export component SettingsModal inherits Rectangle {
                                             font-weight: 600;
                                             color: Theme.accent;
                                             vertical-alignment: center;
+                                            overflow: elide;
                                         }
                                     }
                                 }
@@ -801,56 +865,59 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                             }
-                            Separateur { }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_Saison");
-                                texte: Tr.t("Param_Saison_Texte");
-                                checked <=> SettingsState.seasonal;
-                                toggled(v) => { SettingsState.seasonal-toggled(v); }
-                            }
-                            Separateur { }
-                            VerticalLayout {
-                                spacing: 12px;
-                                Entete {
-                                    titre: Tr.t("Param_FondFlou");
-                                    texte: Tr.t("Param_FondFlou_Texte");
+                            Carte {
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Saison");
+                                    texte: Tr.t("Param_Saison_Texte");
+                                    checked <=> SettingsState.seasonal;
+                                    toggled(v) => { SettingsState.seasonal-toggled(v); }
                                 }
-                                CurseurBorne {
-                                    minimum: 0;
-                                    maximum: 10;
-                                    step: 1;
-                                    min-text: Tr.t("Param_FondFlou_Net");
-                                    max-text: Tr.t("Param_FondFlou_Max");
-                                    value-text: SettingsState.bg-blur == 0 ? Tr.t("Param_FondFlou_Off") : round(SettingsState.bg-blur);
-                                    value <=> SettingsState.bg-blur;
-                                    changed(v) => { SettingsState.bg-blur-changed(v); }
+                                Separateur { }
+                                VerticalLayout {
+                                    spacing: 12px;
+                                    Entete {
+                                        titre: Tr.t("Param_FondFlou");
+                                        texte: Tr.t("Param_FondFlou_Texte");
+                                    }
+                                    CurseurBorne {
+                                        minimum: 0;
+                                        maximum: 10;
+                                        step: 1;
+                                        min-text: Tr.t("Param_FondFlou_Net");
+                                        max-text: Tr.t("Param_FondFlou_Max");
+                                        value-text: SettingsState.bg-blur == 0 ? Tr.t("Param_FondFlou_Off") : round(SettingsState.bg-blur);
+                                        value <=> SettingsState.bg-blur;
+                                        changed(v) => { SettingsState.bg-blur-changed(v); }
+                                    }
                                 }
-                            }
-                            Separateur { }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_Flou");
-                                texte: Tr.t("Param_Flou_Texte");
-                                checked: Theme.blur;
-                                toggled(v) => { SettingsState.blur-toggled(v); }
+                                Separateur { }
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Flou");
+                                    texte: Tr.t("Param_Flou_Texte");
+                                    checked: Theme.blur;
+                                    toggled(v) => { SettingsState.blur-toggled(v); }
+                                }
                             }
                         }
 
                         // ── Langue ──
                         if root.section == 1: Volet {
                             spacing: 16px;
-                            Entete { titre: Tr.t("Param_Langue"); }
                             Avertissement { text: Tr.t("Param_Langue_Avert"); }
-                            BodyText { text: Tr.t("Options_Langue_Texte"); }
-                            VerticalLayout {
-                                spacing: 6px;
-                                for l[i] in SettingsState.langs: LigneLangue {
-                                    nom: l.name;
-                                    anglais: l.english;
-                                    flag: l.flag;
-                                    checked: i == SettingsState.lang-index;
-                                    clicked => {
-                                        SettingsState.lang-index = i;
-                                        SettingsState.lang-selected(i);
+                            Carte {
+                                spacing: 12px;
+                                BodyText { text: Tr.t("Options_Langue_Texte"); }
+                                VerticalLayout {
+                                    spacing: 6px;
+                                    for l[i] in SettingsState.langs: LigneLangue {
+                                        nom: l.name;
+                                        anglais: l.english;
+                                        flag: l.flag;
+                                        checked: i == SettingsState.lang-index;
+                                        clicked => {
+                                            SettingsState.lang-index = i;
+                                            SettingsState.lang-selected(i);
+                                        }
                                     }
                                 }
                             }
@@ -859,36 +926,38 @@ export component SettingsModal inherits Rectangle {
                         // ── Compte Microsoft ──
                         if root.section == 2: Volet {
                             spacing: 16px;
-                            Entete {
-                                titre: Tr.t("Param_Microsoft_Titre");
-                                texte: SettingsState.ms-state;
-                            }
-                            if SettingsState.ms-accounts.length > 0: VerticalLayout {
-                                spacing: 8px;
-                                for c in SettingsState.ms-accounts: LigneCompte {
-                                    pseudo: c.pseudo;
-                                    active: c.active && SettingsState.ms-connected;
-                                    use => { SettingsState.ms-switch(c.uuid); }
-                                    forget => { SettingsState.ms-forget(c.uuid); }
+                            Carte {
+                                Entete {
+                                    titre: Tr.t("Param_Microsoft_Titre");
+                                    texte: SettingsState.ms-state;
                                 }
-                            }
-                            HorizontalLayout {
-                                spacing: 10px;
-                                alignment: start;
-                                MButton {
-                                    kind: 1;
-                                    icon: "\u{E710}";
-                                    text: SettingsState.ms-accounts.length == 0 ? Tr.t("Compte_SeConnecter") : Tr.t("Compte_Ajouter");
-                                    enabled: !SettingsState.ms-busy;
-                                    clicked => { SettingsState.connect(); }
+                                if SettingsState.ms-accounts.length > 0: VerticalLayout {
+                                    spacing: 8px;
+                                    for c in SettingsState.ms-accounts: LigneCompte {
+                                        pseudo: c.pseudo;
+                                        active: c.active && SettingsState.ms-connected;
+                                        use => { SettingsState.ms-switch(c.uuid); }
+                                        forget => { SettingsState.ms-forget(c.uuid); }
+                                    }
                                 }
-                                if SettingsState.ms-connected: MButton {
-                                    text: Tr.t("Compte_SeDeconnecter");
-                                    clicked => { SettingsState.disconnect(); }
-                                }
-                                MButton {
-                                    text: Tr.t("Compte_DeconnexionTotale");
-                                    clicked => { SettingsState.disconnect-all(); }
+                                HorizontalLayout {
+                                    spacing: 10px;
+                                    alignment: start;
+                                    MButton {
+                                        kind: 1;
+                                        icon: "\u{E710}";
+                                        text: SettingsState.ms-accounts.length == 0 ? Tr.t("Compte_SeConnecter") : Tr.t("Compte_Ajouter");
+                                        enabled: !SettingsState.ms-busy;
+                                        clicked => { SettingsState.connect(); }
+                                    }
+                                    if SettingsState.ms-connected: MButton {
+                                        text: Tr.t("Compte_SeDeconnecter");
+                                        clicked => { SettingsState.disconnect(); }
+                                    }
+                                    MButton {
+                                        text: Tr.t("Compte_DeconnexionTotale");
+                                        clicked => { SettingsState.disconnect-all(); }
+                                    }
                                 }
                             }
                         }
@@ -896,34 +965,34 @@ export component SettingsModal inherits Rectangle {
                         // ── Comptes hors-ligne ──
                         if root.section == 3: Volet {
                             spacing: 16px;
-                            Entete {
-                                titre: Tr.t("Param_HorsLigne");
-                                texte: Tr.t("Options_hors_ligne_text");
-                            }
-                            if SettingsState.pseudo-rows.length > 0: VerticalLayout {
-                                spacing: 8px;
-                                for ligne in SettingsState.pseudo-rows: HorizontalLayout {
+                            Carte {
+                                BodyText { text: Tr.t("Options_hors_ligne_text"); }
+                                if SettingsState.pseudo-rows.length > 0: VerticalLayout {
                                     spacing: 8px;
-                                    alignment: start;
-                                    for p in ligne.items: Pseudo {
-                                        text: p;
-                                        remove => { SettingsState.remove-pseudo(p); }
+                                    for ligne in SettingsState.pseudo-rows: HorizontalLayout {
+                                        spacing: 8px;
+                                        alignment: start;
+                                        for p in ligne.items: Pseudo {
+                                            text: p;
+                                            remove => { SettingsState.remove-pseudo(p); }
+                                        }
                                     }
                                 }
-                            }
-                            HorizontalLayout {
-                                spacing: 10px;
-                                GlassInput {
-                                    horizontal-stretch: 1;
-                                    placeholder: Tr.t("Param_Pseudo_Placeholder");
-                                    text <=> SettingsState.new-pseudo;
-                                    accepted => { SettingsState.add-pseudo(); }
-                                }
-                                MButton {
-                                    kind: 1;
-                                    icon: "\u{E710}";
-                                    text: Tr.t("Options_bouton_ajout");
-                                    clicked => { SettingsState.add-pseudo(); }
+                                HorizontalLayout {
+                                    spacing: 10px;
+                                    GlassInput {
+                                        horizontal-stretch: 1;
+                                        placeholder: Tr.t("Param_Pseudo_Placeholder");
+                                        text <=> SettingsState.new-pseudo;
+                                        accepted => { SettingsState.add-pseudo(); }
+                                    }
+                                    MButton {
+                                        horizontal-stretch: 0;
+                                        kind: 1;
+                                        icon: "\u{E710}";
+                                        text: Tr.t("Options_bouton_ajout");
+                                        clicked => { SettingsState.add-pseudo(); }
+                                    }
                                 }
                             }
                         }
@@ -931,28 +1000,30 @@ export component SettingsModal inherits Rectangle {
                         // ── Java et mémoire ──
                         if root.section == 4: Volet {
                             spacing: 16px;
-                            Entete {
-                                titre: Tr.t("Param_Memoire_Titre");
-                                texte: SettingsState.ram-total-text;
+                            Carte {
+                                Entete {
+                                    titre: Tr.t("Param_Memoire_Titre");
+                                    texte: SettingsState.ram-total-text;
+                                }
+                                CurseurBorne {
+                                    minimum: 1024;
+                                    maximum: SettingsState.ram-max;
+                                    step: 1024;
+                                    min-text: "1 " + Tr.t("Unite_Go");
+                                    max-text: round(SettingsState.ram-max / 1024) + " " + Tr.t("Unite_Go");
+                                    value-text: SettingsState.ram-text;
+                                    value <=> SettingsState.ram-value;
+                                    changed(v) => { SettingsState.ram-changed(v); }
+                                }
+                                Separateur { }
+                                BodyText { text: Tr.t("Param_Memoire_Conseil"); }
                             }
-                            CurseurBorne {
-                                minimum: 1024;
-                                maximum: SettingsState.ram-max;
-                                step: 1024;
-                                min-text: "1 " + Tr.t("Unite_Go");
-                                max-text: round(SettingsState.ram-max / 1024) + " " + Tr.t("Unite_Go");
-                                value-text: SettingsState.ram-text;
-                                value <=> SettingsState.ram-value;
-                                changed(v) => { SettingsState.ram-changed(v); }
-                            }
-                            BodyText { text: Tr.t("Param_Memoire_Conseil"); }
                         }
 
-                        // ── Comportement : raccourci + Rich Presence Discord ──
+                        // ── Comportement : raccourci, partage, Discord, console, télémétrie ──
                         if root.section == 5: Volet {
-                            spacing: 22px;
-                            VerticalLayout {
-                                spacing: 14px;
+                            spacing: 16px;
+                            Carte {
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_Raccourci");
                                     texte: Tr.t("Options_Raccourci_Texte");
@@ -960,16 +1031,16 @@ export component SettingsModal inherits Rectangle {
                                     toggled(v) => { SettingsState.shortcut-toggled(v); }
                                 }
                                 if SettingsState.shortcut-enabled: VerticalLayout {
-                                    spacing: 10px;
+                                    spacing: 12px;
                                     Rectangle {
-                                        height: 40px;
+                                        height: 42px;
                                         border-radius: 12px;
-                                        background: Theme.glass;
+                                        background: Theme.glass-strong;
                                         border-width: 1px;
                                         border-color: Theme.glass-border;
                                         HorizontalLayout {
-                                            padding-left: 12px;
-                                            padding-right: 12px;
+                                            padding-left: 14px;
+                                            padding-right: 14px;
                                             spacing: 10px;
                                             Icon {
                                                 width: 16px;
@@ -1001,47 +1072,52 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                             }
-                            Separateur { }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_Discord");
-                                texte: Tr.t("Options_Discord_Texte");
-                                checked <=> SettingsState.rich;
-                                toggled(v) => { SettingsState.rich-toggled(v); }
+                            Carte {
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Partage");
+                                    texte: Tr.t("Param_Partage_Texte");
+                                    checked <=> SettingsState.share-game-data;
+                                    toggled(v) => { SettingsState.share-game-data-toggled(v); }
+                                }
                             }
-                            Separateur { }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_Console");
-                                texte: Tr.t("Param_Console_Texte");
-                                checked <=> SettingsState.console-auto;
-                                toggled(v) => { SettingsState.console-auto-toggled(v); }
-                            }
-                            Separateur { }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_Telemetrie");
-                                texte: Tr.t("Param_Telemetrie_Texte");
-                                checked <=> SettingsState.telemetry;
-                                toggled(v) => { SettingsState.telemetry-toggled(v); }
+                            Carte {
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Discord");
+                                    texte: Tr.t("Options_Discord_Texte");
+                                    checked <=> SettingsState.rich;
+                                    toggled(v) => { SettingsState.rich-toggled(v); }
+                                }
+                                Separateur { }
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Console");
+                                    texte: Tr.t("Param_Console_Texte");
+                                    checked <=> SettingsState.console-auto;
+                                    toggled(v) => { SettingsState.console-auto-toggled(v); }
+                                }
+                                Separateur { }
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Telemetrie");
+                                    texte: Tr.t("Param_Telemetrie_Texte");
+                                    checked <=> SettingsState.telemetry;
+                                    toggled(v) => { SettingsState.telemetry-toggled(v); }
+                                }
                             }
                         }
 
                         // ── Ressources ──
                         if root.section == 6: Volet {
-                            spacing: 22px;
-                            VerticalLayout {
-                                spacing: 12px;
+                            spacing: 16px;
+                            Carte {
                                 HorizontalLayout {
-                                    spacing: 12px;
+                                    spacing: 16px;
                                     Entete {
                                         horizontal-stretch: 1;
                                         titre: Tr.t("Param_Stockage");
                                         texte: Tr.t("Param_Stockage_Texte");
                                     }
-                                    Text {
-                                        text: SettingsState.size-text;
-                                        font-size: 15px;
-                                        font-weight: 700;
-                                        color: Theme.navy;
-                                        vertical-alignment: top;
+                                    VerticalLayout {
+                                        alignment: start;
+                                        Valeur { text: SettingsState.size-text; }
                                     }
                                 }
                                 HorizontalLayout {
@@ -1061,19 +1137,21 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                             }
-                            Separateur { }
-                            VerticalLayout {
+                            Carte {
                                 spacing: 12px;
-                                Entete { titre: Tr.t("Param_Dossier"); }
+                                Entete {
+                                    titre: Tr.t("Param_Dossier");
+                                    texte: Tr.t("Param_Dossier_Texte");
+                                }
                                 Rectangle {
-                                    height: 44px;
+                                    height: 46px;
                                     border-radius: 12px;
-                                    background: Theme.glass;
+                                    background: Theme.glass-strong;
                                     border-width: 1px;
                                     border-color: Theme.glass-border;
                                     HorizontalLayout {
                                         padding-left: 14px;
-                                        padding-right: 4px;
+                                        padding-right: 6px;
                                         spacing: 10px;
                                         Icon {
                                             width: 16px;
@@ -1092,8 +1170,8 @@ export component SettingsModal inherits Rectangle {
                                         VerticalLayout {
                                             alignment: center;
                                             IconButton {
-                                                width: 36px;
-                                                height: 36px;
+                                                width: 34px;
+                                                height: 34px;
                                                 icon: "\u{E838}";
                                                 icon-size: 14px;
                                                 tooltip: Tr.t("Commun_OuvrirDossier");
@@ -1102,12 +1180,13 @@ export component SettingsModal inherits Rectangle {
                                         }
                                     }
                                 }
-                                BodyText { text: Tr.t("Param_Dossier_Texte"); }
                             }
-                            Separateur { }
-                            VerticalLayout {
+                            Carte {
                                 spacing: 12px;
-                                Entete { titre: Tr.t("Param_Telechargements"); }
+                                Entete {
+                                    titre: Tr.t("Param_Telechargements");
+                                    texte: Tr.t("Param_Telechargements_Texte");
+                                }
                                 CurseurBorne {
                                     minimum: 2;
                                     maximum: 32;
@@ -1118,89 +1197,123 @@ export component SettingsModal inherits Rectangle {
                                     value <=> SettingsState.downloads;
                                     changed(v) => { SettingsState.downloads-changed(v); }
                                 }
-                                BodyText { text: Tr.t("Param_Telechargements_Texte"); }
                             }
                         }
 
                         // ── Dépannage ──
                         if root.section == 7: Volet {
-                            spacing: 26px;
-                            BlocAction {
-                                titre: Tr.t("Param_Cache");
-                                texte: Tr.t("Param_Cache_Texte");
-                                MButton {
-                                    icon: "\u{E74D}";
-                                    text: Tr.t("Param_Cache_Bouton");
-                                    clicked => { SettingsState.clear-cache(); }
+                            spacing: 16px;
+                            Carte {
+                                BlocAction {
+                                    titre: Tr.t("Param_Cache");
+                                    texte: Tr.t("Param_Cache_Texte");
+                                    MButton {
+                                        icon: "\u{E74D}";
+                                        text: Tr.t("Param_Cache_Bouton");
+                                        clicked => { SettingsState.clear-cache(); }
+                                    }
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Text {
+                                            text: SettingsState.cache-size;
+                                            font-size: 13px;
+                                            color: Theme.text-muted;
+                                        }
+                                    }
                                 }
-                                VerticalLayout {
-                                    alignment: center;
-                                    Text {
-                                        text: SettingsState.cache-size;
-                                        font-size: 13px;
-                                        color: Theme.text-muted;
+                                Separateur { }
+                                BlocAction {
+                                    titre: Tr.t("Param_Journaux");
+                                    texte: Tr.t("Param_Journaux_Texte");
+                                    MButton {
+                                        icon: "\u{E838}";
+                                        text: Tr.t("Param_Journaux_Bouton");
+                                        clicked => { SettingsState.open-logs(); }
+                                    }
+                                    MButton {
+                                        icon: "\u{E756}";
+                                        text: Tr.t("Param_JournalMisty");
+                                        clicked => { SettingsState.open-launcher-log(); }
+                                    }
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Text {
+                                            text: SettingsState.logs-size;
+                                            font-size: 13px;
+                                            color: Theme.text-muted;
+                                        }
+                                    }
+                                }
+                                Separateur { }
+                                BlocAction {
+                                    titre: Tr.t("Param_Debug");
+                                    texte: Tr.t("Param_Debug_Texte");
+                                    MButton {
+                                        icon: "\u{E896}";
+                                        text: Tr.t("Param_Debug_Bouton");
+                                        clicked => { SettingsState.export-debug(); }
                                     }
                                 }
                             }
-                            BlocAction {
-                                titre: Tr.t("Param_Journaux");
-                                texte: Tr.t("Param_Journaux_Texte");
-                                MButton {
-                                    icon: "\u{E838}";
-                                    text: Tr.t("Param_Journaux_Bouton");
-                                    clicked => { SettingsState.open-logs(); }
-                                }
-                                MButton {
-                                    icon: "\u{E756}";
-                                    text: Tr.t("Param_JournalMisty");
-                                    clicked => { SettingsState.open-launcher-log(); }
-                                }
-                                VerticalLayout {
-                                    alignment: center;
-                                    Text {
-                                        text: SettingsState.logs-size;
-                                        font-size: 13px;
-                                        color: Theme.text-muted;
+                            Carte {
+                                BlocAction {
+                                    titre: Tr.t("Param_MiseAJour");
+                                    texte: SettingsState.about-text;
+                                    MButton {
+                                        kind: 1;
+                                        icon: "\u{E895}";
+                                        text: Tr.t("Maj_Rechercher");
+                                        icon-spin: SettingsState.checking-update;
+                                        clicked => { SettingsState.check-update(); }
+                                    }
+                                    MButton {
+                                        text: "GitHub";
+                                        clicked => { SettingsState.github(); }
                                     }
                                 }
-                            }
-                            BlocAction {
-                                titre: Tr.t("Param_Debug");
-                                texte: Tr.t("Param_Debug_Texte");
-                                MButton {
-                                    icon: "\u{E896}";
-                                    text: Tr.t("Param_Debug_Bouton");
-                                    clicked => { SettingsState.export-debug(); }
+                                Separateur { }
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_PreRelease");
+                                    texte: Tr.t("Param_PreRelease_Texte");
+                                    checked <=> SettingsState.prerelease;
+                                    toggled(v) => { SettingsState.prerelease-toggled(v); }
                                 }
                             }
-                            BlocAction {
-                                titre: Tr.t("Param_MiseAJour");
-                                texte: SettingsState.about-text;
-                                MButton {
-                                    kind: 1;
-                                    icon: "\u{E895}";
-                                    text: Tr.t("Maj_Rechercher");
-                                    icon-spin: SettingsState.checking-update;
-                                    clicked => { SettingsState.check-update(); }
+                            if SettingsState.misty-client-available: Carte {
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_MistyClient");
+                                    texte: Tr.t("Param_MistyClient_Texte") + " Fabric " + SettingsState.misty-client-mc + ".";
+                                    checked <=> SettingsState.misty-client;
+                                    toggled(v) => { SettingsState.misty-client-toggled(v); }
                                 }
-                                MButton {
-                                    text: "GitHub";
-                                    clicked => { SettingsState.github(); }
-                                }
-                            }
-                            if SettingsState.misty-client-available: LigneInterrupteur {
-                                titre: Tr.t("Param_MistyClient");
-                                texte: Tr.t("Param_MistyClient_Texte") + " Fabric " + SettingsState.misty-client-mc + ".";
-                                checked <=> SettingsState.misty-client;
-                                toggled(v) => { SettingsState.misty-client-toggled(v); }
-                            }
-                            LigneInterrupteur {
-                                titre: Tr.t("Param_PreRelease");
-                                texte: Tr.t("Param_PreRelease_Texte");
-                                checked <=> SettingsState.prerelease;
-                                toggled(v) => { SettingsState.prerelease-toggled(v); }
                             }
                         }
+                    }
+                }
+
+                // Croix de fermeture, en haut à droite (loin du bord)
+                Rectangle {
+                    x: parent.width - self.width - 26px;
+                    y: 26px;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 20px;
+                    background: fermer.pressed ? Theme.glass-strong : fermer.has-hover ? Theme.glass-hover : Theme.glass;
+                    border-width: 1px;
+                    border-color: fermer.has-hover ? Theme.accent : Theme.glass-border;
+                    transform-scale: fermer.pressed ? 0.88 : 1;
+                    transform-rotation: fermer.has-hover ? 90deg : 0deg;
+                    animate background, border-color { duration: Theme.fast; }
+                    animate transform-scale { duration: 140ms; easing: ease-out; }
+                    animate transform-rotation { duration: 260ms; easing: ease-out; }
+                    Icon {
+                        text: "\u{E8BB}";
+                        font-size: 12px;
+                        color: Theme.navy;
+                    }
+                    fermer := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { SettingsState.close(); }
                     }
                 }
             }

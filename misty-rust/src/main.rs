@@ -114,6 +114,29 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
     ui::lancer(async move {
         attendre(6000).await;
         photo(&app, "0-accueil", &dossier);
+        // MISTY_CAPTURE_OPTIONS : seulement la fenêtre des options, en clair, en sombre et en fenêtre minimale
+        if std::env::var("MISTY_CAPTURE_OPTIONS").is_ok() {
+            if app.ui.global::<DialogState>().get_visible() {
+                app.ui.global::<DialogState>().invoke_cancel();
+            }
+            let theme = app.ui.global::<Theme>();
+            for (mode, taille, suffixe) in [(0, None, "clair"), (1, None, "sombre"), (0, Some((1040.0, 680.0)), "etroit")] {
+                theme.set_mode(mode);
+                if let Some((l, h)) = taille {
+                    app.ui.window().set_size(slint::LogicalSize::new(l, h));
+                }
+                ui::settings::ouvrir(&app);
+                for section in 0..8 {
+                    app.ui.global::<SettingsState>().set_section(section);
+                    attendre(900).await;
+                    photo(&app, &format!("options-{section}-{suffixe}"), &dossier);
+                }
+                ui::settings::fermer(&app);
+                attendre(600).await;
+            }
+            let _ = slint::quit_event_loop();
+            return;
+        }
         // MISTY_CAPTURE_RAPIDE : seulement le choix de version en fenêtre minimale et la console
         if std::env::var("MISTY_CAPTURE_RAPIDE").is_ok() {
             if app.ui.global::<DialogState>().get_visible() {

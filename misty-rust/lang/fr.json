@@ -711,5 +711,15 @@
   "Export_Fini_Texte": "{0} est prêt : tu peux le partager, il s'importe dans Misty, la Modrinth App ou Prism.",
   "Export_OuvrirDossier": "Ouvrir le dossier",
   "Export_Erreur": "Export impossible",
-  "Export_JamaisLance": "Lance le profil une fois avant de l'exporter (la version du loader n'est pas encore connue)."
+  "Export_JamaisLance": "Lance le profil une fois avant de l'exporter (la version du loader n'est pas encore connue).",
+  "Param_Apparence_Sous": "Thème, saisons et effets de flou.",
+  "Param_Langue_Sous": "La langue du launcher.",
+  "Param_Microsoft_Sous": "Tes comptes Minecraft, pour jouer en ligne.",
+  "Param_HorsLigne_Sous": "Les pseudos pour jouer hors ligne.",
+  "Param_Memoire_Sous": "La RAM donnée à Minecraft.",
+  "Param_Comportement_Sous": "Raccourci, Discord, console et ce qui est partagé entre les versions.",
+  "Param_Ressources_Sous": "Stockage, dossier de données et téléchargements.",
+  "Param_Depannage_Sous": "Cache, journaux, mises à jour et options avancées.",
+  "Param_Partage": "Mêmes serveurs et barres d'objets dans toutes les versions",
+  "Param_Partage_Texte": "Ta liste de serveurs et tes barres d'objets sauvegardées te suivent dans chaque version et chaque profil : tu ne les ajoutes qu'une fois. Les serveurs du launcher Minecraft officiel sont repris la première fois."
 }

@@ -711,5 +711,15 @@
   "Export_Fini_Texte": "{0} está listo: puedes compartirlo, se importa en Misty, la Modrinth App o Prism.",
   "Export_OuvrirDossier": "Abrir la carpeta",
   "Export_Erreur": "No se pudo exportar",
-  "Export_JamaisLance": "Inicia el perfil una vez antes de exportarlo (aún no se conoce la versión del loader)."
+  "Export_JamaisLance": "Inicia el perfil una vez antes de exportarlo (aún no se conoce la versión del loader).",
+  "Param_Apparence_Sous": "Tema, temporadas y efectos de desenfoque.",
+  "Param_Langue_Sous": "El idioma del launcher.",
+  "Param_Microsoft_Sous": "Tus cuentas de Minecraft, para jugar en línea.",
+  "Param_HorsLigne_Sous": "Nombres de usuario para jugar sin conexión.",
+  "Param_Memoire_Sous": "La RAM que se da a Minecraft.",
+  "Param_Comportement_Sous": "Acceso directo, Discord, consola y lo que se comparte entre versiones.",
+  "Param_Ressources_Sous": "Almacenamiento, carpeta de datos y descargas.",
+  "Param_Depannage_Sous": "Caché, logs, actualizaciones y opciones avanzadas.",
+  "Param_Partage": "Mismos servidores y barras en todas las versiones",
+  "Param_Partage_Texte": "Tu lista de servidores y tus barras de objetos guardadas te siguen en cada versión y perfil: solo las añades una vez. Los servidores del launcher oficial de Minecraft se importan la primera vez."
 }

@@ -1,6 +1,8 @@
 # Changelog
 ## 0.3.8-beta.3
 ### Launcher
+- Your server list and saved hotbars are now the same in every version and profile: add a server once, find it everywhere. The first time, the lists of your profiles are merged (no server is lost) and the servers of the official Minecraft launcher are imported. Can be turned off in Settings → Behavior
+- Redesigned settings: each category opens with its own header, and the settings are grouped in cards with room around them, so no button or switch sits against an edge anymore
 - New language: Portuguese (Portugal), with its flag in the language selector
 - Fixed: Misty pinned to the taskbar (or its Start menu and desktop shortcuts) no longer stops working after an update. Shortcuts now point to a launcher whose path never changes (`Misty.exe` next to the version folders), which starts the newest version. Existing shortcuts and pins are redirected to it automatically, and the Misty window and its pin share one taskbar button
 
