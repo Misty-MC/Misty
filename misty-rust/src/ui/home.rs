@@ -329,7 +329,11 @@ pub async fn initialiser(app: &Rc<App>) {
     } else {
         charger_derniere_version(app);
     }
-    if app.home.borrow().profil.is_none() && h(app).get_version_index() < 0 {
+    if app.home.borrow().profil.is_some() {
+        // un profil n'attend pas la liste des versions : « Chargement des versions… » ne doit pas
+        // rester affiché (seul le jeu rapide remet le statut à jour une fois ses loaders trouvés)
+        maj_mode_profil(app);
+    } else if h(app).get_version_index() < 0 {
         statut(app, &loc::t("Home_ChoisisVersion"));
     }
 }
