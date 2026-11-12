@@ -1,5 +1,0 @@
-{
-	"providers": [
-		{ "type": "bitmap", "file": "misty:font/badge.png", "ascent": 7, "height": 8, "chars": [""] }
-	]
-}

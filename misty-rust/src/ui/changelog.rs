@@ -1,4 +1,4 @@
-//! Notes de version : les releases publiées sur GitHub (Misty-MC/Misty), gardées en cache pour
+//! Notes de version : les releases publiées sur GitHub (Misty-MC/Misty-Launcher), gardées en cache pour
 //! s'afficher tout de suite et hors ligne. Sans cache ni réseau : les versions publiées sur GitHub
 //! du CHANGELOG.md intégré à l'exe (à partir de 0.3.0).
 
@@ -9,7 +9,7 @@ use slint::ComponentHandle;
 use std::rc::Rc;
 
 const CHANGELOG: &str = include_str!("../../../CHANGELOG.md");
-/// Première version publiée dans les releases GitHub de Misty-MC/Misty.
+/// Première version publiée dans les releases GitHub de Misty-MC/Misty-Launcher.
 const PREMIERE_RELEASE: &str = "0.3.0";
 
 /// Une version : titre, lignes, et pour chaque ligne si c'est un intertitre (« ### … »).

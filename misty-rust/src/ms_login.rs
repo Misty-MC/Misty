@@ -37,7 +37,7 @@ impl ApplicationHandler<Fin> for Connexion {
         let fenetre = boucle
             .create_window(
                 Window::default_attributes()
-                    .with_title(format!("Misty — {}", loc::t("Compte_SeConnecter")))
+                    .with_title(format!("Misty Launcher — {}", loc::t("Compte_SeConnecter")))
                     .with_inner_size(LogicalSize::new(520.0, 680.0)),
             )
             .expect("fenêtre de connexion");

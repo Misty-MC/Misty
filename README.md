@@ -2,21 +2,21 @@
 
 <img src="https://misty-launcher.online/assets/icone.png" alt="Misty" width="110" />
 
-# Misty
+# Misty Launcher
 
 **The Minecraft launcher, light as the mist.**
 
 Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe`, no runtime to install.
 
 [![Website](https://img.shields.io/badge/website-misty--launcher.online-8ab4f8?style=flat-square)](https://misty-launcher.online/)
-[![Version](https://img.shields.io/github/v/release/Misty-MC/Misty?label=version&style=flat-square)](https://github.com/Misty-MC/Misty/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Misty-MC/Misty/total?style=flat-square)](https://github.com/Misty-MC/Misty/releases)
+[![Version](https://img.shields.io/github/v/release/Misty-MC/Misty-Launcher?label=version&style=flat-square)](https://github.com/Misty-MC/Misty-Launcher/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Misty-MC/Misty-Launcher/total?style=flat-square)](https://github.com/Misty-MC/Misty-Launcher/releases)
 [![Rust](https://img.shields.io/badge/written%20in-Rust-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![Slint](https://img.shields.io/badge/UI-Slint-2379F4?style=flat-square)](https://slint.dev)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=flat-square&logo=windows)](https://misty-launcher.online/)
 [![License](https://img.shields.io/badge/license-MIT-success?style=flat-square)](LICENSE.txt)
 
-[**Download**](https://misty-launcher.online/) · [**Docs**](https://misty-launcher.online/docs) · [**Patch notes**](https://misty-launcher.online/patch-notes) · [**Releases**](https://github.com/Misty-MC/Misty/releases) · [**Website source**](https://github.com/Misty-MC/Misty-Web)
+[**Download**](https://misty-launcher.online/) · [**Docs**](https://misty-launcher.online/docs) · [**Patch notes**](https://misty-launcher.online/patch-notes) · [**Releases**](https://github.com/Misty-MC/Misty-Launcher/releases) · [**Website source**](https://github.com/Misty-MC/Misty-Web)
 
 <img src="https://raw.githubusercontent.com/Misty-MC/Misty-Web/main/public/assets/screens/en/home.png" alt="Misty home screen" width="800" />
 
@@ -52,7 +52,7 @@ Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe
 
 ## 📥 Installation
 
-Download `Misty-Setup-<version>.exe` from the [latest release](https://github.com/Misty-MC/Misty/releases/latest) and run it.
+Download `Misty-Setup-<version>.exe` from the [latest release](https://github.com/Misty-MC/Misty-Launcher/releases/latest) and run it.
 
 - No admin rights needed: Misty installs into `%LOCALAPPDATA%\Programs\Misty`.
 - Nothing else to install: Java is downloaded automatically when the game needs it.
@@ -71,7 +71,7 @@ cargo build --release  # final exe: target\release\Misty.exe
 cargo test -- --ignored --nocapture   # uses the Internet and your Misty folder, never launches the game
 ```
 
-**Misty Client** (the in-game mod, see [misty-client/](misty-client/README.md)): build it first with `gradlew build` in `misty-client` (JDK 25) and the launcher embeds it. Without it, the launcher still builds, just without the in-game features.
+**Misty Client** (the in-game mod, git submodule of [Misty-MC/Misty-Client](https://github.com/Misty-MC/Misty-Client), clone with `git clone --recursive` or run `git submodule update --init`): build it first with `gradlew build` in `misty-client` (JDK 25) and the launcher embeds it. Without it, the launcher still builds, just without the in-game features.
 
 **CurseForge API key**: CurseForge requires a personal (free) key from [console.curseforge.com](https://console.curseforge.com). Put it in `misty-rust/curseforge.key` (git-ignored) or in the `MISTY_CURSEFORGE_KEY` environment variable; it is embedded in the exe at build time. Without it, Modrinth still works.
 
@@ -95,7 +95,7 @@ cargo test -- --ignored --nocapture   # uses the Internet and your Misty folder,
 ```
 CHANGELOG.md           patch notes (embedded in the exe)
 installer/             release script (build.ps1) + Inno Setup installer (Misty.iss)
-misty-client/          Misty Client: the in-game Fabric mod (Java), embedded in the exe
+misty-client/          Misty Client (submodule → Misty-MC/Misty-Client): the in-game Fabric mod, embedded in the exe
 misty-rust/
 ├── build.rs           embeds the icon, CurseForge key, changelog and Misty Client
 ├── misty-ui/          crate that compiles the Slint interface (kept apart so Rust edits rebuild fast)
