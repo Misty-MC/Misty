@@ -3642,7 +3642,7 @@ dependencies = [
  "urlencoding",
  "uuid 1.29.1",
  "windows 0.62.2",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
  "winreg",
  "winresource",
  "wry",
@@ -5209,7 +5209,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
