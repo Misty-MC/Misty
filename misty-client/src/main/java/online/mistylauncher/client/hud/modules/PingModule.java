@@ -1,5 +1,6 @@
 package online.mistylauncher.client.hud.modules;
 
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -36,7 +37,14 @@ public final class PingModule extends TextModule {
 		if (preview && ping == 0) {
 			ping = 42;
 		}
-		return value(Integer.toString(ping), color(ping), "ms");
+		return value(Integer.toString(ping), this.setting(COLOR) ? color(ping) : Ui.TEXT, "ms");
+	}
+
+	private static final String COLOR = "color";
+
+	@Override
+	public List<Setting> settings() {
+		return List.of(new Setting(COLOR, true));
 	}
 
 	/** Green when the connection is good, then yellow, orange and red as the ping grows. */

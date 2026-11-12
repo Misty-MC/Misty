@@ -154,10 +154,16 @@ public final class MistySettingsScreen extends MistyScreen {
 				List<HudModule> modules = HudManager.modules();
 				int column = (inner - (hudColumns - 1) * GAP) / hudColumns;
 				for (int i = 0; i < modules.size(); i++) {
-					MistyConfig.Module state = modules.get(i).state();
-					this.addRenderableWidget(new MistyToggle(
-						x + i % hudColumns * (column + GAP), y + (1 + i / hudColumns) * (ROW + GAP), column, ROW, modules.get(i).name(), () -> state.enabled, value -> state.enabled = value
-					));
+					HudModule module = modules.get(i);
+					MistyConfig.Module state = module.state();
+					MistyToggle toggle = new MistyToggle(
+						x + i % hudColumns * (column + GAP), y + (1 + i / hudColumns) * (ROW + GAP), column, ROW, module.name(), () -> state.enabled, value -> state.enabled = value
+					);
+					// a module with its own settings: the gear before the switch opens them
+					if (!module.settings().isEmpty()) {
+						toggle.gear(() -> Versions.setScreen(new ModuleSettingsScreen(module, this)));
+					}
+					this.addRenderableWidget(toggle);
 				}
 			}
 			case ZOOM -> {

@@ -53,8 +53,22 @@ public final class MistyConfig {
 		public int x;
 		public int y;
 		public float scale = 1.0F;
+		/** The module's own settings (its gear in the settings screen), by key; missing: its default. */
+		public Map<String, Boolean> options = new LinkedHashMap<>();
 
 		public Module() {
+		}
+
+		public boolean option(final String key, final boolean byDefault) {
+			Boolean value = this.options == null ? null : this.options.get(key);
+			return value == null ? byDefault : value;
+		}
+
+		public void setOption(final String key, final boolean value) {
+			if (this.options == null) {
+				this.options = new LinkedHashMap<>();
+			}
+			this.options.put(key, value);
 		}
 
 		public Module(final boolean enabled, final int anchor, final int x, final int y) {
@@ -67,6 +81,7 @@ public final class MistyConfig {
 		public Module copy() {
 			Module copy = new Module(this.enabled, this.anchor, this.x, this.y);
 			copy.scale = this.scale;
+			copy.options = this.options == null ? new LinkedHashMap<>() : new LinkedHashMap<>(this.options);
 			return copy;
 		}
 	}

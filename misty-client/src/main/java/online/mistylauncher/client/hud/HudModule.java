@@ -1,5 +1,6 @@
 package online.mistylauncher.client.hud;
 
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -41,6 +42,32 @@ public abstract class HudModule {
 	final void reset(final MistyConfig config) {
 		this.state = this.defaults.copy();
 		config.modules.put(this.id, this.state);
+	}
+
+	/** One setting of the module, shown behind its gear in the settings screen. */
+	public record Setting(String key, boolean byDefault) {
+		public Component name(final HudModule module) {
+			return Component.translatable("misty.module." + module.id() + "." + this.key);
+		}
+
+		public Component tip(final HudModule module) {
+			return Component.translatable("misty.module." + module.id() + "." + this.key + ".tip");
+		}
+	}
+
+	/** The module's own settings (none: no gear). */
+	public List<Setting> settings() {
+		return List.of();
+	}
+
+	/** Current value of one of the module's settings. */
+	public final boolean setting(final String key) {
+		for (Setting setting : this.settings()) {
+			if (setting.key().equals(key)) {
+				return this.state.option(key, setting.byDefault());
+			}
+		}
+		return false;
 	}
 
 	/** False when the module has nothing to show right now (ping in a solo world…). */
