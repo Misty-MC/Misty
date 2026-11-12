@@ -20,6 +20,7 @@ pub mod modpack;
 pub mod modrinth;
 pub mod musique;
 pub mod packs;
+pub mod partage;
 pub mod paths;
 pub mod presence;
 pub mod pseudos;

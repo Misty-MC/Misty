@@ -197,6 +197,7 @@ pub fn installer(app: &Rc<App>) {
         discord::reappliquer();
     });
     st.on_console_auto_toggled(|actif| settings::set_bool(settings::CONSOLE, actif));
+    st.on_share_game_data_toggled(|actif| settings::set_bool(settings::PARTAGE, actif));
     st.on_misty_client_toggled(|actif| settings::set_bool(settings::MISTY_CLIENT, actif));
     st.on_prerelease_toggled(|actif| {
         settings::set_bool(settings::MAJ_PRERELEASE, actif);
@@ -417,6 +418,7 @@ pub fn rafraichir(app: &Rc<App>) {
     st.set_downloads(settings::telechargements() as f32);
     st.set_seasonal(settings::get_bool(settings::SAISON, true));
     st.set_console_auto(settings::get_bool(settings::CONSOLE, true));
+    st.set_share_game_data(crate::services::partage::active());
     st.set_misty_client_available(client::disponible());
     st.set_misty_client_mc(client::versions_texte().into());
     st.set_misty_client(client::active());

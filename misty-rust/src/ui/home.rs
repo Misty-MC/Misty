@@ -953,6 +953,9 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
     let voulu = misty || instance.as_ref().map(client::voulu).unwrap_or_else(client::active);
     client::preparer(&options.dossier_jeu, version, mode, voulu);
     client::ecrire_lien();
+    // serveurs et barres d'objets : les mêmes dans toutes les versions et tous les profils
+    crate::services::partage::avant_partie(&options.dossier_jeu);
+    let dossier_partie = options.dossier_jeu.clone();
     let partie = journal::nouvelle_partie(&titre);
     if super::console::auto() {
         super::console::ouvrir(app);
@@ -993,6 +996,7 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
             let _ = f.join();
         }
         journal::fin(partie, code);
+        crate::services::partage::apres_partie(&dossier_partie);
         let etat = journal::etat(partie).unwrap_or_default();
         let plante = matches!(code, Some(n) if n != 0);
         telemetry::evenement(

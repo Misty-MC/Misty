@@ -462,6 +462,9 @@ export global SettingsState {
     callback rich-toggled(bool);
     in-out property <bool> console-auto: true;
     callback console-auto-toggled(bool);
+    /// Serveurs et barres d'objets partagés entre les versions et les profils
+    in-out property <bool> share-game-data: true;
+    callback share-game-data-toggled(bool);
     /// Misty Client (le mod en jeu) : dans cet exe ou non, sa version de Minecraft, et le réglage
     in property <bool> misty-client-available;
     in property <string> misty-client-mc;
