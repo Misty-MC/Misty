@@ -174,8 +174,22 @@ export component MainWindow inherits Window {
         Bulle.fenetre-hauteur = self.height;
     }
 
-    // Position de l'indicateur de la barre latérale (onglets 0, 7, 1, 3, 4 → cases 0 à 4)
-    property <int> case-nav: AppState.nav == 0 ? 0 : AppState.nav == 7 ? 1 : AppState.nav == 1 ? 2 : AppState.nav == 3 ? 3 : AppState.nav == 4 ? 4 : AppState.nav == 8 ? 5 : -1;
+    // Case de chaque onglet de la barre latérale : les onglets masqués (Options → Barre latérale)
+    // laissent la place aux suivants. Ordre : accueil, skin, profils, notes, packs, amis.
+    property <int> case-skin: 1;
+    property <int> case-profils: root.case-skin + (AppState.nav-skin ? 1 : 0);
+    property <int> case-notes: root.case-profils + (AppState.nav-profils ? 1 : 0);
+    property <int> case-packs: root.case-notes + (AppState.nav-notes ? 1 : 0);
+    property <int> case-amis: root.case-packs + (AppState.nav-packs ? 1 : 0);
+    property <int> nb-cases: root.case-amis + (AppState.nav-amis ? 1 : 0);
+    // Position de l'indicateur (-1 : l'onglet actif est masqué ou n'est pas dans la barre)
+    property <int> case-nav: AppState.nav == 0 ? 0
+        : AppState.nav == 7 && AppState.nav-skin ? root.case-skin
+        : AppState.nav == 1 && AppState.nav-profils ? root.case-profils
+        : AppState.nav == 3 && AppState.nav-notes ? root.case-notes
+        : AppState.nav == 4 && AppState.nav-packs ? root.case-packs
+        : AppState.nav == 8 && AppState.nav-amis ? root.case-amis
+        : -1;
 
     clavier := FocusScope {
         key-pressed(e) => {
@@ -282,7 +296,7 @@ export component MainWindow inherits Window {
                                 alignment: center;
                                 Rectangle {
                                     width: 50px;
-                                    height: 6 * 50px + 5 * 10px;
+                                    height: root.nb-cases * 60px - 10px;
 
                                     indicateur := Rectangle {
                                         y: max(0, root.case-nav) * 60px;
@@ -304,36 +318,36 @@ export component MainWindow inherits Window {
                                         checked: AppState.nav == 0;
                                         clicked => { AppState.nav-clicked(0); }
                                     }
-                                    NavButton {
-                                        y: 60px;
+                                    if AppState.nav-skin: NavButton {
+                                        y: root.case-skin * 60px;
                                         icon: "\u{E77B}";
                                         tooltip: Tr.t("Nav_Skin");
                                         checked: AppState.nav == 7;
                                         clicked => { AppState.nav-clicked(7); }
                                     }
-                                    NavButton {
-                                        y: 120px;
+                                    if AppState.nav-profils: NavButton {
+                                        y: root.case-profils * 60px;
                                         icon: "\u{E8F1}";
                                         tooltip: Tr.t("Nav_Profils");
                                         checked: AppState.nav == 1;
                                         clicked => { AppState.nav-clicked(1); }
                                     }
-                                    NavButton {
-                                        y: 180px;
+                                    if AppState.nav-notes: NavButton {
+                                        y: root.case-notes * 60px;
                                         icon: "\u{E81C}";
                                         tooltip: Tr.t("Nav_Notes");
                                         checked: AppState.nav == 3;
                                         clicked => { AppState.nav-clicked(3); }
                                     }
-                                    NavButton {
-                                        y: 240px;
+                                    if AppState.nav-packs: NavButton {
+                                        y: root.case-packs * 60px;
                                         icon: "\u{E790}";
                                         tooltip: Tr.t("Nav_Soon");
                                         checked: AppState.nav == 4;
                                         clicked => { AppState.nav-clicked(4); }
                                     }
-                                    NavButton {
-                                        y: 300px;
+                                    if AppState.nav-amis: NavButton {
+                                        y: root.case-amis * 60px;
                                         icon: "\u{E716}";
                                         tooltip: Tr.t("Nav_Amis");
                                         checked: AppState.nav == 8;
@@ -368,7 +382,7 @@ export component MainWindow inherits Window {
                                     }
                                 }
                             }
-                            HorizontalLayout {
+                            if AppState.nav-dossier: HorizontalLayout {
                                 alignment: center;
                                 IconButton {
                                     icon: "\u{E8B7}";

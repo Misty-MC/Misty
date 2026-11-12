@@ -24,6 +24,13 @@ export global AppState {
     in-out property <int> page: 0;
     /// Onglet de la barre latérale allumé
     in-out property <int> nav: 0;
+    /// Barre latérale : onglets affichés (Options → Barre latérale). Accueil et Options restent toujours.
+    in property <bool> nav-skin: true;
+    in property <bool> nav-profils: true;
+    in property <bool> nav-notes: true;
+    in property <bool> nav-packs: true;
+    in property <bool> nav-amis: true;
+    in property <bool> nav-dossier: true;
     in property <string> version-text;
     /// Fenêtre agrandie (plein écran fenêtré)
     in property <bool> maximized;
@@ -404,8 +411,8 @@ export struct MsCompte {
 export global SettingsState {
     /// Fenêtre des options ouverte
     in property <bool> open;
-    /// Catégorie affichée : 0 apparence · 1 langue · 2 Microsoft · 3 hors-ligne · 4 Java et mémoire
-    /// · 5 versions · 6 comportement · 7 ressources · 8 dépannage
+    /// Catégorie affichée : 0 apparence · 1 langue · 2 Microsoft · 3 hors-ligne · 4 mémoire
+    /// · 5 comportement · 6 ressources · 7 dépannage · 8 barre latérale
     in-out property <int> section: 0;
     /// Capture floutée de la fenêtre, posée derrière la fenêtre des options
     in property <image> backdrop;
@@ -465,6 +472,8 @@ export global SettingsState {
     /// Serveurs et barres d'objets partagés entre les versions et les profils
     in-out property <bool> share-game-data: true;
     callback share-game-data-toggled(bool);
+    /// Barre latérale : affiche ou masque un onglet ("skin", "profils", "notes", "packs", "amis", "dossier")
+    callback sidebar-toggled(string, bool);
     /// Misty Client (le mod en jeu) : dans cet exe ou non, sa version de Minecraft, et le réglage
     in property <bool> misty-client-available;
     in property <string> misty-client-mc;

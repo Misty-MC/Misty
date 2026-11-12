@@ -22,6 +22,9 @@ fn s(app: &App) -> SettingsState<'_> {
 pub fn installer(app: &Rc<App>) {
     let st = s(app);
     st.set_data_dir(paths::data_dir().to_string_lossy().to_string().into());
+    appliquer_barre(app);
+    let a = app.clone();
+    st.on_sidebar_toggled(move |onglet, visible| basculer_onglet(&a, &onglet, visible));
 
     let a = app.clone();
     st.on_add_pseudo(move || {
@@ -681,4 +684,37 @@ async fn tout_supprimer(app: &Rc<App>) {
     {
         let _ = slint::quit_event_loop();
     }
+}
+
+// ───────────────────────── Barre latérale ─────────────────────────
+
+/// Onglets de la barre latérale qu'on peut masquer (Accueil et Options restent toujours).
+const ONGLETS: &[&str] = &["skin", "profils", "notes", "packs", "amis", "dossier"];
+
+/// Onglets masqués, lus dans data.txt ("skin,notes").
+fn onglets_masques() -> Vec<String> {
+    settings::get(settings::BARRE_MASQUEE).split(',').map(|o| o.trim().to_string()).filter(|o| ONGLETS.contains(&o.as_str())).collect()
+}
+
+/// Affiche la barre latérale selon le réglage (au démarrage et à chaque changement).
+pub fn appliquer_barre(app: &App) {
+    let masques = onglets_masques();
+    let visible = |o: &str| !masques.iter().any(|m| m == o);
+    let etat = app.ui.global::<crate::AppState>();
+    etat.set_nav_skin(visible("skin"));
+    etat.set_nav_profils(visible("profils"));
+    etat.set_nav_notes(visible("notes"));
+    etat.set_nav_packs(visible("packs"));
+    etat.set_nav_amis(visible("amis"));
+    etat.set_nav_dossier(visible("dossier"));
+}
+
+fn basculer_onglet(app: &App, onglet: &str, visible: bool) {
+    let mut masques = onglets_masques();
+    masques.retain(|m| m != onglet);
+    if !visible && ONGLETS.contains(&onglet) {
+        masques.push(onglet.to_string());
+    }
+    settings::set(settings::BARRE_MASQUEE, &masques.join(","));
+    appliquer_barre(app);
 }
