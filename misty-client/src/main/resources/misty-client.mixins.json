@@ -9,6 +9,7 @@
 		"CameraMixin",
 		"ChatComponentMixin",
 		"ChatListenerMixin",
+		"ClientPacketListenerMixin",
 		"HudMixin",
 		"LightmapMixin",
 		"LivingEntityRendererAccessor",

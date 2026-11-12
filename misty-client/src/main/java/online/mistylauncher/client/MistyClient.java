@@ -83,6 +83,7 @@ public final class MistyClient implements ClientModInitializer {
 	private static void tick(final Minecraft minecraft) {
 		LauncherLink.tick();
 		MistyNetwork.tick(minecraft);
+		online.mistylauncher.client.hud.Ping.tick(minecraft);
 		Zoom.tick();
 		online.mistylauncher.client.features.Music.tick();
 		while (fullbrightKey.consumeClick()) {
