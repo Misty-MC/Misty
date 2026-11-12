@@ -2,7 +2,7 @@
 # The launcher reads mod.mc_releases (misty-rust/build.rs): the Minecraft versions each jar runs on.
 mod.id = "misty-client"
 mod.name = "Misty Client"
-mod.version = "1.0.1"
+mod.version = "1.0.2"
 
 # Fabric Loader the mod is built with (each version says the oldest it runs on: mod.loader_min)
 deps.fabric_loader = "0.20.1"

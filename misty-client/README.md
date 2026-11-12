@@ -3,7 +3,7 @@
 The in-game side of the Misty launcher: a Fabric mod for **Minecraft 26.1 to 26.3**, built into `Misty.exe` and installed by the launcher in the profiles that support it (Fabric, same Minecraft version).
 
 - **Misty main menu**: replaces the Minecraft title screen (can be turned off)
-- **HUD**: FPS, ping, CPS, coordinates, keystrokes, armor, clock. Right Shift opens the editor: drag to move, click to turn on or off, scroll to resize, right-click to reset
+- **HUD**: FPS, ping (coloured by latency), CPS, reach, coordinates, keystrokes, armor, clock. Right Shift opens the editor: drag to move, click to turn on or off, scroll to resize, right-click to reset
 - **Misty badge**: the Misty cloud in front of the Misty players, in the player list and in the chat
 - **Misty cosmetics**: the Misty cape and elytra equipped in the launcher, on you and on the other Misty players
 

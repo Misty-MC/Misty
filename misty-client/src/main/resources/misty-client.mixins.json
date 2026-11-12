@@ -14,6 +14,7 @@
 		"LivingEntityRendererAccessor",
 		"LoadingOverlayMixin",
 		"MouseHandlerMixin",
+		"MultiPlayerGameModeMixin",
 		"NameTagMixin",
 		"OwnNameTagMixin",
 		"PauseScreenMixin",

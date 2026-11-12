@@ -14,6 +14,7 @@ import online.mistylauncher.client.hud.modules.FpsModule;
 import online.mistylauncher.client.hud.modules.KeystrokesModule;
 import online.mistylauncher.client.hud.modules.MusicModule;
 import online.mistylauncher.client.hud.modules.PingModule;
+import online.mistylauncher.client.hud.modules.ReachModule;
 
 /** The HUD modules: where each one sits on the screen, and their drawing in game. */
 public final class HudManager {
@@ -21,7 +22,7 @@ public final class HudManager {
 	public static final float MAX_SCALE = 2.0F;
 
 	private static final List<HudModule> MODULES = List.of(
-		new FpsModule(), new PingModule(), new CpsModule(), new CoordinatesModule(), new KeystrokesModule(), new ArmorModule(), new ClockModule(), new MusicModule()
+		new FpsModule(), new PingModule(), new CpsModule(), new ReachModule(), new CoordinatesModule(), new KeystrokesModule(), new ArmorModule(), new ClockModule(), new MusicModule()
 	);
 
 	/** Rectangle a module covers on the screen, in GUI pixels. */

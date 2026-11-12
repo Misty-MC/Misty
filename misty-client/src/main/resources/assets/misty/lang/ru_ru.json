@@ -23,6 +23,7 @@
 	"misty.module.fps": "FPS",
 	"misty.module.cps": "CPS",
 	"misty.module.ping": "Пинг",
+	"misty.module.reach": "Дальность",
 	"misty.module.coords": "Координаты",
 	"misty.module.keystrokes": "Клавиши",
 	"misty.module.clock": "Часы",

@@ -1,4 +1,9 @@
 # Changelog
+## 0.3.8-beta.3
+### Misty Client (in game)
+- New Reach module: the distance of the last player you hit, in blocks (from your eyes to their hitbox)
+- The ping module changes colour with your ping: green under 80 ms, yellow under 150 ms, orange under 250 ms, red above
+
 ## 0.3.8-beta.2
 ### Misty Client (in game)
 - Misty Client now runs on Minecraft 1.21.11, 26.1, 26.1.1, 26.1.2, 26.2 and 26.3. Pick one in the Misty Client section of the version picker

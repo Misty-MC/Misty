@@ -23,6 +23,7 @@
 	"misty.module.fps": "FPS",
 	"misty.module.cps": "CPS",
 	"misty.module.ping": "Ping",
+	"misty.module.reach": "Reach",
 	"misty.module.coords": "Coordinates",
 	"misty.module.keystrokes": "Keystrokes",
 	"misty.module.clock": "Clock",

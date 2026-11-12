@@ -25,6 +25,11 @@ public abstract class TextModule extends HudModule {
 		return Component.literal(value).append(Component.literal(" " + unit).withColor(Ui.ACCENT & 0xFFFFFF));
 	}
 
+	/** Same, with the value in its own colour (RGB). */
+	protected static MutableComponent value(final String value, final int color, final String unit) {
+		return Component.literal(value).withColor(color & 0xFFFFFF).append(Component.literal(" " + unit).withColor(Ui.ACCENT & 0xFFFFFF));
+	}
+
 	@Override
 	public int width(final Minecraft minecraft, final boolean preview) {
 		return Math.max(this.minWidth, minecraft.font.width(this.text(minecraft, preview)) + 2 * PADDING);

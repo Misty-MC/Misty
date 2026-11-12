@@ -6,6 +6,7 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import online.mistylauncher.client.config.MistyConfig;
 import online.mistylauncher.client.hud.TextModule;
+import online.mistylauncher.client.ui.Ui;
 
 /** Latency to the server, as the server reports it in the player list. */
 public final class PingModule extends TextModule {
@@ -28,6 +29,24 @@ public final class PingModule extends TextModule {
 				ping = info.getLatency();
 			}
 		}
-		return value(Integer.toString(ping), "ms");
+		// the editor shows a typical value while not connected
+		if (preview && ping == 0) {
+			ping = 42;
+		}
+		return value(Integer.toString(ping), color(ping), "ms");
+	}
+
+	/** Green when the connection is good, then yellow, orange and red as the ping grows. */
+	private static int color(final int ping) {
+		if (ping <= 0) {
+			return Ui.TEXT; // not known yet
+		} else if (ping < 80) {
+			return 0x55E07A;
+		} else if (ping < 150) {
+			return 0xE8D44D;
+		} else if (ping < 250) {
+			return 0xF2994A;
+		}
+		return 0xEB5757;
 	}
 }
