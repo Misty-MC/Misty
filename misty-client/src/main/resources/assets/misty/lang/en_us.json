@@ -24,6 +24,7 @@
 	"misty.module.cps": "CPS",
 	"misty.module.ping": "Ping",
 	"misty.module.reach": "Reach",
+	"misty.module.combo": "Combo",
 	"misty.module.settings": "%s settings",
 	"misty.module.ping.color": "Colour by latency",
 	"misty.module.ping.color.tip": "Green when your connection is good, then yellow, orange and red as your ping grows.",

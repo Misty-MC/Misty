@@ -8,6 +8,7 @@ import online.mistylauncher.client.MistyClient;
 import online.mistylauncher.client.config.MistyConfig;
 import online.mistylauncher.client.hud.modules.ArmorModule;
 import online.mistylauncher.client.hud.modules.ClockModule;
+import online.mistylauncher.client.hud.modules.ComboModule;
 import online.mistylauncher.client.hud.modules.CoordinatesModule;
 import online.mistylauncher.client.hud.modules.CpsModule;
 import online.mistylauncher.client.hud.modules.FpsModule;
@@ -22,7 +23,7 @@ public final class HudManager {
 	public static final float MAX_SCALE = 2.0F;
 
 	private static final List<HudModule> MODULES = List.of(
-		new FpsModule(), new PingModule(), new CpsModule(), new ReachModule(), new CoordinatesModule(), new KeystrokesModule(), new ArmorModule(), new ClockModule(), new MusicModule()
+		new FpsModule(), new PingModule(), new CpsModule(), new ReachModule(), new ComboModule(), new CoordinatesModule(), new KeystrokesModule(), new ArmorModule(), new ClockModule(), new MusicModule()
 	);
 
 	/** Rectangle a module covers on the screen, in GUI pixels. */

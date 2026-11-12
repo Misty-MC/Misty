@@ -24,6 +24,7 @@
 	"misty.module.cps": "CPS",
 	"misty.module.ping": "Ping",
 	"misty.module.reach": "Portée",
+	"misty.module.combo": "Combo",
 	"misty.module.settings": "Réglages : %s",
 	"misty.module.ping.color": "Couleur selon le ping",
 	"misty.module.ping.color.tip": "Vert quand ta connexion est bonne, puis jaune, orange et rouge quand ton ping monte.",

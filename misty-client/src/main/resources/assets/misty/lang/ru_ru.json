@@ -24,6 +24,7 @@
 	"misty.module.cps": "CPS",
 	"misty.module.ping": "Пинг",
 	"misty.module.reach": "Дальность",
+	"misty.module.combo": "Комбо",
 	"misty.module.settings": "Настройки: %s",
 	"misty.module.ping.color": "Цвет по пингу",
 	"misty.module.ping.color.tip": "Зелёный при хорошем соединении, затем жёлтый, оранжевый и красный по мере роста пинга.",
