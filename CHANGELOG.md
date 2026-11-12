@@ -9,6 +9,7 @@
 - The ping module changes colour with your ping: green under 80 ms, yellow under 150 ms, orange under 250 ms, red above
 - The ping module shows your ping right away when you join a server and refreshes it every second: Misty now measures it itself instead of waiting for the player list, which the server only updates every few seconds
 - Fixed: dragging the character in the Misty menu and the wardrobe turned it the wrong way
+- Fixed: joining a server could fail with error 429 (too many requests at Mojang). To show your Misty badge and cosmetics, Misty Client proves your account to Mojang, the same way the game does when it joins a server, and Mojang refuses an account that does it too often. Misty Client now keeps its Misty session between games instead of proving the account at every start, waits 20 seconds after the game starts and 30 seconds after a server join begins, and no longer retries in a loop when the Misty site refuses it
 
 ## 0.3.8-beta.2
 ### Misty Client (in game)

@@ -10,6 +10,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -21,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -50,8 +53,19 @@ public final class MistyNetwork {
 	/** A player around is asked about again after this long. */
 	private static final long LOOKUP_FRESH_MS = 60_000;
 	private static final int LOOKUP_BATCH = 100;
-	private static final long LOGIN_RETRY_MIN_MS = 30_000;
-	private static final long LOGIN_RETRY_MAX_MS = 600_000;
+	private static final long LOGIN_RETRY_MIN_MS = 60_000;
+	private static final long LOGIN_RETRY_MAX_MS = 1_800_000;
+	/**
+	 * Proving the account costs a "join" at Mojang's session service, which also serves the game
+	 * when it joins a server, and Mojang answers 429 (too many requests) when an account joins too
+	 * often. So the Misty token is kept between game sessions (one proof, not one per start), the
+	 * first proof waits a little after the game starts, and none is made just after a server join
+	 * began.
+	 */
+	private static final long FIRST_LOGIN_DELAY_MS = 20_000;
+	private static final long QUIET_AFTER_CONNECT_MS = 30_000;
+	/** A token refused this soon after the proof means something is wrong: back off, do not loop. */
+	private static final long FRESH_TOKEN_MS = 300_000;
 
 	private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
 	private static final SecureRandom RANDOM = new SecureRandom();
@@ -61,9 +75,13 @@ public final class MistyNetwork {
 	/** Players in the player list of the current server (written by the game thread). */
 	private static volatile List<UUID> around = List.of();
 	private static int ticks;
+	/** When the game last started joining a server (game thread). */
+	private static volatile long connectedAt;
+	private static boolean connected;
 
 	// state of the background thread
 	private static String token;
+	private static long loggedInAt;
 	private static long nextLogin;
 	private static long loginDelay = LOGIN_RETRY_MIN_MS;
 	private static long lastPresence;
@@ -76,6 +94,7 @@ public final class MistyNetwork {
 
 	public static void start(final Minecraft client) {
 		minecraft = client;
+		nextLogin = System.currentTimeMillis() + FIRST_LOGIN_DELAY_MS;
 		worker = Executors.newSingleThreadScheduledExecutor(runnable -> {
 			Thread thread = new Thread(runnable, "Misty network");
 			thread.setDaemon(true);
@@ -86,6 +105,11 @@ public final class MistyNetwork {
 
 	/** Game thread, every tick: once a second, notes who is in the player list. */
 	public static void tick(final Minecraft client) {
+		boolean nowConnected = client.getConnection() != null;
+		if (nowConnected && !connected) {
+			connectedAt = System.currentTimeMillis();
+		}
+		connected = nowConnected;
 		if (++ticks < 20) {
 			return;
 		}
@@ -141,7 +165,10 @@ public final class MistyNetwork {
 			}
 			long now = System.currentTimeMillis();
 			if (token == null) {
-				if (now < nextLogin) {
+				restore();
+			}
+			if (token == null) {
+				if (now < nextLogin || now - connectedAt < QUIET_AFTER_CONNECT_MS) {
 					return;
 				}
 				login();
@@ -199,7 +226,8 @@ public final class MistyNetwork {
 		JsonObject answer = JsonParser.parseString(response.body()).getAsJsonObject();
 		token = answer.get("token").getAsString();
 		early = answer.has("early") && answer.get("early").getAsBoolean();
-		loginDelay = LOGIN_RETRY_MIN_MS;
+		loggedInAt = System.currentTimeMillis();
+		save(user.getProfileId());
 		lastPresence = 0;
 		sentOutfit = null;
 	}
@@ -214,6 +242,10 @@ public final class MistyNetwork {
 			return;
 		}
 		lastPresence = System.currentTimeMillis();
+		// the token works: the next failed proof starts from the shortest wait again
+		if (lastPresence - loggedInAt > FRESH_TOKEN_MS) {
+			loginDelay = LOGIN_RETRY_MIN_MS;
+		}
 		sentOutfit = outfit;
 	}
 
@@ -256,10 +288,76 @@ public final class MistyNetwork {
 	private static boolean expired(final HttpResponse<String> response) {
 		if (response.statusCode() == 401) {
 			token = null;
-			nextLogin = 0;
+			forget();
+			if (System.currentTimeMillis() - loggedInAt < FRESH_TOKEN_MS) {
+				// refused right after a proof: wait longer each time instead of proving again and again
+				loginFailed();
+			} else {
+				// an old token (kept from an earlier session): prove the account once more
+				nextLogin = 0;
+				loginDelay = LOGIN_RETRY_MIN_MS;
+			}
 			return true;
 		}
 		return false;
+	}
+
+	// ── the token, kept between game sessions (shared by the profiles when the launcher started the game) ──
+
+	private static boolean restored;
+
+	private static Path tokenFile() {
+		String dir = System.getProperty("misty.launcher.dir");
+		Path folder = dir == null || dir.isBlank() ? FabricLoader.getInstance().getConfigDir() : Path.of(dir);
+		return folder.resolve("misty-network.json");
+	}
+
+	/** Once per game: the token of an earlier session, if it is for this account. */
+	private static void restore() {
+		if (restored) {
+			return;
+		}
+		restored = true;
+		try {
+			Path file = tokenFile();
+			if (!Files.isRegularFile(file)) {
+				return;
+			}
+			JsonObject saved = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+			UUID self = minecraft.getUser().getProfileId();
+			if (saved.has("uuid") && saved.has("token") && self != null && self.toString().equals(saved.get("uuid").getAsString())) {
+				token = saved.get("token").getAsString();
+				early = saved.has("early") && saved.get("early").getAsBoolean();
+				// a refusal of this token is not a reason to back off
+				loggedInAt = 0;
+				lastPresence = 0;
+				sentOutfit = null;
+			}
+		} catch (IOException | RuntimeException e) {
+			MistyClient.LOG.debug("Misty network: saved token unreadable", e);
+		}
+	}
+
+	private static void save(final UUID self) {
+		try {
+			JsonObject saved = new JsonObject();
+			saved.addProperty("uuid", self.toString());
+			saved.addProperty("token", token);
+			saved.addProperty("early", early);
+			Path file = tokenFile();
+			Files.createDirectories(file.getParent());
+			Files.writeString(file, saved.toString(), StandardCharsets.UTF_8);
+		} catch (IOException | RuntimeException e) {
+			MistyClient.LOG.debug("Misty network: token not saved", e);
+		}
+	}
+
+	private static void forget() {
+		try {
+			Files.deleteIfExists(tokenFile());
+		} catch (IOException e) {
+			MistyClient.LOG.debug("Misty network: token not deleted", e);
+		}
 	}
 
 	private static HttpResponse<String> post(final String path, final JsonObject body, final Duration timeout) throws IOException, InterruptedException {
