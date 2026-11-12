@@ -3,7 +3,7 @@ name = "misty-ui"
 version = "0.1.0"
 edition = "2021"
 description = "Interface Slint de Misty (ui/*.slint), compilée à part du launcher"
-license = "MIT"
+license-file = "../../LICENSE.txt"
 publish = false
 
 # L'interface est un crate à part : Slint en génère près de 20 Mo de Rust. Ainsi, modifier le code

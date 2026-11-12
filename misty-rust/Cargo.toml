@@ -4,7 +4,7 @@ version = "0.3.8-beta.3"
 edition = "2021"
 description = "Launcher Minecraft"
 authors = ["xTheoxreborn"]
-license = "MIT"
+license-file = "../LICENSE.txt"
 repository = "https://github.com/Misty-MC/Misty-Launcher"
 build = "build.rs"
 

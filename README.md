@@ -14,7 +14,7 @@ Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe
 [![Rust](https://img.shields.io/badge/written%20in-Rust-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![Slint](https://img.shields.io/badge/UI-Slint-2379F4?style=flat-square)](https://slint.dev)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=flat-square&logo=windows)](https://misty-launcher.online/)
-[![License](https://img.shields.io/badge/license-MIT-success?style=flat-square)](LICENSE.txt)
+[![License](https://img.shields.io/badge/license-Misty%20(no%20resale)-blue?style=flat-square)](LICENSE.txt)
 
 [**Download**](https://misty-launcher.online/) · [**Docs**](https://misty-launcher.online/docs) · [**Patch notes**](https://misty-launcher.online/patch-notes) · [**Releases**](https://github.com/Misty-MC/Misty-Launcher/releases) · [**Website source**](https://github.com/Misty-MC/Misty-Web)
 
@@ -115,7 +115,7 @@ User data lives in `%LOCALAPPDATA%\Misty\` (`data.txt` settings, `msa.json` Micr
 
 ## 📄 License
 
-The code is released under the [MIT License](LICENSE.txt).
+The code is released under the [Misty License](LICENSE.txt): free to use, modify, share and contribute to, but it may not be sold. Versions published before this license remain under MIT.
 The Silkscreen font is distributed under the SIL Open Font License.
 
 ---
