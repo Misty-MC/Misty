@@ -134,7 +134,8 @@ public class PlayerPreview extends AbstractWidget {
 	/*protected void onDrag(final double mouseX, final double mouseY, final double dragX, final double dragY) {
 	*///?}
 		this.rotationX = Mth.clamp(this.rotationX + (float)dragY * 1.5F, -35.0F, 35.0F);
-		this.rotationY += (float)dragX * 2.5F;
+		// the side under the mouse follows it: dragging right turns the front to the right
+		this.rotationY -= (float)dragX * 2.5F;
 		this.draggedAt = Util.getMillis();
 	}
 
