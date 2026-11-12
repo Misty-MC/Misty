@@ -10,6 +10,7 @@
 - The ping module shows your ping right away when you join a server and refreshes it every second: Misty now measures it itself instead of waiting for the player list, which the server only updates every few seconds
 - New Combo module: the players you hit in a row without being hit back. Made for combat since 1.9: only hits that land count (the target gets hurt), not clicks spammed during the cooldown or on an invulnerable player. Being hit, or 3 seconds without landing a hit, ends the combo
 - HUD modules with their own settings have a gear before their switch in the Misty settings: click it to set the module up (for example, turn off the colour of the ping)
+- New Hitboxes option (Misty settings, HUD category): shows the hitbox of the entities around you, like F3 + B, without opening F3
 - Fixed: dragging the character in the Misty menu and the wardrobe turned it the wrong way
 - Fixed: joining a server could fail with error 429 (too many requests at Mojang). To show your Misty badge and cosmetics, Misty Client proves your account to Mojang, the same way the game does when it joins a server, and Mojang refuses an account that does it too often. Misty Client now keeps its Misty session between games instead of proving the account at every start, waits 20 seconds after the game starts and 30 seconds after a server join begins, and no longer retries in a loop when the Misty site refuses it
 

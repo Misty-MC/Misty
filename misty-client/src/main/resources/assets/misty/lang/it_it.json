@@ -16,6 +16,8 @@
 	"misty.option.customMenu.tip": "Sostituisce il menu principale di Minecraft con quello di Misty.",
 	"misty.option.hud": "HUD",
 	"misty.option.hud.tip": "Mostra i moduli dell'HUD in gioco (FPS, tasti, coordinate…).",
+	"misty.option.hitboxes": "Hitbox",
+	"misty.option.hitboxes.tip": "Mostra la hitbox delle entità intorno a te, come F3 + B, senza aprire F3.",
 	"misty.option.network": "Rete Misty",
 	"misty.option.network.tip": "Gli altri giocatori Misty vedono il tuo badge e i tuoi cosmetici Misty, e tu vedi i loro. Disattivato: niente viene inviato né ricevuto.",
 	"misty.option.cosmetics": "Cosmetici Misty",

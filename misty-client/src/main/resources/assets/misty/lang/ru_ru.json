@@ -16,6 +16,8 @@
 	"misty.option.customMenu.tip": "Заменяет главное меню Minecraft на меню Misty.",
 	"misty.option.hud": "HUD",
 	"misty.option.hud.tip": "Показывает модули HUD в игре (FPS, клавиши, координаты…).",
+	"misty.option.hitboxes": "Хитбоксы",
+	"misty.option.hitboxes.tip": "Показывает хитбоксы существ вокруг, как F3 + B, без открытия F3.",
 	"misty.option.network": "Сеть Misty",
 	"misty.option.network.tip": "Другие игроки Misty видят ваш значок и косметику Misty, а вы видите их. Выключено: ничего не отправляется и не запрашивается.",
 	"misty.option.cosmetics": "Косметика Misty",

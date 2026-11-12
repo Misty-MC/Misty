@@ -24,6 +24,7 @@ import net.minecraft.util.Util;
 import online.mistylauncher.client.MistyClient;
 import online.mistylauncher.client.config.MistyConfig;
 import online.mistylauncher.client.cosmetics.Cosmetics;
+import online.mistylauncher.client.features.Hitboxes;
 import online.mistylauncher.client.features.Zoom;
 import online.mistylauncher.client.hud.HudEditorScreen;
 import online.mistylauncher.client.hud.HudManager;
@@ -150,7 +151,10 @@ public final class MistySettingsScreen extends MistyScreen {
 		switch (category) {
 			case GENERAL -> this.option(x, y, inner, "customMenu", () -> config.customMenu, value -> config.customMenu = value);
 			case HUD -> {
-				this.option(x, y, inner, "hud", () -> config.hud, value -> config.hud = value);
+				int halfRow = (inner - GAP) / 2;
+				this.option(x, y, halfRow, "hud", () -> config.hud, value -> config.hud = value);
+				// the game's own hitboxes (F3 + B), always on
+				this.option(x + halfRow + GAP, y, inner - halfRow - GAP, "hitboxes", Hitboxes::shown, Hitboxes::show);
 				List<HudModule> modules = HudManager.modules();
 				int column = (inner - (hudColumns - 1) * GAP) / hudColumns;
 				for (int i = 0; i < modules.size(); i++) {
