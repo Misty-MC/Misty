@@ -16,6 +16,7 @@ const LANGUES: &[(&str, &str)] = &[
     ("es", include_str!("../../lang/es.json")),
     ("ru", include_str!("../../lang/ru.json")),
     ("it", include_str!("../../lang/it.json")),
+    ("pt", include_str!("../../lang/pt.json")),
 ];
 
 #[derive(Clone)]

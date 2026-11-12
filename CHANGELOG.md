@@ -1,5 +1,8 @@
 # Changelog
 ## 0.3.8-beta.3
+### Launcher
+- New language: Portuguese (Portugal), with its flag in the language selector
+
 ### Misty Client (in game)
 - New Reach module: the distance of the last player you hit, in blocks (from your eyes to their hitbox)
 - The ping module changes colour with your ping: green under 80 ms, yellow under 150 ms, orange under 250 ms, red above

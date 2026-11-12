@@ -47,7 +47,7 @@ Written in Rust with a [Slint](https://slint.dev) interface: a single `Misty.exe
 - **Texture pack editor** (experimental): drawing tools, recent colors, pack icon, export, live reload from an external editor
 - **Accounts**: several Microsoft accounts and offline accounts
 - **Themes**: Mist (light), Night (dark) or synced with Windows, plus Halloween and Christmas themes that switch on by themselves
-- **Languages**: English, French, Spanish, Italian, Russian
+- **Languages**: English, French, Spanish, Italian, Portuguese, Russian
 - **Storage manager**, adjustable RAM, **Discord Rich Presence**, **automatic updates** from GitHub releases
 
 ## 📥 Installation

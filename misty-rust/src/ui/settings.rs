@@ -436,6 +436,7 @@ fn nom_anglais(code: &str) -> &'static str {
         "es" => "Spanish",
         "it" => "Italian",
         "ru" => "Russian",
+        "pt" => "Portuguese",
         _ => "",
     }
 }
@@ -448,6 +449,7 @@ fn drapeau(pays: &str) -> slint::Image {
         "es" => include_bytes!("../../assets/flags/es.png"),
         "ru" => include_bytes!("../../assets/flags/ru.png"),
         "it" => include_bytes!("../../assets/flags/it.png"),
+        "pt" => include_bytes!("../../assets/flags/pt.png"),
         _ => &[],
     };
     super::images::decoder(octets, 0).map(slint::Image::from_rgba8).unwrap_or_default()
