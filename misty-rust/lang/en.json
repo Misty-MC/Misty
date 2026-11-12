@@ -721,5 +721,15 @@
   "Param_Ressources_Sous": "Storage, data folder and downloads.",
   "Param_Depannage_Sous": "Cache, logs, updates and advanced options.",
   "Param_Partage": "Same servers and hotbars in every version",
-  "Param_Partage_Texte": "Your server list and saved hotbars follow you into every version and profile, so you add them only once. Servers from the official Minecraft launcher are imported the first time."
+  "Param_Partage_Texte": "Your server list and saved hotbars follow you into every version and profile, so you add them only once. Servers from the official Minecraft launcher are imported the first time.",
+  "Param_Barre": "Sidebar",
+  "Param_Barre_Sous": "Choose the tabs shown in the sidebar.",
+  "Param_Barre_Texte": "Hide the tabs you never use: the others move up. You can show them again here at any time.",
+  "Param_Barre_Toujours": "Always shown",
+  "Notes_Versions": "VERSIONS",
+  "Notes_Derniere": "LATEST",
+  "Notes_Beta": "BETA",
+  "Notes_Nouveau": "NEW",
+  "Notes_Corrige": "FIX",
+  "Notes_GitHub": "View on GitHub"
 }

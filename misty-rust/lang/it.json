@@ -721,5 +721,15 @@
   "Param_Ressources_Sous": "Spazio, cartella dei dati e download.",
   "Param_Depannage_Sous": "Cache, log, aggiornamenti e opzioni avanzate.",
   "Param_Partage": "Stessi server e barre in tutte le versioni",
-  "Param_Partage_Texte": "La tua lista di server e le barre degli oggetti salvate ti seguono in ogni versione e profilo: le aggiungi una sola volta. I server del launcher ufficiale di Minecraft vengono importati la prima volta."
+  "Param_Partage_Texte": "La tua lista di server e le barre degli oggetti salvate ti seguono in ogni versione e profilo: le aggiungi una sola volta. I server del launcher ufficiale di Minecraft vengono importati la prima volta.",
+  "Param_Barre": "Barra laterale",
+  "Param_Barre_Sous": "Scegli le schede mostrate nella barra laterale.",
+  "Param_Barre_Texte": "Nascondi le schede che non usi mai: le altre salgono. Puoi mostrarle di nuovo qui in qualsiasi momento.",
+  "Param_Barre_Toujours": "Sempre visibile",
+  "Notes_Versions": "VERSIONI",
+  "Notes_Derniere": "ULTIMA",
+  "Notes_Beta": "BETA",
+  "Notes_Nouveau": "NUOVO",
+  "Notes_Corrige": "FIX",
+  "Notes_GitHub": "Vedi su GitHub"
 }

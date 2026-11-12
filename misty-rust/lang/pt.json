@@ -721,5 +721,15 @@
   "Param_Ressources_Sous": "Armazenamento, pasta de dados e transferências.",
   "Param_Depannage_Sous": "Cache, registos, atualizações e opções avançadas.",
   "Param_Partage": "Mesmos servidores e barras em todas as versões",
-  "Param_Partage_Texte": "A tua lista de servidores e as barras de itens guardadas seguem-te em cada versão e perfil: só as adicionas uma vez. Os servidores do launcher oficial do Minecraft são importados da primeira vez."
+  "Param_Partage_Texte": "A tua lista de servidores e as barras de itens guardadas seguem-te em cada versão e perfil: só as adicionas uma vez. Os servidores do launcher oficial do Minecraft são importados da primeira vez.",
+  "Param_Barre": "Barra lateral",
+  "Param_Barre_Sous": "Escolhe os separadores mostrados na barra lateral.",
+  "Param_Barre_Texte": "Esconde os separadores que nunca usas: os outros sobem. Podes voltar a mostrá-los aqui a qualquer momento.",
+  "Param_Barre_Toujours": "Sempre visível",
+  "Notes_Versions": "VERSÕES",
+  "Notes_Derniere": "ÚLTIMA",
+  "Notes_Beta": "BETA",
+  "Notes_Nouveau": "NOVO",
+  "Notes_Corrige": "CORREÇÃO",
+  "Notes_GitHub": "Ver no GitHub"
 }

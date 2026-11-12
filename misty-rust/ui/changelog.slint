@@ -1,11 +1,153 @@
 // Notes de version : les releases GitHub du launcher (voir src/ui/changelog.rs).
+// À gauche la liste des versions (date, dernière, bêta), à droite les notes de la version choisie :
+// intertitres (Launcher, Misty Client…) et lignes avec leur étiquette (nouveauté, correction).
 
 import { Theme, Tr } from "theme.slint";
-import { ChangelogState } from "state.slint";
-import { PixelLabel, OutlinedText, GlassCard } from "widgets.slint";
-import { ListView } from "std-widgets.slint";
+import { ChangelogState, ChangelogSection } from "state.slint";
+import { Icon, PixelLabel, OutlinedText, GlassCard, MButton } from "widgets.slint";
+import { ListView, ScrollView } from "std-widgets.slint";
+
+/// Petite étiquette pixel (DERNIÈRE, BÊTA, NOUVEAU, CORRIGÉ).
+component Etiquette inherits Rectangle {
+    in property <string> text;
+    in property <color> couleur;
+    /// true : fond plein ; false : fond léger et texte coloré
+    in property <bool> plein: false;
+    height: 20px;
+    width: t.preferred-width + 14px;
+    border-radius: 6px;
+    background: root.plein ? root.couleur : root.couleur.with-alpha(Theme.dark ? 0.2 : 0.14);
+    border-width: root.plein ? 0px : 1px;
+    border-color: root.couleur.with-alpha(0.45);
+    t := Text {
+        text: root.text;
+        font-family: Theme.pixel-font;
+        font-size: 9.5px;
+        color: root.plein ? white : root.couleur;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+/// Une version de la liste de gauche.
+component LigneVersion inherits Rectangle {
+    in property <ChangelogSection> s;
+    in property <bool> choisie;
+    callback clicked;
+    height: 64px;
+    border-radius: 14px;
+    background: root.choisie ? Theme.accent-soft : touch.has-hover ? Theme.glass-hover : transparent;
+    border-width: 1px;
+    border-color: root.choisie ? Theme.accent.with-alpha(0.4) : transparent;
+    animate background, border-color { duration: Theme.fast; }
+    // trait de la version choisie
+    Rectangle {
+        x: 0;
+        y: 16px;
+        width: 3px;
+        height: parent.height - 32px;
+        border-radius: 2px;
+        background: Theme.accent;
+        opacity: root.choisie ? 1 : 0;
+        animate opacity { duration: Theme.normal; }
+    }
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 12px;
+        spacing: 10px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            PixelLabel {
+                text: root.s.title;
+                font-size: 12.5px;
+                color: root.choisie ? Theme.accent : Theme.navy;
+                overflow: elide;
+            }
+            Text {
+                text: root.s.date != "" ? root.s.date : " ";
+                font-size: 12px;
+                color: Theme.text-muted;
+                overflow: elide;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            if root.s.recent: Etiquette { text: Tr.t("Notes_Derniere"); couleur: Theme.green-dark; plein: true; }
+            if root.s.prerelease: Etiquette { text: Tr.t("Notes_Beta"); couleur: #E8932F; }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Intertitre des notes (« Launcher », « Misty Client (in game) »).
+component Intertitre inherits HorizontalLayout {
+    in property <string> text;
+    spacing: 10px;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 4px;
+            height: 18px;
+            border-radius: 2px;
+            background: Theme.accent;
+        }
+    }
+    PixelLabel {
+        text: root.text;
+        font-size: 13px;
+        color: Theme.accent;
+        wrap: word-wrap;
+    }
+}
+
+/// Une ligne des notes : étiquette (nouveau, corrigé) ou puce, puis le texte.
+component LigneNote inherits Rectangle {
+    in property <string> text;
+    in property <int> genre;
+    min-height: contenu.preferred-height;
+    border-radius: 12px;
+    background: survol.has-hover ? Theme.glass : transparent;
+    animate background { duration: Theme.fast; }
+    survol := TouchArea { }
+    contenu := HorizontalLayout {
+        padding: 8px;
+        padding-left: 10px;
+        padding-right: 12px;
+        spacing: 12px;
+        // colonne des étiquettes, de la même largeur partout pour aligner les textes
+        Rectangle {
+            width: 58px;
+            if root.genre == 1: Etiquette { x: 0; y: 0; text: Tr.t("Notes_Nouveau"); couleur: Theme.green-dark; }
+            if root.genre == 2: Etiquette { x: 0; y: 0; text: Tr.t("Notes_Corrige"); couleur: #E8932F; }
+            if root.genre == 0: Rectangle {
+                x: 22px;
+                y: 7px;
+                width: 6px;
+                height: 6px;
+                border-radius: 3px;
+                background: Theme.text-dim;
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.text;
+            font-family: Theme.ui-font;
+            font-size: 13.5px;
+            color: Theme.navy2;
+            wrap: word-wrap;
+        }
+    }
+}
 
 export component ChangelogPage inherits Rectangle {
+    property <ChangelogSection> s: ChangelogState.sections[ChangelogState.selected];
+
     VerticalLayout {
         padding-left: 26px;
         padding-right: 30px;
@@ -22,69 +164,139 @@ export component ChangelogPage inherits Rectangle {
             }
         }
 
-        liste := ListView {
+        HorizontalLayout {
             vertical-stretch: 1;
-            // Largeur du texte des lignes, connue à l'avance : la hauteur du texte replié en dépend
-            // (carte − marges − colonne du titre − puce − barre de défilement)
-            property <length> largeur-texte: self.width - 12px - 40px - 170px - 16px - 14px;
-            for s in ChangelogState.sections: Rectangle {
-                // hauteur du contenu (texte replié compris) + marge sous la carte
-                height: contenu.preferred-height + 14px;
-                GlassCard {
-                    y: 0;
-                    width: parent.width - 12px;
-                    height: parent.height - 14px;
-                    background: s.recent ? Theme.panel-strong : Theme.glass;
-                    contenu := HorizontalLayout {
-                        padding-left: 20px;
-                        padding-right: 20px;
-                        padding-top: 18px;
-                        padding-bottom: 18px;
-                        spacing: 0px;
-                        VerticalLayout {
-                            width: 170px;
-                            alignment: start;
-                            HorizontalLayout {
-                                alignment: start;
-                                Rectangle {
-                                    border-radius: 10px;
-                                    background: s.recent ? Theme.green-dark : Theme.fill;
-                                    width: titre.preferred-width + 24px;
-                                    height: 30px;
-                                    titre := PixelLabel {
-                                        text: s.title;
-                                        color: white;
-                                        font-size: 12px;
-                                        horizontal-alignment: center;
-                                    }
-                                }
+            spacing: 18px;
+
+            // ═══ Versions ═══
+            GlassCard {
+                width: 250px;
+                VerticalLayout {
+                    padding: 12px;
+                    padding-top: 18px;
+                    spacing: 10px;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        PixelLabel {
+                            horizontal-stretch: 1;
+                            text: Tr.t("Notes_Versions");
+                            font-size: 10.5px;
+                            color: Theme.text-dim;
+                        }
+                        PixelLabel {
+                            text: ChangelogState.sections.length;
+                            font-size: 10.5px;
+                            color: Theme.text-dim;
+                        }
+                    }
+                    ListView {
+                        vertical-stretch: 1;
+                        for v[i] in ChangelogState.sections: Rectangle {
+                            height: 68px;
+                            LigneVersion {
+                                y: 0;
+                                height: 64px;
+                                width: parent.width - 8px;
+                                s: v;
+                                choisie: i == ChangelogState.selected;
+                                clicked => { ChangelogState.selected = i; }
                             }
                         }
+                    }
+                }
+            }
+
+            // ═══ Notes de la version choisie ═══
+            GlassCard {
+                horizontal-stretch: 1;
+                background: Theme.panel;
+                VerticalLayout {
+                    // En-tête : version, étiquettes, date, nombre de nouveautés et de corrections
+                    HorizontalLayout {
+                        padding-left: 28px;
+                        padding-right: 22px;
+                        padding-top: 22px;
+                        padding-bottom: 18px;
+                        spacing: 16px;
                         VerticalLayout {
                             horizontal-stretch: 1;
-                            padding-top: 4px;
-                            spacing: 6px;
-                            for ligne[i] in s.lines: Rectangle {
-                                property <bool> intertitre: i < s.heads.length && s.heads[i];
-                                height: t.preferred-height + (self.intertitre && i > 0 ? 8px : 0px);
-                                Rectangle {
-                                    visible: !parent.intertitre;
-                                    x: 0;
-                                    y: 7px;
-                                    width: 6px;
-                                    height: 6px;
-                                    border-radius: 1px;
-                                    background: Theme.green;
+                            spacing: 8px;
+                            HorizontalLayout {
+                                spacing: 10px;
+                                alignment: start;
+                                PixelLabel {
+                                    text: root.s.title;
+                                    font-size: 24px;
+                                    color: Theme.navy;
                                 }
-                                t := Text {
-                                    x: parent.intertitre ? 0px : 16px;
-                                    y: parent.intertitre && i > 0 ? 8px : 0px;
-                                    width: liste.largeur-texte;
+                                if root.s.recent: VerticalLayout {
+                                    alignment: center;
+                                    Etiquette { text: Tr.t("Notes_Derniere"); couleur: Theme.green-dark; plein: true; }
+                                }
+                                if root.s.prerelease: VerticalLayout {
+                                    alignment: center;
+                                    Etiquette { text: Tr.t("Notes_Beta"); couleur: #E8932F; }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                alignment: start;
+                                if root.s.date != "": HorizontalLayout {
+                                    spacing: 6px;
+                                    padding-right: 6px;
+                                    Icon {
+                                        text: "\u{E787}";
+                                        font-size: 12px;
+                                        color: Theme.text-muted;
+                                    }
+                                    Text {
+                                        text: root.s.date;
+                                        font-size: 13px;
+                                        color: Theme.text-muted;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                if root.s.news > 0: Etiquette { text: Tr.t("Notes_Nouveau") + " · " + root.s.news; couleur: Theme.green-dark; }
+                                if root.s.fixes > 0: Etiquette { text: Tr.t("Notes_Corrige") + " · " + root.s.fixes; couleur: #E8932F; }
+                            }
+                        }
+                        if root.s.url != "": VerticalLayout {
+                            alignment: center;
+                            MButton {
+                                icon: "\u{E8A7}";
+                                text: Tr.t("Notes_GitHub");
+                                clicked => { ChangelogState.open-url(root.s.url); }
+                            }
+                        }
+                    }
+                    Rectangle {
+                        height: 1px;
+                        background: Theme.line;
+                    }
+
+                    ScrollView {
+                        vertical-stretch: 1;
+                        content-width: self.visible-width;
+                        content-height: notes.preferred-height;
+                        notes := VerticalLayout {
+                            width: parent.visible-width;
+                            padding-left: 18px;
+                            padding-right: 26px;
+                            padding-top: 14px;
+                            padding-bottom: 22px;
+                            spacing: 2px;
+                            alignment: start;
+                            for ligne[i] in root.s.lines: VerticalLayout {
+                                if root.s.kinds[i] == -1: VerticalLayout {
+                                    padding-left: 10px;
+                                    padding-top: i > 0 ? 18px : 6px;
+                                    padding-bottom: 6px;
+                                    Intertitre { text: ligne; }
+                                }
+                                if root.s.kinds[i] != -1: LigneNote {
                                     text: ligne;
-                                    font-family: parent.intertitre ? Theme.pixel-font : Theme.ui-font;
-                                    font-size: parent.intertitre ? 12px : 13.5px;
-                                    color: parent.intertitre ? Theme.green : Theme.navy2;
-                                    wrap: word-wrap;
+                                    genre: root.s.kinds[i];
                                 }
                             }
                         }

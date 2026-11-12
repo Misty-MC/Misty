@@ -126,14 +126,31 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                     app.ui.window().set_size(slint::LogicalSize::new(l, h));
                 }
                 ui::settings::ouvrir(&app);
-                for section in 0..8 {
+                for section in 0..9 {
                     app.ui.global::<SettingsState>().set_section(section);
                     attendre(900).await;
                     photo(&app, &format!("options-{section}-{suffixe}"), &dossier);
                 }
                 ui::settings::fermer(&app);
                 attendre(600).await;
+                // notes de version, sur la page qui les affiche
+                let etat = app.ui.global::<AppState>();
+                etat.set_nav(3);
+                etat.set_page(3);
+                attendre(1500).await;
+                photo(&app, &format!("notes-{suffixe}"), &dossier);
+                etat.set_nav(0);
+                etat.set_page(0);
             }
+            // barre latérale avec des onglets masqués (sans rien enregistrer)
+            let etat = app.ui.global::<AppState>();
+            etat.set_nav_skin(false);
+            etat.set_nav_notes(false);
+            etat.set_nav_dossier(false);
+            etat.set_nav(4);
+            attendre(900).await;
+            photo(&app, "barre-masquee", &dossier);
+            ui::settings::appliquer_barre(&app);
             let _ = slint::quit_event_loop();
             return;
         }
@@ -280,7 +297,7 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         for (mode, suffixe) in [(0, "clair"), (1, "sombre")] {
             theme.set_mode(mode);
             ui::settings::ouvrir(&app);
-            for section in 0..8 {
+            for section in 0..9 {
                 app.ui.global::<SettingsState>().set_section(section);
                 attendre(900).await;
                 photo(&app, &format!("2-options-{section}-{suffixe}"), &dossier);

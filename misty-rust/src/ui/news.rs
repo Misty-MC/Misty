@@ -98,7 +98,7 @@ fn premiere_ligne(markdown: &str) -> String {
 }
 
 /// « 8 nov. 2026 » dans la langue du launcher.
-fn date_courte(d: chrono::NaiveDate) -> String {
+pub(super) fn date_courte(d: chrono::NaiveDate) -> String {
     use chrono::Datelike;
     let mois = loc::t(&format!("Mois_{}", d.month()));
     format!("{} {} {}", d.day(), mois, d.year())

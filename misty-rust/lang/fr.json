@@ -721,5 +721,15 @@
   "Param_Ressources_Sous": "Stockage, dossier de données et téléchargements.",
   "Param_Depannage_Sous": "Cache, journaux, mises à jour et options avancées.",
   "Param_Partage": "Mêmes serveurs et barres d'objets dans toutes les versions",
-  "Param_Partage_Texte": "Ta liste de serveurs et tes barres d'objets sauvegardées te suivent dans chaque version et chaque profil : tu ne les ajoutes qu'une fois. Les serveurs du launcher Minecraft officiel sont repris la première fois."
+  "Param_Partage_Texte": "Ta liste de serveurs et tes barres d'objets sauvegardées te suivent dans chaque version et chaque profil : tu ne les ajoutes qu'une fois. Les serveurs du launcher Minecraft officiel sont repris la première fois.",
+  "Param_Barre": "Barre latérale",
+  "Param_Barre_Sous": "Choisis les onglets affichés dans la barre latérale.",
+  "Param_Barre_Texte": "Masque les onglets que tu n'utilises jamais : les autres remontent. Tu peux les réafficher ici à tout moment.",
+  "Param_Barre_Toujours": "Toujours affiché",
+  "Notes_Versions": "VERSIONS",
+  "Notes_Derniere": "DERNIÈRE",
+  "Notes_Beta": "BÊTA",
+  "Notes_Nouveau": "NOUVEAU",
+  "Notes_Corrige": "CORRIGÉ",
+  "Notes_GitHub": "Voir sur GitHub"
 }

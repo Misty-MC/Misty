@@ -503,14 +503,25 @@ export global SettingsState {
 
 export struct ChangelogSection {
     title: string,
+    /// Date de publication (« 9 nov. 2026 »), vide hors ligne
+    date: string,
+    prerelease: bool,
+    /// Page de la release sur GitHub, vide hors ligne
+    url: string,
     lines: [string],
-    /// Pour chaque ligne : intertitre (« ### … ») ou non
-    heads: [bool],
+    /// Pour chaque ligne : -1 intertitre (« ### … »), 0 ligne simple, 1 nouveauté, 2 correction
+    kinds: [int],
+    /// Nombre de nouveautés et de corrections
+    news: int,
+    fixes: int,
     recent: bool,
 }
 
 export global ChangelogState {
     in property <[ChangelogSection]> sections;
+    /// Version affichée à droite
+    in-out property <int> selected: 0;
+    callback open-url(string);
 }
 
 // ───────────────────────── Packs de textures ─────────────────────────
