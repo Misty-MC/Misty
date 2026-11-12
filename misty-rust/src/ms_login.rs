@@ -7,43 +7,48 @@
 
 use crate::services::{account, loc};
 use std::io::Write;
-use std::sync::{Arc, Mutex};
-use tao::event::{Event, WindowEvent};
-use tao::event_loop::{ControlFlow, EventLoopBuilder};
-use tao::window::WindowBuilder;
-use wry::{WebContext, WebViewBuilder};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use winit::application::ApplicationHandler;
+use winit::dpi::LogicalSize;
+use winit::event::WindowEvent;
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
+use winit::window::{Window, WindowId};
+use wry::{WebContext, WebView, WebViewBuilder};
 
 enum Fin {
     Code(String),
     Erreur(String),
 }
 
-pub fn executer() {
-    loc::initialiser();
+struct Connexion {
+    proxy: EventLoopProxy<Fin>,
+    contexte: WebContext,
+    // La WebView doit être libérée avant sa fenêtre : ordre des champs = ordre de libération.
+    webview: Option<WebView>,
+    fenetre: Option<Window>,
+}
 
-    let event_loop = EventLoopBuilder::<Fin>::with_user_event().build();
-    let proxy = event_loop.create_proxy();
+impl ApplicationHandler<Fin> for Connexion {
+    fn resumed(&mut self, boucle: &ActiveEventLoop) {
+        if self.fenetre.is_some() {
+            return;
+        }
+        let fenetre = boucle
+            .create_window(
+                Window::default_attributes()
+                    .with_title(format!("Misty — {}", loc::t("Compte_SeConnecter")))
+                    .with_inner_size(LogicalSize::new(520.0, 680.0)),
+            )
+            .expect("fenêtre de connexion");
 
-    let fenetre = WindowBuilder::new()
-        .with_title(format!("Misty — {}", loc::t("Compte_SeConnecter")))
-        .with_inner_size(tao::dpi::LogicalSize::new(520.0, 680.0))
-        .build(&event_loop)
-        .expect("fenêtre de connexion");
-
-    // Cookies stockés dans le dossier de Misty (pas à côté de l'exe)
-    let _ = std::fs::create_dir_all(account::dossier_webview());
-    let mut contexte = WebContext::new(Some(account::dossier_webview()));
-
-    let deja_fini = Arc::new(Mutex::new(false));
-    let navigation = {
-        let deja_fini = deja_fini.clone();
-        move |url: String| -> bool {
+        let deja_fini = Arc::new(AtomicBool::new(false));
+        let proxy = self.proxy.clone();
+        let navigation = move |url: String| -> bool {
             if !url.starts_with(account::REDIRECT) {
                 return true; // on laisse la page de Microsoft naviguer
             }
-            let mut fini = deja_fini.lock().unwrap();
-            if !*fini {
-                *fini = true;
+            if !deja_fini.swap(true, Ordering::SeqCst) {
                 let fin = match parametre(&url, "code") {
                     Some(code) => Fin::Code(code),
                     None => Fin::Erreur(parametre(&url, "error_description").unwrap_or_else(|| loc::t("Compte_Annule"))),
@@ -51,34 +56,51 @@ pub fn executer() {
                 let _ = proxy.send_event(fin);
             }
             false
+        };
+
+        let webview = WebViewBuilder::new_with_web_context(&mut self.contexte)
+            .with_url(account::url_connexion())
+            .with_navigation_handler(navigation)
+            .build(&fenetre)
+            .expect("WebView (WebView2 est-il installé ?)");
+
+        self.webview = Some(webview);
+        self.fenetre = Some(fenetre);
+    }
+
+    fn user_event(&mut self, boucle: &ActiveEventLoop, fin: Fin) {
+        let ligne = match fin {
+            Fin::Code(c) => format!("CODE:{c}"),
+            Fin::Erreur(e) => format!("ERREUR:{e}"),
+        };
+        let mut sortie = std::io::stdout();
+        let _ = writeln!(sortie, "{ligne}");
+        let _ = sortie.flush();
+        boucle.exit();
+    }
+
+    fn window_event(&mut self, boucle: &ActiveEventLoop, _: WindowId, evenement: WindowEvent) {
+        if let WindowEvent::CloseRequested = evenement {
+            boucle.exit();
         }
+    }
+}
+
+pub fn executer() {
+    loc::initialiser();
+
+    let boucle = EventLoop::<Fin>::with_user_event().build().expect("boucle d'événements");
+    boucle.set_control_flow(ControlFlow::Wait);
+
+    // Cookies stockés dans le dossier de Misty (pas à côté de l'exe)
+    let _ = std::fs::create_dir_all(account::dossier_webview());
+    let mut app = Connexion {
+        proxy: boucle.create_proxy(),
+        contexte: WebContext::new(Some(account::dossier_webview())),
+        webview: None,
+        fenetre: None,
     };
-
-    let _webview = WebViewBuilder::new_with_web_context(&mut contexte)
-        .with_url(account::url_connexion())
-        .with_navigation_handler(navigation)
-        .build(&fenetre)
-        .expect("WebView (WebView2 est-il installé ?)");
-
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
-        match event {
-            Event::UserEvent(fin) => {
-                let ligne = match fin {
-                    Fin::Code(c) => format!("CODE:{c}"),
-                    Fin::Erreur(e) => format!("ERREUR:{e}"),
-                };
-                let mut sortie = std::io::stdout();
-                let _ = writeln!(sortie, "{ligne}");
-                let _ = sortie.flush();
-                *control_flow = ControlFlow::Exit;
-            }
-            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                *control_flow = ControlFlow::Exit;
-            }
-            _ => {}
-        }
-    });
+    let _ = boucle.run_app(&mut app);
 }
 
 /// Lit un paramètre de l'URL (après "?" ou "#").

@@ -8,7 +8,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod minecraft;
+#[cfg(windows)]
 mod ms_login;
+#[cfg(not(windows))]
+mod ms_login {
+    pub fn executer() {
+        println!("ERREUR:Connexion Microsoft indisponible sur cette plateforme");
+    }
+}
 mod services;
 #[cfg(test)]
 mod tests;
