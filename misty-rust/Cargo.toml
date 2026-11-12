@@ -45,7 +45,7 @@ md5 = "0.8"
 uuid = { version = "1", features = ["v4"] }
 # Connexion Microsoft (fenêtre web lancée dans un sous-processus)
 wry = "0.57"
-tao = "0.35"
+tao = "0.37"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
