@@ -27,6 +27,8 @@
 	"misty.module.settings": "%s settings",
 	"misty.module.ping.color": "Colour by latency",
 	"misty.module.ping.color.tip": "Green when your connection is good, then yellow, orange and red as your ping grows.",
+	"misty.module.reach.color": "Colour by distance",
+	"misty.module.reach.color.tip": "The farther the hit, the redder: green up to 2 blocks, yellow around 2.6, red at 3 blocks.",
 	"misty.module.coords": "Coordinates",
 	"misty.module.keystrokes": "Keystrokes",
 	"misty.module.clock": "Clock",

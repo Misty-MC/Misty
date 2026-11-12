@@ -27,6 +27,8 @@
 	"misty.module.settings": "Réglages : %s",
 	"misty.module.ping.color": "Couleur selon le ping",
 	"misty.module.ping.color.tip": "Vert quand ta connexion est bonne, puis jaune, orange et rouge quand ton ping monte.",
+	"misty.module.reach.color": "Couleur selon la distance",
+	"misty.module.reach.color.tip": "Plus le coup est loin, plus c'est rouge : vert jusqu'à 2 blocs, jaune vers 2,6, rouge à 3 blocs.",
 	"misty.module.coords": "Coordonnées",
 	"misty.module.keystrokes": "Touches",
 	"misty.module.clock": "Horloge",

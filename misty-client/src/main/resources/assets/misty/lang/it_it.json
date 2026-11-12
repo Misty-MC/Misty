@@ -27,6 +27,8 @@
 	"misty.module.settings": "Impostazioni: %s",
 	"misty.module.ping.color": "Colore in base al ping",
 	"misty.module.ping.color.tip": "Verde quando la connessione è buona, poi giallo, arancione e rosso quando il ping sale.",
+	"misty.module.reach.color": "Colore in base alla distanza",
+	"misty.module.reach.color.tip": "Più il colpo è lontano, più è rosso: verde fino a 2 blocchi, giallo verso 2,6, rosso a 3 blocchi.",
 	"misty.module.coords": "Coordinate",
 	"misty.module.keystrokes": "Tasti",
 	"misty.module.clock": "Orologio",

@@ -5,7 +5,7 @@
 - Fixed: Misty pinned to the taskbar (or its Start menu and desktop shortcuts) no longer stops working after an update. Shortcuts now point to a launcher whose path never changes (`Misty.exe` next to the version folders), which starts the newest version. Existing shortcuts and pins are redirected to it automatically, and the Misty window and its pin share one taskbar button
 
 ### Misty Client (in game)
-- New Reach module: the distance of the last player you hit, in blocks (from your eyes to their hitbox)
+- New Reach module: the distance of the last player you hit, in blocks (from your eyes to their hitbox). The farther the hit, the redder (green up to 2 blocks, yellow around 2.6, red at 3); the colour can be turned off in the module settings
 - The ping module changes colour with your ping: green under 80 ms, yellow under 150 ms, orange under 250 ms, red above. The colour can be turned off
 - The ping module shows your ping right away when you join a server and refreshes it every second: Misty now measures it itself instead of waiting for the player list, which the server only updates every few seconds
 - HUD modules with their own settings have a gear before their switch in the Misty settings: click it to set the module up (for example, turn off the colour of the ping)

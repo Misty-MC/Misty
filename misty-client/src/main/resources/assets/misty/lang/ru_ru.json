@@ -27,6 +27,8 @@
 	"misty.module.settings": "Настройки: %s",
 	"misty.module.ping.color": "Цвет по пингу",
 	"misty.module.ping.color.tip": "Зелёный при хорошем соединении, затем жёлтый, оранжевый и красный по мере роста пинга.",
+	"misty.module.reach.color": "Цвет по дистанции",
+	"misty.module.reach.color.tip": "Чем дальше удар, тем краснее: зелёный до 2 блоков, жёлтый около 2,6, красный на 3 блоках.",
 	"misty.module.coords": "Координаты",
 	"misty.module.keystrokes": "Клавиши",
 	"misty.module.clock": "Часы",
