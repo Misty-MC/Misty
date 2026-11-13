@@ -96,54 +96,121 @@ component Onglet inherits Rectangle {
     }
 }
 
-/// Écran de chargement : le nuage de Misty pendant les premiers instants, puis un fondu.
+/// Écran de chargement, le même que celui de Misty Client (MistyLoading.java) : le paysage de nuit
+/// qui défile vers la droite, le nuage et le nom MISTY en pixel art, et une barre bleue.
+/// Il reste au moins 0,7 s (pas de flash) et au plus 2,5 s (on ne bloque jamais le launcher).
 component Chargement inherits Rectangle {
     property <bool> fini: AppState.ready && self.minimum;
     property <bool> minimum;
     property <bool> maximum;
+    property <bool> lance;
     opacity: root.fini || root.maximum ? 0 : 1;
     visible: self.opacity > 0.01;
-    animate opacity { duration: 380ms; easing: ease-in-out; }
-    // au moins 0,45 s (pas de flash), au plus 2,5 s (on ne bloque jamais le launcher)
-    Timer { interval: 450ms; running: !root.minimum; triggered => { root.minimum = true; } }
+    // le fondu attend que la barre soit pleine
+    animate opacity { delay: 220ms; duration: 380ms; easing: ease-in-out; }
+    Timer { interval: 700ms; running: !root.minimum; triggered => { root.minimum = true; } }
     Timer { interval: 2500ms; running: !root.maximum; triggered => { root.maximum = true; } }
-    background: Theme.dark ? @linear-gradient(160deg, #0E1527 0%, #0A0F1D 100%) : @linear-gradient(135deg, #BAD6F7 0%, #95B9E4 45%, #5B7FB0 100%);
+    init => { root.lance = true; }
+
+    // ── Scène : mêmes proportions que le paysage du fond (1600 × 440, en bas) ──
+    property <float> s: max(root.width / 1600px, root.height * 0.74 / 440px);
+    property <length> sw: 1600px * root.s;
+    property <length> sh: 440px * root.s;
+    property <length> haut: root.height - root.sh;
+    property <float> secondes: animation-tick() / 1s;
+    property <[float]> vitesses: [4, 7, 11, 17];
+    property <[color]> couleurs: [#24345A, #1A2748, #121C36, #0D1528];
+
+    background: @linear-gradient(180deg, #0A0F1D 0%, #17264D 100%);
+    clip: true;
     TouchArea { }
-    VerticalLayout {
-        alignment: center;
-        spacing: 18px;
-        HorizontalLayout {
-            alignment: center;
-            Rectangle {
-                width: 96px;
-                height: 96px;
-                border-radius: 28px;
-                background: Theme.dark ? #162140 : #1C2335;
-                drop-shadow-blur: 30px;
-                drop-shadow-color: Theme.accent.with-alpha(0.45);
-                transform-scale: 1 + 0.04 * sin((animation-tick() / 1400ms) * 360deg);
-                Image {
-                    width: 64px;
-                    height: 64px;
-                    source: Assets.logo;
-                    image-fit: contain;
-                }
-            }
+
+    // étoiles : le champ (symétrique) glisse lentement et se répète tous les 1600 px
+    property <length> decalage-etoiles: Math.mod(root.secondes * 1.5, 1600) * root.s * 1px;
+    for k in 2: Image {
+        x: root.decalage-etoiles - root.sw + k * root.sw;
+        y: root.haut;
+        width: root.sw;
+        height: root.sh;
+        source: AppState.loading-stars;
+        image-rendering: pixelated;
+        image-fit: fill;
+        colorize: #DBE7FF;
+        opacity: 0.55;
+    }
+    for k in 2: Image {
+        x: root.decalage-etoiles - root.sw + k * root.sw;
+        y: root.haut;
+        width: root.sw;
+        height: root.sh;
+        source: AppState.loading-twinkle;
+        image-rendering: pixelated;
+        image-fit: fill;
+        colorize: white;
+        opacity: 0.25 + 0.75 * (0.5 + 0.5 * sin((animation-tick() / 8000ms) * 360deg));
+    }
+
+    // crêtes, de l'arrière vers l'avant, qui défilent vers la droite (les lointaines plus
+    // lentement) ; chaque crête est suivie de son miroir, le motif se répète tous les 3200 px
+    for crete[i] in AppState.loading-ridges: Rectangle {
+        property <length> tuile: 2 * root.sw;
+        property <length> decalage: Math.mod(root.secondes * root.vitesses[i], 3200) * root.s * 1px;
+        for k in 4: Image {
+            x: parent.decalage - parent.tuile + Math.floor(k / 2) * parent.tuile + Math.mod(k, 2) * root.sw;
+            y: root.haut;
+            width: root.sw;
+            height: root.sh;
+            source: crete;
+            image-rendering: pixelated;
+            image-fit: fill;
+            colorize: root.couleurs[i];
+            transform-scale-x: Math.mod(k, 2) == 1 ? -1 : 1;
         }
-        HorizontalLayout {
-            alignment: center;
-            // petite barre qui glisse
+    }
+    Rectangle {
+        y: root.height - 96px * root.s;
+        height: 96px * root.s;
+        background: @linear-gradient(180deg, #070B1600 0%, #070B16 100%);
+    }
+
+    // ── Nuage, nom et barre, au milieu ──
+    property <length> pixel: max(2px, round(min(root.width, root.height) / 160px) * 1px);
+    property <length> y0: (root.height - 39 * root.pixel) / 2 - 12 * root.pixel;
+    Image {
+        x: (root.width - self.width) / 2;
+        y: root.y0;
+        width: 40 * root.pixel;
+        height: 40 * root.pixel;
+        source: AppState.loading-logo;
+        image-rendering: pixelated;
+        image-fit: fill;
+    }
+
+    // la barre se remplit pendant le chargement, puis d'un coup quand le launcher est prêt
+    property <float> avance: AppState.ready ? 1 : root.lance ? 0.85 : 0;
+    animate avance { duration: AppState.ready ? 240ms : 2200ms; easing: ease-out; }
+    Rectangle {
+        property <length> l: min(root.width - 40px, 60 * root.pixel);
+        property <length> h: max(2px, 2 * root.pixel);
+        x: (root.width - self.l) / 2 - 1px;
+        y: root.y0 + 49 * root.pixel - 1px;
+        width: self.l + 2px;
+        height: self.h + 2px;
+        background: #FFFFFF2E;
+        Rectangle {
+            x: 1px;
+            y: 1px;
+            width: parent.l;
+            height: parent.h;
+            background: #0E1527;
             Rectangle {
-                width: 120px;
-                height: 4px;
-                border-radius: 2px;
-                background: #FFFFFF26;
-                clip: true;
+                x: 0;
+                width: parent.width * root.avance;
+                background: #6F9CFF;
                 Rectangle {
-                    width: 40px;
-                    x: (Math.mod(animation-tick() / 1100ms, 1) * 160 - 40) * 1px;
-                    border-radius: 2px;
-                    background: Theme.dark ? Theme.accent : white;
+                    y: 0;
+                    height: max(1px, round(parent.height / 2 / 1px) * 1px);
+                    background: #9CC0FF;
                 }
             }
         }

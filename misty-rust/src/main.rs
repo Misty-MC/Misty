@@ -112,7 +112,12 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
 
     let app = app.clone();
     ui::lancer(async move {
-        attendre(6000).await;
+        // écran de chargement, pendant qu'il défile
+        attendre(300).await;
+        photo(&app, "00-chargement", &dossier);
+        attendre(400).await;
+        photo(&app, "00-chargement-2", &dossier);
+        attendre(5300).await;
         photo(&app, "0-accueil", &dossier);
         // MISTY_CAPTURE_OPTIONS : seulement la fenêtre des options, en clair, en sombre et en fenêtre minimale
         if std::env::var("MISTY_CAPTURE_OPTIONS").is_ok() {

@@ -148,6 +148,14 @@ pub fn installer(app: &Rc<App>) {
 
     // Paysage du site en fond (net tout de suite, puis flouté si l'option est réglée)
     afficher_paysage(app, scene::generer(0));
+    // l'écran de chargement garde cette scène nette (le fond peut être flouté ensuite)
+    {
+        let etat = ui.global::<AppState>();
+        etat.set_loading_ridges(etat.get_scene_ridges());
+        etat.set_loading_stars(etat.get_scene_stars());
+        etat.set_loading_twinkle(etat.get_scene_twinkle());
+        etat.set_loading_logo(images::logo_chargement());
+    }
     let flou = crate::services::settings::fond_flou();
     ui.global::<crate::Theme>().set_bg_blur(flou as i32);
     if flou > 0 {
