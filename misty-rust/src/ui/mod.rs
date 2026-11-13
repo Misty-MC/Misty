@@ -60,8 +60,8 @@ pub struct App {
     pub packs: RefCell<packs::Etat>,
     pub editor: RefCell<editor::Etat>,
     pub skin: RefCell<skin::Etat>,
-    /// Lien de la news affichée sur l'accueil (vide = notes de version du launcher)
-    pub news_url: RefCell<String>,
+    /// Liens des news du carrousel de l'accueil (vide = notes de version du launcher)
+    pub news_urls: RefCell<Vec<String>>,
 }
 
 impl App {
@@ -78,7 +78,7 @@ impl App {
             settings: RefCell::default(),
             packs: RefCell::default(),
             editor: RefCell::default(),
-            news_url: RefCell::default(),
+            news_urls: RefCell::default(),
             skin: RefCell::default(),
         })
     }

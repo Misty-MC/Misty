@@ -85,7 +85,7 @@ export component GlassCard inherits Rectangle {
     background: Theme.glass;
     border-width: 1.5px;
     border-color: Theme.glass-border;
-    border-radius: 20px;
+    border-radius: 12px;
 }
 
 /// Carré sombre avec une image (icône de projet, de profil…), le bloc d'herbe en attendant.
@@ -226,7 +226,7 @@ export component IconButton inherits Rectangle {
 
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: 8px;
     border-width: 1px;
     border-color: touch.has-hover && root.enabled ? Theme.accent : root.bord;
     background: touch.pressed ? root.fond.darker(0.1) : touch.has-hover && root.enabled ? root.fond.brighter(0.15) : root.fond;
@@ -299,14 +299,14 @@ export component PlayButton inherits Rectangle {
     in property <length> icon-size: 24px;
     callback clicked;
 
-    border-radius: 22px;
+    border-radius: 10px;
     background: root.enabled ? #2C4F9E : #3E526A;
     opacity: root.enabled ? 1 : 0.7;
 
     face := Rectangle {
         y: touch.pressed && root.enabled ? 3px : 0px;
         height: parent.height - 6px;
-        border-radius: 22px;
+        border-radius: 10px;
         background: !root.enabled ? @linear-gradient(180deg, #8B9BB0 0%, #6B7C93 100%)
             : touch.has-hover ? @linear-gradient(180deg, #C4DAFF 0%, #8AAEFF 100%)
             : @linear-gradient(180deg, #B4CFFF 0%, #6F9CFF 100%);

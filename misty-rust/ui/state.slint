@@ -86,6 +86,14 @@ export global DialogState {
 // ───────────────────────── Accueil ─────────────────────────
 
 /// Version de la fenêtre de choix : 0 release · 1 snapshot · 2 bêta · 3 alpha
+/// Une news du carrousel de l'accueil : image (ou illustration), titre, première ligne, date.
+export struct NewsItem {
+    title: string,
+    text: string,
+    date: string,
+    image: image,
+}
+
 export struct VersionItem {
     id: string,
     kind: int,
@@ -180,12 +188,12 @@ export global HomeState {
     callback picker-changed();
     callback version-picked(string);
     in property <[ProfileItem]> profile-items;
-    /// Dernière news (dernière release GitHub, ou notes de version intégrées hors ligne)
+    /// News du carrousel (dernières releases GitHub, ou notes de version intégrées hors ligne)
     in property <bool> news-visible;
-    in property <string> news-title;
-    in property <string> news-text;
-    in property <string> news-date;
-    callback news-open();
+    in property <[NewsItem]> news-items;
+    /// News affichée dans le carrousel
+    in-out property <int> news-index: 0;
+    callback news-open(int);
     in property <[string]> accounts;
     in-out property <int> account-index;
     in property <bool> premium;

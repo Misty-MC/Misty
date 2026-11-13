@@ -1,63 +1,62 @@
-// Page d'accueil, volontairement épurée : le paysage, le titre MISTY et une ligne, la dernière news
-// en petite pastille, et en bas un dock flottant (compte · version ou profil · console · JOUER).
-// Le statut et la progression se glissent sous le dock. En haut à droite : Jouer | Skin.
+// Page d'accueil : le paysage, le titre MISTY et une ligne, le carrousel des news (image + texte,
+// flèches à gauche et à droite), et en bas un dock flottant (compte · version ou profil · console ·
+// JOUER). La progression court le long du dock, le statut ne s'affiche que pendant un lancement.
+// Tout à droite, les onglets « Jouer » et « Skin » écrits à la verticale.
 
 import { Theme, Tr } from "theme.slint";
-import { HomeState, AppState } from "state.slint";
+import { HomeState, AppState, NewsItem } from "state.slint";
 import { Icon, PixelLabel, OutlinedText, Thumb, IconButton, PlayButton, GlassCombo } from "widgets.slint";
 import { ConsoleState } from "console.slint";
 import { SkinState, SkinPanel } from "skin.slint";
 
-/// Sélecteur « Jouer | Skin » : deux segments, une pastille qui glisse sous le choisi.
-component Bascule inherits Rectangle {
-    property <length> segment: max(jouer.preferred-width, skin.preferred-width) + 36px;
-    width: 2 * root.segment + 8px;
-    height: 40px;
-    border-radius: 20px;
-    background: Theme.panel;
-    border-width: 1px;
-    border-color: Theme.glass-border;
+/// Onglet vertical (« JOUER », « SKIN ») : le texte est écrit de haut en bas.
+component VTab inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked;
 
+    width: 64px;
+    height: lab.preferred-width + 20px;
+    opacity: root.active ? 1 : touch.has-hover ? 0.85 : 0.5;
+    animate opacity { duration: 150ms; }
+
+    // La rotation s'applique à un rectangle qui contient le texte
+    // (elle est ignorée sur l'élément racine d'un composant)
     Rectangle {
-        x: 4px + (SkinState.tab == 1 ? root.segment : 0px);
-        y: 4px;
-        width: root.segment;
-        height: parent.height - 8px;
-        border-radius: self.height / 2;
-        background: Theme.fill;
-        animate x { duration: 320ms; easing: cubic-bezier(0.34, 1.3, 0.64, 1); }
+        width: lab.preferred-width;
+        height: lab.preferred-height;
+        x: 36px - self.width / 2;
+        y: (parent.height - self.height) / 2;
+        transform-rotation: 90deg;
+        lab := OutlinedText {
+            text: root.text;
+            font-size: 30px;
+            thickness: 3px;
+            depth: 4px;
+        }
     }
-    jouer := PixelLabel {
-        x: 4px;
-        width: root.segment;
-        text: Tr.t("Home_Bouton_Jouer");
-        font-size: 12px;
-        horizontal-alignment: center;
-        color: SkinState.tab == 0 ? Theme.on-fill : Theme.navy;
-        animate color { duration: Theme.normal; }
-    }
-    skin := PixelLabel {
-        x: 4px + root.segment;
-        width: root.segment;
-        text: Tr.t("Skin_Onglet");
-        font-size: 12px;
-        horizontal-alignment: center;
-        color: SkinState.tab == 1 ? Theme.on-fill : Theme.navy;
-        animate color { duration: Theme.normal; }
-    }
-    TouchArea {
-        x: 0;
-        width: parent.width / 2;
+    // la zone cliquable ne tourne pas
+    touch := TouchArea {
         mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Onglets « Jouer » et « Skin », écrits à la verticale, tout à droite.
+component Onglets inherits VerticalLayout {
+    alignment: center;
+    spacing: 16px;
+    VTab {
+        text: Tr.t("Home_Bouton_Jouer");
+        active: SkinState.tab == 0;
         clicked => {
             SkinState.tab = 0;
             AppState.nav = 0;
         }
     }
-    TouchArea {
-        x: parent.width / 2;
-        width: parent.width / 2;
-        mouse-cursor: pointer;
+    VTab {
+        text: Tr.t("Skin_Onglet");
+        active: SkinState.tab == 1;
         clicked => {
             SkinState.tab = 1;
             AppState.nav = 7;
@@ -66,65 +65,209 @@ component Bascule inherits Rectangle {
     }
 }
 
-/// La dernière news en une ligne : point, titre, date, flèche.
-component PastilleNews inherits Rectangle {
-    property <bool> survol: touch.has-hover;
-    height: 38px;
-    width: contenu.preferred-width;
-    border-radius: 19px;
-    background: root.survol ? Theme.panel-strong : Theme.panel;
-    border-width: 1px;
-    border-color: root.survol ? Theme.accent.with-alpha(0.6) : Theme.glass-border;
-    animate background, border-color { duration: Theme.normal; }
-    contenu := HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 6px;
-        spacing: 10px;
-        VerticalLayout {
-            alignment: center;
+/// Flèche ronde du carrousel (précédente / suivante).
+component Fleche inherits Rectangle {
+    in property <string> icon;
+    callback clicked;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: zone.has-hover ? #FFFFFFF0 : #FFFFFFB8;
+    drop-shadow-blur: 10px;
+    drop-shadow-color: #0A0F1D40;
+    transform-scale: zone.pressed ? 0.9 : 1;
+    animate background { duration: Theme.fast; }
+    animate transform-scale { duration: 120ms; easing: ease-out; }
+    Icon {
+        text: root.icon;
+        font-size: 11px;
+        color: #1C2335;
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Une diapositive : l'image à gauche, le texte à droite.
+component Diapo inherits Rectangle {
+    in property <NewsItem> news;
+    in property <int> numero;
+    in property <length> largeur-image;
+    clip: true;
+    HorizontalLayout {
+        spacing: 0px;
+        Rectangle {
+            width: root.largeur-image;
+            clip: true;
+            background: #1C2335;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.news.image;
+                image-fit: cover;
+                image-rendering: ImageRendering.pixelated;
+            }
+            // fondu vers le texte
             Rectangle {
-                width: 7px;
-                height: 7px;
-                border-radius: 3.5px;
-                background: Theme.accent;
+                x: parent.width - 60px;
+                width: 60px;
+                background: @linear-gradient(90deg, #00000000 0%, Theme.dark ? #111A3066 : #FFFFFF33 100%);
             }
         }
-        Text {
-            text: HomeState.news-title;
-            font-size: 13px;
-            font-weight: 700;
-            color: Theme.navy;
-            vertical-alignment: center;
-            max-width: 300px;
-            overflow: elide;
-        }
-        if HomeState.news-date != "": Text {
-            text: HomeState.news-date;
-            font-size: 12px;
-            color: Theme.text-muted;
-            vertical-alignment: center;
-        }
         VerticalLayout {
-            alignment: center;
-            Rectangle {
-                width: 26px;
-                height: 26px;
-                border-radius: 13px;
-                background: root.survol ? Theme.fill : transparent;
-                animate background { duration: Theme.normal; }
-                Icon {
-                    x: (parent.width - self.width) / 2 + (root.survol ? 1px : 0px);
-                    text: "\u{E72A}";
+            horizontal-stretch: 1;
+            padding-left: 22px;
+            padding-right: 22px;
+            padding-top: 18px;
+            padding-bottom: 18px;
+            spacing: 6px;
+            HorizontalLayout {
+                spacing: 8px;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 1px;
+                        background: Theme.accent;
+                    }
+                }
+                PixelLabel {
+                    text: Tr.t("Home_News");
                     font-size: 10px;
-                    color: root.survol ? Theme.on-fill : Theme.navy;
-                    animate x { duration: 200ms; easing: ease-out; }
+                    color: Theme.accent;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: root.news.date;
+                    font-size: 11.5px;
+                    color: Theme.text-muted;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                }
+            }
+            Text {
+                text: root.news.title;
+                font-size: 20px;
+                font-weight: 700;
+                color: Theme.navy;
+                overflow: elide;
+            }
+            Text {
+                vertical-stretch: 1;
+                text: root.news.text;
+                font-size: 13px;
+                color: Theme.text-muted;
+                wrap: word-wrap;
+                overflow: elide;
+            }
+            HorizontalLayout {
+                alignment: start;
+                Rectangle {
+                    height: 30px;
+                    width: lire.preferred-width + 24px;
+                    border-radius: 6px;
+                    background: zone-lire.has-hover ? Theme.fill-hover : Theme.fill;
+                    animate background { duration: Theme.fast; }
+                    lire := HorizontalLayout {
+                        alignment: center;
+                        spacing: 8px;
+                        PixelLabel {
+                            text: Tr.t("Home_LireNews");
+                            font-size: 10px;
+                            color: Theme.on-fill;
+                        }
+                        Icon {
+                            text: "\u{E72A}";
+                            font-size: 10px;
+                            color: Theme.on-fill;
+                        }
+                    }
+                    zone-lire := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { HomeState.news-open(root.numero); }
+                    }
                 }
             }
         }
     }
-    touch := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { HomeState.news-open(); }
+}
+
+/// Carrousel des news : une grande carte horizontale (image + texte), des flèches à gauche et à
+/// droite, des points en bas. Il avance tout seul toutes les 8 s, sauf quand la souris est dessus.
+component NewsSlider inherits Rectangle {
+    property <int> nombre: HomeState.news-items.length;
+    property <int> courant: clamp(HomeState.news-index, 0, max(0, root.nombre - 1));
+    property <length> largeur-image: min(root.width * 0.42, 300px);
+    height: 190px;
+    border-radius: 12px;
+    background: Theme.panel-strong;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    drop-shadow-blur: 22px;
+    drop-shadow-offset-y: 8px;
+    drop-shadow-color: Theme.shadow;
+
+    function aller(pas: int) {
+        if (root.nombre > 0) {
+            HomeState.news-index = Math.mod(root.courant + pas + root.nombre, root.nombre);
+        }
+    }
+
+    // survol de toute la carte : met l'avance automatique en pause
+    survol := TouchArea { }
+
+    Timer {
+        interval: 8s;
+        running: root.nombre > 1 && !survol.has-hover;
+        triggered => { root.aller(1); }
+    }
+
+    Rectangle {
+        border-radius: root.border-radius;
+        clip: true;
+        for news[i] in HomeState.news-items: Diapo {
+            x: (i - root.courant) * parent.width;
+            width: parent.width;
+            height: parent.height;
+            news: news;
+            numero: i;
+            largeur-image: root.largeur-image;
+            animate x { duration: 420ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+        }
+    }
+
+    if root.nombre > 1: Fleche {
+        x: 10px;
+        y: (parent.height - self.height) / 2;
+        icon: "\u{E76B}";
+        clicked => { root.aller(-1); }
+    }
+    if root.nombre > 1: Fleche {
+        x: root.largeur-image - self.width - 10px;
+        y: (parent.height - self.height) / 2;
+        icon: "\u{E76C}";
+        clicked => { root.aller(1); }
+    }
+
+    // points : un par news, le courant plus long
+    if root.nombre > 1: HorizontalLayout {
+        x: (root.largeur-image - self.preferred-width) / 2;
+        y: parent.height - 18px;
+        height: 6px;
+        spacing: 5px;
+        for news[i] in HomeState.news-items: Rectangle {
+            width: i == root.courant ? 18px : 6px;
+            height: 6px;
+            border-radius: 1px;
+            background: i == root.courant ? #FFFFFF : #FFFFFF80;
+            animate width, background { duration: 260ms; easing: ease-out; }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { HomeState.news-index = i; }
+            }
+        }
     }
 }
 
@@ -140,7 +283,7 @@ component Choix inherits Rectangle {
     property <bool> actif: HomeState.selectors-enabled;
     min-width: 180px;
     height: 52px;
-    border-radius: 16px;
+    border-radius: 8px;
     background: zone.has-hover && root.actif ? Theme.glass-hover : transparent;
     opacity: root.actif ? 1 : 0.55;
     animate background { duration: Theme.fast; }
@@ -153,7 +296,7 @@ component Choix inherits Rectangle {
             Rectangle {
                 width: 36px;
                 height: 36px;
-                border-radius: 11px;
+                border-radius: 6px;
                 background: HomeState.horizon-selected ? #F0795A29 : Theme.accent-soft;
                 Icon {
                     text: HomeState.horizon-selected ? "\u{E945}" : HomeState.misty-selected && HomeState.quick ? "\u{E753}" : HomeState.quick ? "\u{E7FC}" : "\u{E8F1}";
@@ -212,7 +355,7 @@ component Compte inherits HorizontalLayout {
         Thumb {
             width: 44px;
             height: 44px;
-            radius: 13px;
+            radius: 7px;
             border: 2px;
             logo-margin: 8px;
             logo-opacity: 1;
@@ -239,7 +382,7 @@ component Compte inherits HorizontalLayout {
                 selected(i) => { HomeState.account-selected(i); }
             }
             if HomeState.all-accounts.length <= 1 && HomeState.premium: Rectangle {
-                border-radius: 12px;
+                border-radius: 8px;
                 background: Theme.glass-strong;
                 border-width: 1px;
                 border-color: Theme.glass-border;
@@ -280,64 +423,69 @@ component Compte inherits HorizontalLayout {
 export component HomePage inherits Rectangle {
     VerticalLayout {
         padding-left: 30px;
-        padding-right: 30px;
+        padding-right: 22px;
         padding-bottom: 22px;
         spacing: 0px;
 
-        // ═══════════ En haut : Jouer | Skin ═══════════
+        // ═══════════ Le titre et les news, ou la skin ; les onglets verticaux à droite ═══════════
         HorizontalLayout {
-            alignment: end;
-            padding-bottom: 6px;
-            Bascule { }
-        }
-
-        // ═══════════ Le titre, ou la skin ═══════════
-        if SkinState.tab == 0: VerticalLayout {
             vertical-stretch: 1;
-            alignment: center;
-            padding-left: 18px;
-            padding-bottom: 30px;
-            spacing: 0px;
-            HorizontalLayout {
-                alignment: start;
-                OutlinedText {
-                    text: "MISTY";
-                    font-size: 104px;
-                    thickness: 5px;
-                    depth: 8px;
+            spacing: 12px;
+            if SkinState.tab == 0: VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                padding-left: 18px;
+                padding-bottom: 26px;
+                spacing: 0px;
+                HorizontalLayout {
+                    alignment: start;
+                    OutlinedText {
+                        text: "MISTY";
+                        font-size: 104px;
+                        thickness: 5px;
+                        depth: 8px;
+                    }
+                }
+                HorizontalLayout {
+                    padding-left: 6px;
+                    Text {
+                        text: Tr.t("Home_txt-1") + " " + Tr.t("Home_txt-2");
+                        font-size: 16px;
+                        color: Theme.navy2;
+                        wrap: word-wrap;
+                    }
+                }
+                if HomeState.news-visible && HomeState.news-items.length > 0: HorizontalLayout {
+                    padding-left: 4px;
+                    padding-top: 24px;
+                    NewsSlider {
+                        horizontal-stretch: 1;
+                        max-width: 720px;
+                        min-width: 420px;
+                        opacity: 0;
+                        animate opacity { duration: 500ms; easing: ease-out; }
+                        init => { self.opacity = 1; }
+                    }
                 }
             }
-            HorizontalLayout {
-                padding-left: 6px;
-                Text {
-                    text: Tr.t("Home_txt-1") + " " + Tr.t("Home_txt-2");
-                    font-size: 16px;
-                    color: Theme.navy2;
-                    wrap: word-wrap;
-                    max-width: 520px;
+            if SkinState.tab == 1: VerticalLayout {
+                horizontal-stretch: 1;
+                padding-top: 8px;
+                padding-bottom: 18px;
+                SkinPanel {
+                    vertical-stretch: 1;
                 }
             }
-            if HomeState.news-visible: HorizontalLayout {
-                alignment: start;
-                padding-left: 4px;
-                padding-top: 22px;
-                PastilleNews { }
-            }
-        }
-        if SkinState.tab == 1: VerticalLayout {
-            vertical-stretch: 1;
-            padding-top: 8px;
-            padding-bottom: 18px;
-            SkinPanel {
-                vertical-stretch: 1;
-            }
+            // le titre et les news ont une largeur maximale : les onglets restent collés à droite
+            if SkinState.tab == 0: Rectangle { horizontal-stretch: 0.0001; }
+            Onglets { }
         }
 
         // ═══════════ Le dock ═══════════
         Rectangle {
             vertical-stretch: 0;
             height: 76px;
-            border-radius: 26px;
+            border-radius: 14px;
             background: Theme.panel;
             border-width: 1px;
             border-color: Theme.glass-border;
@@ -421,8 +569,8 @@ export component HomePage inherits Rectangle {
             }
         }
 
-        // ═══════════ Statut, sous le dock ═══════════
-        HorizontalLayout {
+        // ═══════════ Statut, sous le dock (seulement quand il se passe quelque chose) ═══════════
+        if HomeState.status != "" && HomeState.status != Tr.t("Home_Pret"): HorizontalLayout {
             padding-top: 10px;
             padding-left: 22px;
             padding-right: 22px;
