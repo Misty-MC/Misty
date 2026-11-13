@@ -145,6 +145,41 @@ component ColonneProfils inherits Rectangle {
     }
 }
 
+/// Brume du fond, par-dessus le paysage : de larges bandes douces qui ondulent lentement, et des
+/// nappes qui traversent la fenêtre de gauche à droite (chacune à son rythme). Plus dense le jour.
+component Brume inherits Rectangle {
+    property <color> c: Theme.dark ? #C8D8FF : #FFFFFF;
+    property <float> force: Theme.dark ? 0.6 : 1;
+    // bandes : hauteur, épaisseur, opacité, période (ms) de l'ondulation
+    for b in [
+        { y: 0.26, h: 0.24, a: 0.12, p: 61000 },
+        { y: 0.48, h: 0.28, a: 0.18, p: 47000 },
+        { y: 0.68, h: 0.32, a: 0.26, p: 73000 },
+    ]: Rectangle {
+        x: -root.width * 0.25 + root.width * 0.12 * sin((animation-tick() / (b.p * 1ms)) * 360deg);
+        y: root.height * b.y;
+        width: root.width * 1.5;
+        height: root.height * b.h;
+        background: @linear-gradient(180deg, root.c.with-alpha(0) 0%, root.c.with-alpha(b.a * root.force) 50%, root.c.with-alpha(0) 100%);
+    }
+    // nappes : hauteur, taille (px), période (ms) de la traversée, décalage de départ
+    for n in [
+        { y: 0.40, s: 520, p: 95000, o: 0.0 },
+        { y: 0.58, s: 640, p: 128000, o: 0.45 },
+        { y: 0.76, s: 460, p: 84000, o: 0.7 },
+        { y: 0.30, s: 380, p: 112000, o: 0.2 },
+        { y: 0.86, s: 700, p: 150000, o: 0.85 },
+    ]: Rectangle {
+        property <float> t: Math.mod(animation-tick() / (n.p * 1ms) + n.o, 1);
+        x: -n.s * 1px + (root.width + n.s * 2px) * self.t;
+        y: root.height * n.y - n.s * 0.3px;
+        width: n.s * 1px;
+        height: n.s * 0.6px;
+        border-radius: self.height / 2;
+        background: @radial-gradient(circle, root.c.with-alpha(0.26 * root.force) 0%, root.c.with-alpha(0) 70%);
+    }
+}
+
 /// Page qui apparaît en fondu en glissant vers le haut.
 component Apparition inherits Rectangle {
     opacity: 0;
@@ -338,7 +373,7 @@ export component MainWindow inherits Window {
     property <length> case: 64px;
     property <length> gouttiere: 12px;
     /// tuile des boutons de la fenêtre (en haut à droite)
-    property <length> largeur-boutons: 132px;
+    property <length> largeur-boutons: 162px;
     /// fenêtre étroite : certaines tuiles n'affichent que leur icône
     property <bool> etroit;
     // (posé quand la largeur change, pas lié : la largeur minimale de la fenêtre dépend des tuiles)
@@ -401,6 +436,8 @@ export component MainWindow inherits Window {
             }
             // paysage du site : montagnes, sapins, lune, brume qui dérive
             Paysage { }
+            // brume en plus, qui dérive devant le paysage (le thème de Misty)
+            Brume { }
         }
 
         // ═══ La grille : des tuiles alignées, la même gouttière partout ═══
@@ -582,7 +619,8 @@ export component MainWindow inherits Window {
 
             // ── En bas : la barre de lancement (le détail d'un profil et l'éditeur ont la leur) ──
             if AppState.page != 5 && AppState.page != 6: Dock {
-                height: 76px;
+                // même hauteur que les tuiles carrées : la tuile Options reste un carré
+                height: root.case;
                 case: root.case;
             }
         }

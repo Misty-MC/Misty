@@ -1,6 +1,6 @@
 // Barre du bas (sur toutes les pages sauf le détail d'un profil et l'éditeur), en tuiles alignées
 // sur la grille de la fenêtre, comme la maquette : options · version (contre JOUER) · JOUER ·
-// compte · avatar. Le statut d'un lancement s'affiche à gauche de la version, la progression sous JOUER.
+// compte · avatar. JOUER est un nuage ; le statut d'un lancement remplace la 2e ligne de la version.
 
 import { Theme, Tr, Assets, Bulle } from "theme.slint";
 import { HomeState, AppState, SettingsState } from "state.slint";
@@ -59,168 +59,178 @@ export component TuileIcone inherits Rectangle {
     }
 }
 
-/// Choix de la version (jeu rapide), de Misty, d'Horizon ou du profil : ouvre la fenêtre de choix.
-/// Comme sur la maquette : le choix est collé à droite de la tuile, contre JOUER ; à gauche, le
-/// statut pendant un lancement.
+/// Choix de la version (jeu rapide), de Misty, d'Horizon ou du profil : toute la tuile ouvre la
+/// fenêtre de choix. Pendant un lancement, la deuxième ligne devient le statut.
 component TuileChoix inherits Rectangle {
     property <bool> actif: HomeState.selectors-enabled;
     property <bool> occupe: HomeState.status != "" && HomeState.status != Tr.t("Home_Pret");
     border-radius: 8px;
-    background: Theme.panel;
+    background: zone.has-hover && root.actif ? Theme.panel-strong : Theme.panel;
     border-width: 1px;
-    border-color: Theme.glass-border;
+    border-color: zone.has-hover && root.actif ? Theme.accent.with-alpha(0.6) : Theme.glass-border;
+    animate background, border-color { duration: Theme.fast; }
     HorizontalLayout {
-        padding-left: 18px;
-        padding-right: 8px;
-        spacing: 10px;
-        // statut d'un lancement (vide le reste du temps)
+        padding-left: 12px;
+        padding-right: 18px;
+        spacing: 14px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 42px;
+                height: 42px;
+                border-radius: 6px;
+                clip: true;
+                background: HomeState.horizon-selected ? #F0795A29 : Theme.dark ? #162140 : #1C2335;
+                if HomeState.has-card-icon && !HomeState.quick: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: HomeState.card-icon;
+                    image-fit: cover;
+                }
+                if !(HomeState.has-card-icon && !HomeState.quick): Image {
+                    width: 28px;
+                    height: 28px;
+                    source: Assets.logo;
+                    image-fit: contain;
+                }
+            }
+        }
         VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
-            if root.occupe: Text {
-                text: HomeState.status;
-                font-size: 12.5px;
-                color: Theme.text-muted;
+            spacing: 2px;
+            Text {
+                text: HomeState.horizon-selected ? "Horizon " + HomeState.horizon-build
+                    : HomeState.misty-selected && HomeState.quick ? "Misty Client " + HomeState.misty-mc
+                    : HomeState.quick ? "Minecraft " + HomeState.card-version
+                    : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : HomeState.card-version);
+                font-size: 15px;
+                font-weight: 700;
+                color: Theme.navy;
                 overflow: elide;
             }
-            if root.occupe && HomeState.percent-text != "": Text {
-                text: HomeState.percent-text;
-                font-size: 12px;
-                font-weight: 700;
-                color: Theme.accent;
+            Text {
+                text: root.occupe ? HomeState.status + (HomeState.percent-text != "" ? "  ·  " + HomeState.percent-text : "")
+                    : HomeState.horizon-selected ? Tr.t("Hz_Moteur")
+                    : HomeState.quick ? HomeState.card-loader
+                    : HomeState.card-version + " · " + HomeState.card-loader;
+                font-size: 12.5px;
+                color: root.occupe ? Theme.accent : Theme.text-muted;
+                overflow: elide;
             }
         }
-        // le choix
-        choix := Rectangle {
-            min-width: 150px;
-            max-width: 300px;
-            horizontal-stretch: 0;
-            preferred-width: 270px;
-            border-radius: 6px;
-            y: 8px;
-            height: parent.height - 16px;
-            background: zone.has-hover && root.actif ? Theme.glass-hover : transparent;
-            animate background { duration: Theme.fast; }
-            HorizontalLayout {
-                padding-left: 8px;
-                padding-right: 12px;
-                spacing: 12px;
-                VerticalLayout {
-                    alignment: center;
-                    Rectangle {
-                        width: 40px;
-                        height: 40px;
-                        border-radius: 6px;
-                        clip: true;
-                        background: HomeState.horizon-selected ? #F0795A29 : Theme.dark ? #162140 : #1C2335;
-                        if HomeState.has-card-icon && !HomeState.quick: Image {
-                            width: parent.width;
-                            height: parent.height;
-                            source: HomeState.card-icon;
-                            image-fit: cover;
-                        }
-                        if !(HomeState.has-card-icon && !HomeState.quick): Image {
-                            width: 26px;
-                            height: 26px;
-                            source: Assets.logo;
-                            image-fit: contain;
-                        }
-                    }
-                }
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    alignment: center;
-                    spacing: 2px;
-                    PixelLabel {
-                        text: HomeState.horizon-selected ? Tr.t("Hz_Moteur") : HomeState.misty-selected && HomeState.quick ? "MISTY CLIENT" : HomeState.quick ? Tr.t("Commun_Version") : Tr.t("Home_Profil");
-                        font-size: 11px;
-                        color: Theme.navy;
-                        overflow: elide;
-                    }
-                    Text {
-                        text: HomeState.horizon-selected ? "Horizon " + HomeState.horizon-build
-                            : HomeState.misty-selected && HomeState.quick ? "Misty " + HomeState.misty-mc
-                            : HomeState.quick ? HomeState.card-version + " · " + HomeState.card-loader
-                            : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : HomeState.card-version);
-                        font-size: 12.5px;
-                        color: Theme.text-muted;
-                        overflow: elide;
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    Icon {
-                        text: "\u{E70E}";
-                        font-size: 11px;
-                        color: Theme.text-muted;
-                        opacity: root.actif ? 1 : 0.4;
-                    }
-                }
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                text: "\u{E70E}";
+                font-size: 11px;
+                color: Theme.text-muted;
+                opacity: root.actif ? 1 : 0.4;
             }
-            zone := TouchArea {
-                enabled: root.actif;
-                mouse-cursor: pointer;
-                clicked => {
-                    HomeState.picker-tab = HomeState.quick || HomeState.horizon-selected ? 0 : 1;
-                    HomeState.picker-horizon = HomeState.horizon-selected;
-                    HomeState.picker-misty = HomeState.misty-selected && HomeState.quick && !HomeState.horizon-selected;
-                    HomeState.picker-open = true;
-                    if (HomeState.horizon-selected) {
-                        HomeState.horizon-refresh();
-                    }
-                }
+        }
+    }
+    zone := TouchArea {
+        enabled: root.actif;
+        mouse-cursor: pointer;
+        clicked => {
+            HomeState.picker-tab = HomeState.quick || HomeState.horizon-selected ? 0 : 1;
+            HomeState.picker-horizon = HomeState.horizon-selected;
+            HomeState.picker-misty = HomeState.misty-selected && HomeState.quick && !HomeState.horizon-selected;
+            HomeState.picker-open = true;
+            if (HomeState.horizon-selected) {
+                HomeState.horizon-refresh();
             }
         }
     }
 }
 
-/// JOUER : un bloc plein et plat, avec un liseré clair et un relief dessous (comme la maquette),
-/// aux couleurs de Misty. La progression d'un téléchargement court en bas du bloc.
+/// Silhouette de nuage : un corps arrondi et quatre bosses de tailles différentes (pas un ovale
+/// parfait : un vrai nuage). Dessinée deux fois par BlocJouer (le relief, puis la face).
+component FormeNuage inherits Rectangle {
+    in property <brush> fond;
+    property <length> h: root.height;
+    property <length> w: root.width;
+    // corps
+    Rectangle {
+        x: root.w * 0.03;
+        y: root.h * 0.40;
+        width: root.w * 0.94;
+        height: root.h * 0.60;
+        border-radius: self.height / 2;
+        background: root.fond;
+    }
+    // bosses, de gauche à droite (rayon, centre)
+    for b in [
+        { cx: 0.16, cy: 0.58, r: 0.30 },
+        { cx: 0.32, cy: 0.40, r: 0.38 },
+        { cx: 0.53, cy: 0.36, r: 0.44 },
+        { cx: 0.71, cy: 0.42, r: 0.34 },
+        { cx: 0.85, cy: 0.60, r: 0.28 },
+    ]: Rectangle {
+        x: root.w * b.cx - root.h * b.r;
+        y: root.h * b.cy - root.h * b.r;
+        width: root.h * b.r * 2;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: root.fond;
+    }
+}
+
+/// JOUER : un nuage sur lequel on clique. Il flotte un peu, monte au survol, s'écrase et
+/// s'enfonce dans son ombre quand on appuie ; gris quand on ne peut pas jouer. La progression d'un
+/// téléchargement court sous le texte.
 component BlocJouer inherits Rectangle {
     property <bool> actif: HomeState.play-enabled;
     property <bool> appui: zone.pressed && root.actif;
-    // relief
-    Rectangle {
-        y: 5px;
-        height: parent.height - 5px;
-        border-radius: 8px;
-        background: root.actif ? #2C4F9E : #3E526A;
+    property <bool> survol: zone.has-hover && root.actif;
+    property <float> onde: sin((animation-tick() / 3200ms) * 360deg);
+    // le nuage ne dépasse jamais sa case (la place de l'ombre en dessous)
+    property <length> lever: root.appui ? 3px : root.survol ? -2px : 1.5px * root.onde;
+    animate lever { duration: 140ms; easing: ease-out; }
+
+    // ombre : le même nuage, bleuté, un peu plus bas
+    FormeNuage {
+        x: 0;
+        y: 6px;
+        width: parent.width;
+        height: parent.height - 6px;
+        fond: !root.actif ? #6B7C93 : Theme.dark ? #2C4F9E : #7896CA;
     }
-    face := Rectangle {
-        y: root.appui ? 4px : 0px;
-        height: parent.height - 5px;
-        border-radius: 8px;
-        background: !root.actif ? @linear-gradient(180deg, #8B9BB0 0%, #6B7C93 100%)
-            : zone.has-hover ? @linear-gradient(180deg, #8AAEFF 0%, #5B88EE 100%)
-            : @linear-gradient(180deg, #7FA6FF 0%, #4F7FE0 100%);
-        border-width: 2px;
-        border-color: #FFFFFF59;
-        animate y { duration: 80ms; }
-        Text {
-            text: HomeState.play-text;
-            font-family: Theme.pixel-font;
-            font-size: 28px;
-            color: white;
-            stroke: root.actif ? #2C4F9E : #3E526A;
-            stroke-width: 2px;
-            stroke-style: outside;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-        if HomeState.progress > 0 && HomeState.progress < 1: Rectangle {
-            x: 10px;
-            y: parent.height - 9px;
-            width: parent.width - 20px;
-            height: 3px;
-            border-radius: 1.5px;
-            background: #FFFFFF40;
-            Rectangle {
-                x: 0;
-                width: parent.width * clamp(HomeState.progress, 0, 1);
-                border-radius: 1.5px;
-                background: white;
-                animate width { duration: 200ms; }
-            }
+    face := FormeNuage {
+        x: 0;
+        y: root.lever;
+        width: parent.width;
+        height: parent.height - 6px;
+        transform-scale-y: root.appui ? 0.92 : 1;
+        transform-scale-x: root.appui ? 1.02 : 1;
+        animate transform-scale-x, transform-scale-y { duration: 140ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        fond: !root.actif ? @linear-gradient(180deg, #C9D2DE 0%, #A9B5C5 100%)
+            : root.survol ? @linear-gradient(180deg, #FFFFFF 0%, #EAF2FF 100%)
+            : @linear-gradient(180deg, #FFFFFF 0%, #DCE8FA 100%);
+    }
+    Text {
+        y: root.lever + (parent.height - 6px) * 0.56 - self.height / 2;
+        width: parent.width;
+        text: HomeState.play-text;
+        font-family: Theme.pixel-font;
+        font-size: 24px;
+        color: !root.actif ? #6B7C93 : root.survol ? #2F6FD6 : #3C68B8;
+        horizontal-alignment: center;
+        animate color { duration: Theme.fast; }
+    }
+    if HomeState.progress > 0 && HomeState.progress < 1: Rectangle {
+        x: parent.width * 0.25;
+        y: root.lever + parent.height - 18px;
+        width: parent.width * 0.5;
+        height: 4px;
+        border-radius: 2px;
+        background: #3C68B833;
+        Rectangle {
+            x: 0;
+            width: parent.width * clamp(HomeState.progress, 0, 1);
+            border-radius: 2px;
+            background: #3C68B8;
+            animate width { duration: 200ms; }
         }
     }
     zone := TouchArea {
@@ -230,7 +240,8 @@ component BlocJouer inherits Rectangle {
     }
 }
 
-/// Compte : la liste des comptes (Microsoft et hors ligne), ou le compte Microsoft seul.
+/// Compte : un nuage blanc (en ligne, compte Microsoft) ou gris (hors ligne) devant le pseudo, et
+/// la liste des comptes.
 component TuileCompte inherits Rectangle {
     border-radius: 8px;
     background: Theme.panel;
@@ -241,17 +252,24 @@ component TuileCompte inherits Rectangle {
         padding-right: 10px;
         spacing: 10px;
         VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 26px;
+                height: 26px;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: Assets.logo;
+                    image-fit: contain;
+                    colorize: HomeState.premium ? (Theme.dark ? white : #2F6FD6) : (Theme.dark ? #6F7C99 : #8394AB);
+                }
+            }
+        }
+        VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
-            spacing: 4px;
-            PixelLabel {
-                text: Tr.t("Home_Compte") + " · " + (HomeState.premium ? "MICROSOFT" : Tr.t("Home_Compte_HorsLigne"));
-                font-size: 11px;
-                color: Theme.text-dim;
-                overflow: elide;
-            }
             Rectangle {
-                height: 36px;
+                height: 40px;
                 if HomeState.all-accounts.length > 1: GlassCombo {
                     model: HomeState.all-accounts;
                     current-index <=> HomeState.all-index;
