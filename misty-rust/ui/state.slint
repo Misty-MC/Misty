@@ -534,6 +534,12 @@ export struct ChangelogSection {
     lines: [string],
     /// Pour chaque ligne : -1 intertitre (« ### … »), 0 ligne simple, 1 nouveauté, 2 correction
     kinds: [int],
+    /// Pour chaque ligne : 0 partie launcher, 1 partie Misty Client (en jeu)
+    parts: [int],
+    /// Première ligne des notes (version repliée dans la frise)
+    summary: string,
+    /// Image de la version dans la frise
+    art: image,
     /// Nombre de nouveautés et de corrections
     news: int,
     fixes: int,
@@ -542,8 +548,10 @@ export struct ChangelogSection {
 
 export global ChangelogState {
     in property <[ChangelogSection]> sections;
-    /// Version affichée à droite
+    /// Version ouverte dans la frise (-1 : aucune)
     in-out property <int> selected: 0;
+    /// Filtre des notes : 0 tout, 1 nouveautés, 2 corrections, 3 launcher, 4 Misty Client
+    in-out property <int> filter: 0;
     callback open-url(string);
 }
 

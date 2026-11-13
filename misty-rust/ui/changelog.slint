@@ -1,10 +1,10 @@
-// Notes de version : les releases GitHub du launcher (voir src/ui/changelog.rs).
-// À gauche la liste des versions (date, dernière, bêta), à droite les notes de la version choisie :
-// intertitres (Launcher, Misty Client…) et lignes avec leur étiquette (nouveauté, correction).
+// Notes de version : les releases GitHub du launcher (voir src/ui/changelog.rs), en frise verticale.
+// La version ouverte montre son image, son en-tête et ses notes (intertitres et lignes avec leur
+// étiquette) ; les autres sont repliées en une ligne. Filtres : nouveautés, corrections, launcher, client.
 
 import { Theme, Tr } from "theme.slint";
 import { ChangelogState, ChangelogSection } from "state.slint";
-import { Icon, PixelLabel, OutlinedText, GlassCard, MButton } from "widgets.slint";
+import { Icon, PixelLabel, OutlinedText, GlassCard, MButton, IconButton, Puces } from "widgets.slint";
 import { ListView, ScrollView } from "std-widgets.slint";
 
 /// Petite étiquette pixel (DERNIÈRE, BÊTA, NOUVEAU, CORRIGÉ).
@@ -26,62 +26,6 @@ component Etiquette inherits Rectangle {
         color: root.plein ? white : root.couleur;
         horizontal-alignment: center;
         vertical-alignment: center;
-    }
-}
-
-/// Une version de la liste de gauche.
-component LigneVersion inherits Rectangle {
-    in property <ChangelogSection> s;
-    in property <bool> choisie;
-    callback clicked;
-    height: 64px;
-    border-radius: 14px;
-    background: root.choisie ? Theme.accent-soft : touch.has-hover ? Theme.glass-hover : transparent;
-    border-width: 1px;
-    border-color: root.choisie ? Theme.accent.with-alpha(0.4) : transparent;
-    animate background, border-color { duration: Theme.fast; }
-    // trait de la version choisie
-    Rectangle {
-        x: 0;
-        y: 16px;
-        width: 3px;
-        height: parent.height - 32px;
-        border-radius: 2px;
-        background: Theme.accent;
-        opacity: root.choisie ? 1 : 0;
-        animate opacity { duration: Theme.normal; }
-    }
-    HorizontalLayout {
-        padding-left: 16px;
-        padding-right: 12px;
-        spacing: 10px;
-        VerticalLayout {
-            horizontal-stretch: 1;
-            alignment: center;
-            spacing: 4px;
-            PixelLabel {
-                text: root.s.title;
-                font-size: 12.5px;
-                color: root.choisie ? Theme.accent : Theme.navy;
-                overflow: elide;
-            }
-            Text {
-                text: root.s.date != "" ? root.s.date : " ";
-                font-size: 12px;
-                color: Theme.text-muted;
-                overflow: elide;
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            spacing: 4px;
-            if root.s.recent: Etiquette { text: Tr.t("Notes_Derniere"); couleur: Theme.green-dark; plein: true; }
-            if root.s.prerelease: Etiquette { text: Tr.t("Notes_Beta"); couleur: #E8932F; }
-        }
-    }
-    touch := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { root.clicked(); }
     }
 }
 
@@ -145,124 +89,174 @@ component LigneNote inherits Rectangle {
     }
 }
 
-export component ChangelogPage inherits Rectangle {
-    property <ChangelogSection> s: ChangelogState.sections[ChangelogState.selected];
+/// Une ligne est-elle gardée par le filtre ? (genre : -1 intertitre, 0 simple, 1 nouveau, 2 corrigé ;
+/// partie : 0 launcher, 1 Misty Client)
+global Filtre {
+    pure public function garde(filtre: int, genre: int, partie: int) -> bool {
+        if (filtre == 0) { return true; }
+        if (filtre == 1) { return genre == 1; }
+        if (filtre == 2) { return genre == 2; }
+        if (filtre == 3) { return partie == 0; }
+        return partie == 1;
+    }
+}
+
+/// Une version dans la frise : repliée (une ligne) ou ouverte (image, en-tête et notes).
+component Version inherits HorizontalLayout {
+    in property <ChangelogSection> s;
+    in property <int> numero;
+    in property <bool> derniere;
+    property <bool> ouverte: ChangelogState.selected == root.numero;
+    property <int> filtre: ChangelogState.filter;
+    property <int> gardees: 0;
+    spacing: 14px;
+
+    // la frise : un trait continu et un carré par version
+    Rectangle {
+        width: 22px;
+        Rectangle {
+            x: 10px;
+            y: 0;
+            width: 2px;
+            height: root.derniere ? 26px : parent.height;
+            background: Theme.glass-border;
+        }
+        Rectangle {
+            x: 4px;
+            y: 20px;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            background: root.ouverte ? Theme.fill : root.s.recent ? Theme.green-dark : Theme.panel-strong;
+            border-width: 2px;
+            border-color: root.ouverte ? Theme.on-fill : Theme.glass-border;
+            animate background { duration: Theme.normal; }
+        }
+    }
 
     VerticalLayout {
-        padding-left: 26px;
-        padding-right: 30px;
-        padding-bottom: 26px;
-        spacing: 18px;
+        horizontal-stretch: 1;
+        padding-bottom: 10px;
 
-        HorizontalLayout {
-            padding-left: 6px;
-            alignment: start;
-            OutlinedText {
-                text: Tr.t("Notes_Titre");
-                font-size: 48px;
-                depth: 5px;
+        // ── repliée ──
+        if !root.ouverte: Rectangle {
+            height: 56px;
+            border-radius: 10px;
+            background: zone.has-hover ? Theme.panel-strong : Theme.panel;
+            border-width: 1px;
+            border-color: zone.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
+            animate background, border-color { duration: Theme.fast; }
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 14px;
+                spacing: 12px;
+                PixelLabel {
+                    text: root.s.title;
+                    font-size: 13px;
+                    color: Theme.navy;
+                }
+                if root.s.prerelease: VerticalLayout {
+                    alignment: center;
+                    Etiquette { text: Tr.t("Notes_Beta"); couleur: #E8932F; }
+                }
+                Text {
+                    text: root.s.date;
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                    vertical-alignment: center;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: root.s.summary;
+                    font-size: 12.5px;
+                    color: Theme.text-muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.s.news > 0: VerticalLayout {
+                    alignment: center;
+                    Etiquette { text: Tr.t("Notes_Nouveau") + " · " + root.s.news; couleur: Theme.green-dark; }
+                }
+                if root.s.fixes > 0: VerticalLayout {
+                    alignment: center;
+                    Etiquette { text: Tr.t("Notes_Corrige") + " · " + root.s.fixes; couleur: #E8932F; }
+                }
+                Icon {
+                    text: "\u{E70D}";
+                    font-size: 10px;
+                    color: Theme.text-muted;
+                }
+            }
+            zone := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { ChangelogState.selected = root.numero; }
             }
         }
 
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 18px;
-
-            // ═══ Versions ═══
-            GlassCard {
-                width: 250px;
-                VerticalLayout {
-                    padding: 12px;
-                    padding-top: 18px;
-                    spacing: 10px;
-                    HorizontalLayout {
-                        padding-left: 10px;
-                        padding-right: 10px;
-                        PixelLabel {
-                            horizontal-stretch: 1;
-                            text: Tr.t("Notes_Versions");
-                            font-size: 10.5px;
-                            color: Theme.text-dim;
-                        }
-                        PixelLabel {
-                            text: ChangelogState.sections.length;
-                            font-size: 10.5px;
-                            color: Theme.text-dim;
+        // ── ouverte ──
+        if root.ouverte: Rectangle {
+            border-radius: 12px;
+            background: Theme.panel-strong;
+            border-width: 1px;
+            border-color: Theme.glass-border;
+            drop-shadow-blur: 20px;
+            drop-shadow-offset-y: 6px;
+            drop-shadow-color: Theme.shadow;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+                HorizontalLayout {
+                    spacing: 18px;
+                    Rectangle {
+                        width: 220px;
+                        height: 124px;
+                        border-radius: 8px;
+                        clip: true;
+                        background: #1C2335;
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.s.art;
+                            image-fit: cover;
+                            image-rendering: ImageRendering.pixelated;
                         }
                     }
-                    ListView {
-                        vertical-stretch: 1;
-                        for v[i] in ChangelogState.sections: Rectangle {
-                            height: 68px;
-                            LigneVersion {
-                                y: 0;
-                                height: 64px;
-                                width: parent.width - 8px;
-                                s: v;
-                                choisie: i == ChangelogState.selected;
-                                clicked => { ChangelogState.selected = i; }
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        spacing: 8px;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            alignment: start;
+                            PixelLabel {
+                                text: root.s.title;
+                                font-size: 22px;
+                                color: Theme.navy;
+                            }
+                            if root.s.recent: VerticalLayout {
+                                alignment: center;
+                                Etiquette { text: Tr.t("Notes_Derniere"); couleur: Theme.green-dark; plein: true; }
+                            }
+                            if root.s.prerelease: VerticalLayout {
+                                alignment: center;
+                                Etiquette { text: Tr.t("Notes_Beta"); couleur: #E8932F; }
                             }
                         }
-                    }
-                }
-            }
-
-            // ═══ Notes de la version choisie ═══
-            GlassCard {
-                horizontal-stretch: 1;
-                background: Theme.panel;
-                VerticalLayout {
-                    // En-tête : version, étiquettes, date, nombre de nouveautés et de corrections
-                    HorizontalLayout {
-                        padding-left: 28px;
-                        padding-right: 22px;
-                        padding-top: 22px;
-                        padding-bottom: 18px;
-                        spacing: 16px;
-                        VerticalLayout {
-                            horizontal-stretch: 1;
+                        HorizontalLayout {
                             spacing: 8px;
-                            HorizontalLayout {
-                                spacing: 10px;
-                                alignment: start;
-                                PixelLabel {
-                                    text: root.s.title;
-                                    font-size: 24px;
-                                    color: Theme.navy;
-                                }
-                                if root.s.recent: VerticalLayout {
-                                    alignment: center;
-                                    Etiquette { text: Tr.t("Notes_Derniere"); couleur: Theme.green-dark; plein: true; }
-                                }
-                                if root.s.prerelease: VerticalLayout {
-                                    alignment: center;
-                                    Etiquette { text: Tr.t("Notes_Beta"); couleur: #E8932F; }
-                                }
+                            alignment: start;
+                            if root.s.date != "": Text {
+                                text: root.s.date;
+                                font-size: 13px;
+                                color: Theme.text-muted;
+                                vertical-alignment: center;
                             }
-                            HorizontalLayout {
-                                spacing: 8px;
-                                alignment: start;
-                                if root.s.date != "": HorizontalLayout {
-                                    spacing: 6px;
-                                    padding-right: 6px;
-                                    Icon {
-                                        text: "\u{E787}";
-                                        font-size: 12px;
-                                        color: Theme.text-muted;
-                                    }
-                                    Text {
-                                        text: root.s.date;
-                                        font-size: 13px;
-                                        color: Theme.text-muted;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                if root.s.news > 0: Etiquette { text: Tr.t("Notes_Nouveau") + " · " + root.s.news; couleur: Theme.green-dark; }
-                                if root.s.fixes > 0: Etiquette { text: Tr.t("Notes_Corrige") + " · " + root.s.fixes; couleur: #E8932F; }
-                            }
+                            if root.s.news > 0: Etiquette { text: Tr.t("Notes_Nouveau") + " · " + root.s.news; couleur: Theme.green-dark; }
+                            if root.s.fixes > 0: Etiquette { text: Tr.t("Notes_Corrige") + " · " + root.s.fixes; couleur: #E8932F; }
                         }
-                        if root.s.url != "": VerticalLayout {
-                            alignment: center;
+                        if root.s.url != "": HorizontalLayout {
+                            alignment: start;
+                            padding-top: 4px;
                             MButton {
                                 icon: "\u{E8A7}";
                                 text: Tr.t("Notes_GitHub");
@@ -270,37 +264,84 @@ export component ChangelogPage inherits Rectangle {
                             }
                         }
                     }
-                    Rectangle {
-                        height: 1px;
-                        background: Theme.line;
-                    }
-
-                    ScrollView {
-                        vertical-stretch: 1;
-                        content-width: self.visible-width;
-                        content-height: notes.preferred-height;
-                        notes := VerticalLayout {
-                            width: parent.visible-width;
-                            padding-left: 18px;
-                            padding-right: 26px;
-                            padding-top: 14px;
-                            padding-bottom: 22px;
-                            spacing: 2px;
-                            alignment: start;
-                            for ligne[i] in root.s.lines: VerticalLayout {
-                                if root.s.kinds[i] == -1: VerticalLayout {
-                                    padding-left: 10px;
-                                    padding-top: i > 0 ? 18px : 6px;
-                                    padding-bottom: 6px;
-                                    Intertitre { text: ligne; }
-                                }
-                                if root.s.kinds[i] != -1: LigneNote {
-                                    text: ligne;
-                                    genre: root.s.kinds[i];
-                                }
-                            }
+                    VerticalLayout {
+                        alignment: start;
+                        IconButton {
+                            width: 32px;
+                            height: 32px;
+                            icon: "\u{E70E}";
+                            clicked => { ChangelogState.selected = -1; }
                         }
                     }
+                }
+                Rectangle {
+                    height: 1px;
+                    background: Theme.line;
+                }
+                VerticalLayout {
+                    spacing: 2px;
+                    for ligne[i] in root.s.lines: VerticalLayout {
+                        if root.s.kinds[i] == -1 && (root.filtre == 0 || (root.filtre >= 3 && Filtre.garde(root.filtre, -1, root.s.parts[i]))): VerticalLayout {
+                            padding-left: 10px;
+                            padding-top: i > 0 ? 14px : 4px;
+                            padding-bottom: 4px;
+                            Intertitre { text: ligne; }
+                        }
+                        if root.s.kinds[i] != -1 && Filtre.garde(root.filtre, root.s.kinds[i], root.s.parts[i]): LigneNote {
+                            text: ligne;
+                            genre: root.s.kinds[i];
+                        }
+                    }
+                    if (root.filtre == 1 && root.s.news == 0) || (root.filtre == 2 && root.s.fixes == 0): Text {
+                        text: Tr.t("Notes_Rien");
+                        font-size: 13px;
+                        color: Theme.text-muted;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component ChangelogPage inherits Rectangle {
+    VerticalLayout {
+        padding-left: 26px;
+        padding-right: 30px;
+        padding-bottom: 26px;
+        spacing: 16px;
+
+        HorizontalLayout {
+            padding-left: 6px;
+            spacing: 16px;
+            OutlinedText {
+                text: Tr.t("Notes_Titre");
+                font-size: 48px;
+                depth: 5px;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            VerticalLayout {
+                alignment: center;
+                Puces {
+                    model: [Tr.t("Notes_Filtre_Tout"), Tr.t("Notes_Filtre_Nouveau"), Tr.t("Notes_Filtre_Corrige"), Tr.t("Notes_Filtre_Launcher"), Tr.t("Notes_Filtre_Client")];
+                    current: ChangelogState.filter;
+                    selected(i) => { ChangelogState.filter = i; }
+                }
+            }
+        }
+
+        ScrollView {
+            vertical-stretch: 1;
+            content-width: self.visible-width;
+            content-height: frise.preferred-height;
+            frise := VerticalLayout {
+                width: parent.visible-width;
+                padding-right: 14px;
+                alignment: start;
+                for v[i] in ChangelogState.sections: Version {
+                    s: v;
+                    numero: i;
+                    derniere: i == ChangelogState.sections.length - 1;
                 }
             }
         }

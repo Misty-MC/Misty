@@ -738,5 +738,11 @@
   "Profil_Filtre_Modpacks": "Сборки",
   "Profil_NouveauCarte": "Новый профиль",
   "Profil_NouveauCarte_Texte": "Своя версия, моды и миры",
-  "Profil_Gerer": "Управлять"
+  "Profil_Gerer": "Управлять",
+  "Notes_Filtre_Tout": "ВСЁ",
+  "Notes_Filtre_Nouveau": "НОВОЕ",
+  "Notes_Filtre_Corrige": "ИСПРАВЛЕНИЯ",
+  "Notes_Filtre_Launcher": "ЛАУНЧЕР",
+  "Notes_Filtre_Client": "MISTY CLIENT",
+  "Notes_Rien": "В этой версии нет ничего для этого фильтра."
 }

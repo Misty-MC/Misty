@@ -21,6 +21,24 @@ const SIMPLE: i32 = 0;
 const NOUVEAU: i32 = 1;
 const CORRIGE: i32 = 2;
 
+/// Images des versions dans la frise (les illustrations pixel art de la fenêtre des versions).
+const ILLUSTRATIONS: [&str; 8] = ["26.x", "1.21", "1.20", "1.19", "1.18", "1.17", "1.16", "1.15"];
+
+/// Partie de chaque ligne, d'après l'intertitre qui la précède : 0 launcher, 1 Misty Client (en jeu).
+fn parties(lignes: &[String], genres: &[i32]) -> Vec<i32> {
+    let mut partie = 0;
+    lignes
+        .iter()
+        .zip(genres)
+        .map(|(l, &g)| {
+            if g == INTERTITRE {
+                partie = if l.to_lowercase().contains("client") { 1 } else { 0 };
+            }
+            partie
+        })
+        .collect()
+}
+
 /// Une version publiée.
 #[derive(Default)]
 struct Section {
@@ -64,6 +82,9 @@ fn afficher(app: &App, sections: Vec<Section>) {
         .into_iter()
         .enumerate()
         .map(|(i, s)| ChangelogSection {
+            parts: modele(parties(&s.lignes, &s.genres)),
+            summary: s.lignes.iter().zip(&s.genres).find(|(_, &g)| g != INTERTITRE).map(|(l, _)| l.clone()).unwrap_or_default().into(),
+            art: super::picker::illustration(ILLUSTRATIONS[i % ILLUSTRATIONS.len()]),
             news: s.genres.iter().filter(|&&g| g == NOUVEAU).count() as i32,
             fixes: s.genres.iter().filter(|&&g| g == CORRIGE).count() as i32,
             title: s.titre.into(),

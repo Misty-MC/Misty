@@ -738,5 +738,11 @@
   "Profil_Filtre_Modpacks": "Modpacks",
   "Profil_NouveauCarte": "Nouveau profil",
   "Profil_NouveauCarte_Texte": "Sa version, ses mods et ses mondes",
-  "Profil_Gerer": "Gérer"
+  "Profil_Gerer": "Gérer",
+  "Notes_Filtre_Tout": "TOUT",
+  "Notes_Filtre_Nouveau": "NOUVEAUTÉS",
+  "Notes_Filtre_Corrige": "CORRECTIONS",
+  "Notes_Filtre_Launcher": "LAUNCHER",
+  "Notes_Filtre_Client": "MISTY CLIENT",
+  "Notes_Rien": "Rien dans cette version pour ce filtre."
 }
