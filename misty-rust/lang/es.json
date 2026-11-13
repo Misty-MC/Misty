@@ -791,5 +791,6 @@
   "Choix_HorsLigne_3": "Sin iniciar sesión",
   "Choix_Pseudo": "Tu nombre de usuario",
   "Choix_HorsLigne_Bouton": "Jugar sin conexión",
-  "Param_Comptes": "Cuentas"
+  "Param_Comptes": "Cuentas",
+  "Cos_Aucun": "Ninguno"
 }

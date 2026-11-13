@@ -791,5 +791,6 @@
   "Choix_HorsLigne_3": "Nothing to sign in to",
   "Choix_Pseudo": "Your username",
   "Choix_HorsLigne_Bouton": "Play offline",
-  "Param_Comptes": "Accounts"
+  "Param_Comptes": "Accounts",
+  "Cos_Aucun": "None"
 }

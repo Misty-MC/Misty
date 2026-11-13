@@ -540,6 +540,10 @@ fn afficher_capes(app: &Rc<App>) {
     let lignes = elements.len().div_ceil(COLONNES).max(1) as i32;
     drop(e);
     let st = s(app);
+    // la cape Mojang portée, pour l'emplacement « Cape » du studio
+    let portee = elements.iter().skip(1).find(|c| c.active);
+    st.set_worn_cape(portee.map(|c| c.name.clone()).unwrap_or_default());
+    st.set_worn_cape_image(portee.map(|c| c.image.clone()).unwrap_or_default());
     st.set_cape_rows(lignes);
     st.set_capes(modele(elements));
 }

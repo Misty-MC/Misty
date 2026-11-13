@@ -142,6 +142,11 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                 app.ui.global::<SkinState>().set_tab(1);
                 attendre(2500).await;
                 photo(&app, &format!("skin-{suffixe}"), &dossier);
+                // la liste des capes, ouverte depuis son emplacement
+                app.ui.global::<SkinState>().set_popup(0);
+                attendre(900).await;
+                photo(&app, &format!("skin-capes-{suffixe}"), &dossier);
+                app.ui.global::<SkinState>().set_popup(-1);
                 app.ui.global::<SkinState>().set_tab(0);
                 // notes de version, sur la page qui les affiche
                 let etat = app.ui.global::<AppState>();

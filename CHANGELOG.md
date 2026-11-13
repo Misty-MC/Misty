@@ -6,7 +6,8 @@
 - The version picker and the settings open in the middle of the window instead of over it: the page clears and the version posters fall in one after another
 - Redesigned settings: the categories are tabs at the top (Appearance, Language, Accounts, Memory, Behavior, Resources, Troubleshooting) and each setting is its own tile, two per row, with the search next to the category description
 - Smoother controls everywhere: Misty blue switches whose knob grows on hover, thinner sliders with a gradient and a ringed knob, fields with a blue focus ring, squarer buttons and cards
-- Redesigned Skin tab: the character fills a tall tile on the left; on the right, your player card (model, sign in or apply, My skins in rows of five) and the cosmetics (categories, items, then the category name with its Coming soon badge)
+- Redesigned Skin tab: the character fills a tall tile on the left; on the right, your player card (model, sign in or apply, My skins in rows of five) and one slot per cosmetic (cape, wings, hat) showing what you wear. Click a slot to pick from a list, and the camera turns to that part of the character. The categories that are not available yet are gone
+- Clicking a tab (or your avatar) while the settings or the version picker are open closes them and opens that page
 - Modpack profiles show their logo in the profile column on the left
 - Cleaner, easier to read interface everywhere: small labels and badges use the regular font instead of the pixel one (which stays for the big titles), no text is smaller than 11 px, cards are more opaque on the light sky, and long texts are cut with … instead of spilling out of their button (checked in every language)
 - Scrollbars, lists and fields follow Misty's theme (Mist or Night) instead of the Windows one, and "Sync with Windows" now follows Windows when you switch its mode while Misty is open
