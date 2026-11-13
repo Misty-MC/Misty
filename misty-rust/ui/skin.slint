@@ -230,7 +230,7 @@ component Scene3D inherits Rectangle {
         }
     }
 
-    border-radius: 22px;
+    border-radius: 8px;
     clip: true;
     background: Theme.dark ? @linear-gradient(180deg, #162140B8 0%, #0C1324D1 100%) : @linear-gradient(180deg, #FFFFFF59 0%, #DCE8F8A6 100%);
     border-width: 1px;
@@ -764,410 +764,413 @@ export component SkinPanel inherits Rectangle {
     ];
     property <int> cat: SkinState.category;
 
-    VerticalLayout {
+    HorizontalLayout {
         spacing: 12px;
 
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 14px;
-
-            // ═══ À gauche : la fiche du joueur et « Mes skins » ═══
-            Rectangle {
-                width: 214px;
-                border-radius: 12px;
-                background: Theme.panel;
-                border-width: 1px;
-                border-color: Theme.glass-border;
-                clip: true;
-                ScrollView {
-                    content-width: self.visible-width;
-                    content-height: fiche.preferred-height;
-                    fiche := VerticalLayout {
-                        width: parent.visible-width;
-                        padding: 14px;
-                        spacing: 10px;
-
-                        HorizontalLayout {
-                            spacing: 10px;
-                            Rectangle {
-                                width: 44px;
-                                height: 44px;
-                                border-radius: 8px;
-                                background: Theme.glass-strong;
-                                border-width: 1px;
-                                border-color: Theme.glass-border;
-                                clip: true;
-                                Image {
-                                    width: parent.width;
-                                    height: parent.height;
-                                    source: HomeState.has-avatar ? HomeState.avatar : Assets.logo;
-                                    image-fit: HomeState.has-avatar ? ImageFit.cover : ImageFit.contain;
-                                    image-rendering: HomeState.has-avatar ? ImageRendering.pixelated : ImageRendering.smooth;
-                                }
-                            }
-                            VerticalLayout {
-                                alignment: center;
-                                Text {
-                                    text: HomeState.premium ? HomeState.premium-name : "Steve";
-                                    font-size: 17px;
-                                    font-weight: 800;
-                                    color: Theme.navy;
-                                    overflow: elide;
-                                }
-                                if SkinState.busy || SkinState.loading: Spinner {
-                                    height: 16px;
-                                    width: 16px;
-                                }
-                            }
-                        }
-                        // modèle de bras : l'un sous l'autre, en pleine largeur (« Классический (Стив) »
-                        // ne tient pas à côté de l'autre), avec un bouton radio
-                        VerticalLayout {
-                            spacing: 6px;
-                            for m[i] in [Tr.t("Skin_Classique"), Tr.t("Skin_Fin")]: modele := Rectangle {
-                                property <bool> actif: (i == 1) == SkinState.slim;
-                                height: 30px;
-                                border-radius: 8px;
-                                background: self.actif ? Theme.accent-soft : mz.has-hover ? Theme.glass-hover : Theme.glass;
-                                border-width: 1px;
-                                border-color: self.actif ? Theme.accent : Theme.glass-border;
-                                animate background, border-color { duration: Theme.fast; }
-                                HorizontalLayout {
-                                    padding-left: 10px;
-                                    padding-right: 10px;
-                                    spacing: 8px;
-                                    VerticalLayout {
-                                        alignment: center;
-                                        Rectangle {
-                                            width: 14px;
-                                            height: 14px;
-                                            border-radius: 7px;
-                                            border-width: 1.5px;
-                                            border-color: modele.actif ? Theme.accent : Theme.text-dim;
-                                            Rectangle {
-                                                width: modele.actif ? 6px : 0px;
-                                                height: self.width;
-                                                border-radius: self.width / 2;
-                                                background: Theme.accent;
-                                                animate width { duration: 200ms; easing: ease-out; }
-                                            }
-                                        }
-                                    }
-                                    Text {
-                                        horizontal-stretch: 1;
-                                        text: m;
-                                        font-size: 12.5px;
-                                        font-weight: 600;
-                                        color: modele.actif ? Theme.accent : Theme.text-muted;
-                                        vertical-alignment: center;
-                                        overflow: elide;
-                                    }
-                                }
-                                mz := TouchArea {
-                                    mouse-cursor: pointer;
-                                    clicked => {
-                                        if ((i == 1) != SkinState.slim) {
-                                            SkinState.slim = i == 1;
-                                            SkinState.slim-changed();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // connexion, ou fichier à envoyer
-                        if !HomeState.premium: VerticalLayout {
-                            spacing: 8px;
-                            BodyText {
-                                text: Tr.t("Skin_Connexion");
-                                font-size: 12px;
-                            }
-                            MButton {
-                                text: Tr.t("Skin_Connecter");
-                                kind: 1;
-                                enabled: !HomeState.ms-busy;
-                                clicked => { HomeState.ms-clicked(); }
-                            }
-                        }
-                        if HomeState.premium: VerticalLayout {
-                            spacing: 6px;
-                            MButton {
-                                text: Tr.t("Skin_Appliquer");
-                                icon: "\u{E73E}";
-                                kind: 3;
-                                enabled: SkinState.has-file && !SkinState.busy;
-                                clicked => { SkinState.apply(); }
-                            }
-                            Text {
-                                text: SkinState.info != "" ? SkinState.info : SkinState.has-file ? SkinState.file-name : Tr.t("Skin_AucunFichier");
-                                font-size: 11.5px;
-                                color: SkinState.info != "" ? Theme.navy2 : Theme.text-muted;
-                                wrap: word-wrap;
-                            }
-                        }
-
-                        Rectangle {
-                            height: 1px;
-                            background: Theme.line;
-                        }
-
-                        // ── Mes skins ──
-                        PixelLabel {
-                            text: Tr.t("Skin_MesSkins");
-                            font-size: 11px;
-                            color: Theme.text-dim;
-                        }
-                        mes-skins := Rectangle {
-                            property <length> taille: (self.width - 12px) / 3;
-                            property <int> nombre: SkinState.history.length + 1;
-                            height: ceil(self.nombre / 3) * (self.taille + 6px) - 6px;
-                            for h[i] in SkinState.history: TeteSkin {
-                                x: Math.mod(i, 3) * (mes-skins.taille + 6px);
-                                y: floor(i / 3) * (mes-skins.taille + 6px);
-                                width: mes-skins.taille;
-                                height: mes-skins.taille;
-                                item: h;
-                                clicked => { SkinState.history-picked(h.id); }
-                            }
-                            // ajouter un skin (.png)
-                            Rectangle {
-                                x: Math.mod(SkinState.history.length, 3) * (mes-skins.taille + 6px);
-                                y: floor(SkinState.history.length / 3) * (mes-skins.taille + 6px);
-                                width: mes-skins.taille;
-                                height: mes-skins.taille;
-                                border-radius: 8px;
-                                background: ajout.has-hover ? Theme.glass : transparent;
-                                border-width: 2px;
-                                border-color: ajout.has-hover ? Theme.accent : Theme.glass-border;
-                                opacity: SkinState.busy ? 0.5 : 1;
-                                animate background, border-color { duration: Theme.fast; }
-                                Icon {
-                                    text: "\u{E710}";
-                                    font-size: 16px;
-                                    color: Theme.text-muted;
-                                }
-                                ajout := TouchArea {
-                                    enabled: !SkinState.busy;
-                                    mouse-cursor: pointer;
-                                    clicked => { SkinState.pick-file(); }
-                                }
-                            }
-                        }
-                        Text {
-                            text: Tr.t("Skin_Ajouter");
-                            font-size: 11px;
-                            color: Theme.text-dim;
-                        }
-                    }
-                }
-            }
-
-            // ═══ Au centre : le personnage ═══
+            // ═══ À gauche : le personnage, sur toute la hauteur ═══
             Scene3D {
                 horizontal-stretch: 1;
                 min-width: 300px;
                 preferred-width: 0px;
             }
-        }
 
-        // ═══ En bas : les cosmétiques, en carrousel ═══
-        Rectangle {
-            height: 214px;
-            border-radius: 12px;
-            background: Theme.panel;
-            border-width: 1px;
-            border-color: Theme.glass-border;
-            clip: true;
+            // ═══ À droite : la fiche du joueur, puis les cosmétiques ═══
             VerticalLayout {
-                padding: 12px;
-                padding-left: 14px;
-                spacing: 10px;
-                // catégories (défilent si la place manque : un fondu au bord droit le signale)
+                width: 340px;
+                spacing: 12px;
+
+                // ── la fiche du joueur et « Mes skins » (défile si elle est trop longue) ──
                 Rectangle {
-                    height: 30px;
-                    defile-cat := ScrollView {
-                        horizontal-scrollbar-policy: always-off;
-                        horizontal-stretch: 1;
-                        height: 30px;
-                        content-height: 30px;
-                        content-width: onglets.preferred-width;
-                        onglets := HorizontalLayout {
-                            spacing: 5px;
-                            for c[i] in root.categories: Rectangle {
-                                property <bool> actif: i == root.cat;
-                                height: 30px;
-                                width: nom.preferred-width + 20px;
-                                border-radius: 6px;
-                                background: self.actif ? Theme.fill : zc.has-hover ? Theme.glass-hover : Theme.glass-strong;
-                                border-width: 1px;
-                                border-color: self.actif ? Theme.fill : Theme.glass-border;
-                                animate background { duration: Theme.fast; }
-                                nom := Text {
-                                    text: c.nom;
-                                    font-size: 12px;
-                                    font-weight: 600;
-                                    color: parent.actif ? Theme.on-fill : Theme.navy;
+                    height: min(fiche.preferred-height, 240px);
+                    border-radius: 8px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.glass-border;
+                    clip: true;
+                    ScrollView {
+                        content-width: self.visible-width;
+                        content-height: fiche.preferred-height;
+                        fiche := VerticalLayout {
+                            width: parent.visible-width;
+                            padding: 14px;
+                            spacing: 10px;
+
+                            HorizontalLayout {
+                                spacing: 10px;
+                                Rectangle {
+                                    width: 44px;
+                                    height: 44px;
+                                    border-radius: 8px;
+                                    background: Theme.glass-strong;
+                                    border-width: 1px;
+                                    border-color: Theme.glass-border;
+                                    clip: true;
+                                    Image {
+                                        width: parent.width;
+                                        height: parent.height;
+                                        source: HomeState.has-avatar ? HomeState.avatar : Assets.logo;
+                                        image-fit: HomeState.has-avatar ? ImageFit.cover : ImageFit.contain;
+                                        image-rendering: HomeState.has-avatar ? ImageRendering.pixelated : ImageRendering.smooth;
+                                    }
                                 }
-                                zc := TouchArea {
-                                    mouse-cursor: pointer;
+                                VerticalLayout {
+                                    alignment: center;
+                                    Text {
+                                        text: HomeState.premium ? HomeState.premium-name : "Steve";
+                                        font-size: 17px;
+                                        font-weight: 800;
+                                        color: Theme.navy;
+                                        overflow: elide;
+                                    }
+                                    if SkinState.busy || SkinState.loading: Spinner {
+                                        height: 16px;
+                                        width: 16px;
+                                    }
+                                }
+                            }
+                            // modèle de bras : l'un sous l'autre, en pleine largeur (« Классический (Стив) »
+                            // ne tient pas à côté de l'autre), avec un bouton radio
+                            VerticalLayout {
+                                spacing: 6px;
+                                for m[i] in [Tr.t("Skin_Classique"), Tr.t("Skin_Fin")]: modele := Rectangle {
+                                    property <bool> actif: (i == 1) == SkinState.slim;
+                                    height: 30px;
+                                    border-radius: 8px;
+                                    background: self.actif ? Theme.accent-soft : mz.has-hover ? Theme.glass-hover : Theme.glass;
+                                    border-width: 1px;
+                                    border-color: self.actif ? Theme.accent : Theme.glass-border;
+                                    animate background, border-color { duration: Theme.fast; }
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 8px;
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Rectangle {
+                                                width: 14px;
+                                                height: 14px;
+                                                border-radius: 7px;
+                                                border-width: 1.5px;
+                                                border-color: modele.actif ? Theme.accent : Theme.text-dim;
+                                                Rectangle {
+                                                    width: modele.actif ? 6px : 0px;
+                                                    height: self.width;
+                                                    border-radius: self.width / 2;
+                                                    background: Theme.accent;
+                                                    animate width { duration: 200ms; easing: ease-out; }
+                                                }
+                                            }
+                                        }
+                                        Text {
+                                            horizontal-stretch: 1;
+                                            text: m;
+                                            font-size: 12.5px;
+                                            font-weight: 600;
+                                            color: modele.actif ? Theme.accent : Theme.text-muted;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                        }
+                                    }
+                                    mz := TouchArea {
+                                        mouse-cursor: pointer;
+                                        clicked => {
+                                            if ((i == 1) != SkinState.slim) {
+                                                SkinState.slim = i == 1;
+                                                SkinState.slim-changed();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // connexion, ou fichier à envoyer
+                            if !HomeState.premium: VerticalLayout {
+                                spacing: 8px;
+                                BodyText {
+                                    text: Tr.t("Skin_Connexion");
+                                    font-size: 12px;
+                                }
+                                MButton {
+                                    text: Tr.t("Skin_Connecter");
+                                    kind: 1;
+                                    enabled: !HomeState.ms-busy;
+                                    clicked => { HomeState.ms-clicked(); }
+                                }
+                            }
+                            if HomeState.premium: VerticalLayout {
+                                spacing: 6px;
+                                MButton {
+                                    text: Tr.t("Skin_Appliquer");
+                                    icon: "\u{E73E}";
+                                    kind: 3;
+                                    enabled: SkinState.has-file && !SkinState.busy;
+                                    clicked => { SkinState.apply(); }
+                                }
+                                Text {
+                                    text: SkinState.info != "" ? SkinState.info : SkinState.has-file ? SkinState.file-name : Tr.t("Skin_AucunFichier");
+                                    font-size: 11.5px;
+                                    color: SkinState.info != "" ? Theme.navy2 : Theme.text-muted;
+                                    wrap: word-wrap;
+                                }
+                            }
+
+                            Rectangle {
+                                height: 1px;
+                                background: Theme.line;
+                            }
+
+                            // ── Mes skins ──
+                            PixelLabel {
+                                text: Tr.t("Skin_MesSkins");
+                                font-size: 11px;
+                                color: Theme.text-dim;
+                            }
+                            mes-skins := Rectangle {
+                                property <length> taille: (self.width - 24px) / 5;
+                                property <int> nombre: SkinState.history.length + 1;
+                                height: ceil(self.nombre / 5) * (self.taille + 6px) - 6px;
+                                for h[i] in SkinState.history: TeteSkin {
+                                    x: Math.mod(i, 5) * (mes-skins.taille + 6px);
+                                    y: floor(i / 5) * (mes-skins.taille + 6px);
+                                    width: mes-skins.taille;
+                                    height: mes-skins.taille;
+                                    item: h;
+                                    clicked => { SkinState.history-picked(h.id); }
+                                }
+                                // ajouter un skin (.png)
+                                Rectangle {
+                                    x: Math.mod(SkinState.history.length, 5) * (mes-skins.taille + 6px);
+                                    y: floor(SkinState.history.length / 5) * (mes-skins.taille + 6px);
+                                    width: mes-skins.taille;
+                                    height: mes-skins.taille;
+                                    border-radius: 8px;
+                                    background: ajout.has-hover ? Theme.glass : transparent;
+                                    border-width: 2px;
+                                    border-color: ajout.has-hover ? Theme.accent : Theme.glass-border;
+                                    opacity: SkinState.busy ? 0.5 : 1;
+                                    animate background, border-color { duration: Theme.fast; }
+                                    Icon {
+                                        text: "\u{E710}";
+                                        font-size: 16px;
+                                        color: Theme.text-muted;
+                                    }
+                                    ajout := TouchArea {
+                                        enabled: !SkinState.busy;
+                                        mouse-cursor: pointer;
+                                        clicked => { SkinState.pick-file(); }
+                                    }
+                                }
+                            }
+                            Text {
+                                text: Tr.t("Skin_Ajouter");
+                                font-size: 11px;
+                                color: Theme.text-dim;
+                            }
+                        }
+                    }
+                }
+
+                // ── les cosmétiques : catégories, objets (défilent sur le côté), texte de la catégorie ──
+                Rectangle {
+                    vertical-stretch: 1;
+                    border-radius: 8px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.glass-border;
+                    clip: true;
+                    VerticalLayout {
+                        padding: 12px;
+                        padding-left: 14px;
+                        spacing: 10px;
+                        // catégories (défilent si la place manque : un fondu au bord droit le signale)
+                        Rectangle {
+                            height: 30px;
+                            defile-cat := ScrollView {
+                                horizontal-scrollbar-policy: always-off;
+                                horizontal-stretch: 1;
+                                height: 30px;
+                                content-height: 30px;
+                                content-width: onglets.preferred-width;
+                                onglets := HorizontalLayout {
+                                    spacing: 5px;
+                                    for c[i] in root.categories: Rectangle {
+                                        property <bool> actif: i == root.cat;
+                                        height: 30px;
+                                        width: nom.preferred-width + 20px;
+                                        border-radius: 6px;
+                                        background: self.actif ? Theme.fill : zc.has-hover ? Theme.glass-hover : Theme.glass-strong;
+                                        border-width: 1px;
+                                        border-color: self.actif ? Theme.fill : Theme.glass-border;
+                                        animate background { duration: Theme.fast; }
+                                        nom := Text {
+                                            text: c.nom;
+                                            font-size: 12px;
+                                            font-weight: 600;
+                                            color: parent.actif ? Theme.on-fill : Theme.navy;
+                                        }
+                                        zc := TouchArea {
+                                            mouse-cursor: pointer;
+                                            clicked => {
+                                                SkinState.category = i;
+                                                SkinState.focus = true;
+                                                SkinState.focus-count += 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // fondu : il reste des catégories à droite
+                            if onglets.preferred-width > defile-cat.visible-width + 2px - defile-cat.content-x: Rectangle {
+                                x: parent.width - self.width;
+                                width: 48px;
+                                background: @linear-gradient(90deg, Theme.panel.with-alpha(0) 0%, Theme.panel 100%);
+                                Icon {
+                                    x: parent.width - self.width - 2px;
+                                    text: "\u{E76C}";
+                                    font-size: 10px;
+                                    color: Theme.text-muted;
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            vertical-stretch: 1;
+                            spacing: 10px;
+                            // cases : capes Mojang (capes) puis l'article Misty, puis « bientôt »
+                            Rectangle {
+                            height: 112px;
+                            cases := ScrollView {
+                                property <length> taille: self.visible-height - 4px;
+                                property <int> nb-capes: root.cat == 0 ? SkinState.capes.length : 0;
+                                property <int> nb-misty: root.cat == 0 ? 2 : root.cat <= 2 ? 1 : 0;
+                                property <int> nb-total: max(6, self.nb-capes + self.nb-misty + 2);
+                                content-height: self.visible-height;
+                                content-width: self.nb-total * (self.taille + 8px);
+                                for c[i] in SkinState.capes: CaseCape {
+                                    visible: root.cat == 0;
+                                    x: i * (cases.taille + 8px);
+                                    y: 0;
+                                    width: cases.taille;
+                                    height: cases.taille;
+                                    name: c.name;
+                                    image: c.image;
+                                    has-image: c.has-image;
+                                    active: c.active && SkinState.misty-equip != 1 && SkinState.misty-equip != 3;
                                     clicked => {
-                                        SkinState.category = i;
-                                        SkinState.focus = true;
-                                        SkinState.focus-count += 1;
+                                        SkinState.misty-equip = 0;
+                                        SkinState.show-cape = true;
+                                        SkinState.select-cape(c.id);
+                                    }
+                                }
+                                if root.cat <= 2: CaseMisty {
+                                    x: cases.nb-capes * (cases.taille + 8px);
+                                    y: 0;
+                                    width: cases.taille;
+                                    height: cases.taille;
+                                    genre: root.cat == 0 ? 1 : root.cat == 1 ? 2 : 4;
+                                    text: root.cat == 0 ? Tr.t("Cos_CapeMisty") : root.cat == 1 ? Tr.t("Cos_ElytresMisty") : "Cloudly";
+                                }
+                                if root.cat == 0: CaseMisty {
+                                    x: (cases.nb-capes + 1) * (cases.taille + 8px);
+                                    y: 0;
+                                    width: cases.taille;
+                                    height: cases.taille;
+                                    genre: 3;
+                                    text: Tr.t("Cos_CapeEarly");
+                                }
+                                for b in cases.nb-total - cases.nb-capes - cases.nb-misty: CaseBientot {
+                                    x: (cases.nb-capes + cases.nb-misty + b) * (cases.taille + 8px);
+                                    y: 0;
+                                    width: cases.taille;
+                                    height: cases.taille;
+                                    icon: root.categories[root.cat].icon;
+                                }
+                            }
+                            // fondu : il reste des cartes à droite
+                            if cases.content-width > cases.visible-width + 2px - cases.content-x: Rectangle {
+                                x: parent.width - self.width;
+                                width: 56px;
+                                background: @linear-gradient(90deg, Theme.panel.with-alpha(0) 0%, Theme.panel 100%);
+                            }
+                            }
+
+                            // la catégorie, et l'article Misty équipé : où il se voit en jeu
+                            VerticalLayout {
+                                vertical-stretch: 1;
+                                spacing: 6px;
+                                // le nom de la catégorie, et le badge « Bientôt disponible » (point qui pulse)
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text {
+                                        horizontal-stretch: 1;
+                                        text: root.categories[root.cat].nom;
+                                        font-size: 15px;
+                                        font-weight: 700;
+                                        color: Theme.navy;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                    }
+                                    Rectangle {
+                                        width: badge.preferred-width + 30px;
+                                        height: 24px;
+                                        border-radius: 6px;
+                                        background: Theme.accent-soft;
+                                        border-width: 1px;
+                                        border-color: Theme.accent.with-alpha(0.45);
+                                        Rectangle {
+                                            x: 10px;
+                                            width: 6px;
+                                            height: 6px;
+                                            border-radius: 3px;
+                                            background: Theme.toggle-on;
+                                            opacity: 0.65 + 0.35 * sin((animation-tick() / 1600ms) * 360deg);
+                                        }
+                                        badge := PixelLabel {
+                                            x: 22px;
+                                            text: Tr.t("Skin_BientotDispo");
+                                            font-size: 11px;
+                                            color: Theme.accent;
+                                        }
+                                    }
+                                }
+                                // la description laisse sa place à l'avertissement de l'article équipé
+                                if SkinState.misty-equip == 0 && !SkinState.misty-hat: Text {
+                                    text: root.categories[root.cat].texte;
+                                    font-size: 12px;
+                                    color: Theme.text-muted;
+                                    overflow: elide;
+                                }
+                                // article Misty équipé : où il se voit en jeu (ou l'avertissement, sans Misty Client)
+                                if SkinState.misty-equip != 0 || SkinState.misty-hat: Rectangle {
+                                    min-height: av.preferred-height;
+                                    border-radius: 12px;
+                                    background: SkinState.misty-in-game ? Theme.accent-soft : Theme.dark ? #FFBE5A14 : #FFF1DC;
+                                    border-width: 1px;
+                                    border-color: SkinState.misty-in-game ? Theme.accent.with-alpha(0.35) : Theme.dark ? #FFBE5A59 : #F0B35E;
+                                    av := HorizontalLayout {
+                                        padding: 11px;
+                                        spacing: 10px;
+                                        Icon {
+                                            width: 16px;
+                                            vertical-alignment: top;
+                                            text: SkinState.misty-in-game ? "\u{E73E}" : "\u{E7BA}";
+                                            font-size: 14px;
+                                            color: SkinState.misty-in-game ? Theme.accent : #FFC56B;
+                                        }
+                                        Text {
+                                            horizontal-stretch: 1;
+                                            text: SkinState.misty-in-game ? Tr.t("Cos_EnJeu") + "\n" + Tr.t("Cos_EnJeu_Profil") + " Fabric " + SkinState.misty-mc : Tr.t("Cos_PasEnJeu");
+                                            font-size: 12px;
+                                            color: SkinState.misty-in-game ? Theme.text : Theme.dark ? #FFD99A : #6B4210;
+                                            wrap: word-wrap;
+                                            overflow: elide;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                    // fondu : il reste des catégories à droite
-                    if onglets.preferred-width > defile-cat.visible-width + 2px - defile-cat.content-x: Rectangle {
-                        x: parent.width - self.width;
-                        width: 48px;
-                        background: @linear-gradient(90deg, Theme.panel.with-alpha(0) 0%, Theme.panel 100%);
-                        Icon {
-                            x: parent.width - self.width - 2px;
-                            text: "\u{E76C}";
-                            font-size: 10px;
-                            color: Theme.text-muted;
-                        }
-                    }
                 }
-                HorizontalLayout {
-                    vertical-stretch: 1;
-                    spacing: 12px;
-                    // cases : capes Mojang (capes) puis l'article Misty, puis « bientôt »
-                    Rectangle {
-                    horizontal-stretch: 1;
-                    cases := ScrollView {
-                        property <length> taille: self.visible-height - 4px;
-                        property <int> nb-capes: root.cat == 0 ? SkinState.capes.length : 0;
-                        property <int> nb-misty: root.cat == 0 ? 2 : root.cat <= 2 ? 1 : 0;
-                        property <int> nb-total: max(6, self.nb-capes + self.nb-misty + 2);
-                        content-height: self.visible-height;
-                        content-width: self.nb-total * (self.taille + 8px);
-                        for c[i] in SkinState.capes: CaseCape {
-                            visible: root.cat == 0;
-                            x: i * (cases.taille + 8px);
-                            y: 0;
-                            width: cases.taille;
-                            height: cases.taille;
-                            name: c.name;
-                            image: c.image;
-                            has-image: c.has-image;
-                            active: c.active && SkinState.misty-equip != 1 && SkinState.misty-equip != 3;
-                            clicked => {
-                                SkinState.misty-equip = 0;
-                                SkinState.show-cape = true;
-                                SkinState.select-cape(c.id);
-                            }
-                        }
-                        if root.cat <= 2: CaseMisty {
-                            x: cases.nb-capes * (cases.taille + 8px);
-                            y: 0;
-                            width: cases.taille;
-                            height: cases.taille;
-                            genre: root.cat == 0 ? 1 : root.cat == 1 ? 2 : 4;
-                            text: root.cat == 0 ? Tr.t("Cos_CapeMisty") : root.cat == 1 ? Tr.t("Cos_ElytresMisty") : "Cloudly";
-                        }
-                        if root.cat == 0: CaseMisty {
-                            x: (cases.nb-capes + 1) * (cases.taille + 8px);
-                            y: 0;
-                            width: cases.taille;
-                            height: cases.taille;
-                            genre: 3;
-                            text: Tr.t("Cos_CapeEarly");
-                        }
-                        for b in cases.nb-total - cases.nb-capes - cases.nb-misty: CaseBientot {
-                            x: (cases.nb-capes + cases.nb-misty + b) * (cases.taille + 8px);
-                            y: 0;
-                            width: cases.taille;
-                            height: cases.taille;
-                            icon: root.categories[root.cat].icon;
-                        }
-                    }
-                    // fondu : il reste des cartes à droite
-                    if cases.content-width > cases.visible-width + 2px - cases.content-x: Rectangle {
-                        x: parent.width - self.width;
-                        width: 56px;
-                        background: @linear-gradient(90deg, Theme.panel.with-alpha(0) 0%, Theme.panel 100%);
-                    }
-                    }
 
-                    // la catégorie, et l'article Misty équipé : où il se voit en jeu
-                    VerticalLayout {
-                        width: 180px;
-                        spacing: 6px;
-                        // badge « Bientôt disponible », point qui pulse
-                        HorizontalLayout {
-                            alignment: start;
-                            Rectangle {
-                                width: badge.preferred-width + 30px;
-                                height: 24px;
-                                border-radius: 6px;
-                                background: Theme.accent-soft;
-                                border-width: 1px;
-                                border-color: Theme.accent.with-alpha(0.45);
-                                Rectangle {
-                                    x: 10px;
-                                    width: 6px;
-                                    height: 6px;
-                                    border-radius: 3px;
-                                    background: Theme.toggle-on;
-                                    opacity: 0.65 + 0.35 * sin((animation-tick() / 1600ms) * 360deg);
-                                }
-                                badge := PixelLabel {
-                                    x: 22px;
-                                    text: Tr.t("Skin_BientotDispo");
-                                    font-size: 11px;
-                                    color: Theme.accent;
-                                }
-                            }
-                        }
-                        Text {
-                            text: root.categories[root.cat].nom;
-                            font-size: 15px;
-                            font-weight: 700;
-                            color: Theme.navy;
-                        }
-                        // la description laisse sa place à l'avertissement de l'article équipé
-                        if SkinState.misty-equip == 0 && !SkinState.misty-hat: Text {
-                            text: root.categories[root.cat].texte;
-                            font-size: 12px;
-                            color: Theme.text-muted;
-                            wrap: word-wrap;
-                            overflow: elide;
-                            vertical-stretch: 1;
-                        }
-                        // article Misty équipé : où il se voit en jeu (ou l'avertissement, sans Misty Client)
-                        if SkinState.misty-equip != 0 || SkinState.misty-hat: Rectangle {
-                            min-height: av.preferred-height;
-                            border-radius: 12px;
-                            background: SkinState.misty-in-game ? Theme.accent-soft : Theme.dark ? #FFBE5A14 : #FFF1DC;
-                            border-width: 1px;
-                            border-color: SkinState.misty-in-game ? Theme.accent.with-alpha(0.35) : Theme.dark ? #FFBE5A59 : #F0B35E;
-                            av := HorizontalLayout {
-                                padding: 11px;
-                                spacing: 10px;
-                                Icon {
-                                    width: 16px;
-                                    vertical-alignment: top;
-                                    text: SkinState.misty-in-game ? "\u{E73E}" : "\u{E7BA}";
-                                    font-size: 14px;
-                                    color: SkinState.misty-in-game ? Theme.accent : #FFC56B;
-                                }
-                                Text {
-                                    horizontal-stretch: 1;
-                                    text: SkinState.misty-in-game ? Tr.t("Cos_EnJeu") + "\n" + Tr.t("Cos_EnJeu_Profil") + " Fabric " + SkinState.misty-mc : Tr.t("Cos_PasEnJeu");
-                                    font-size: 12px;
-                                    color: SkinState.misty-in-game ? Theme.text : Theme.dark ? #FFD99A : #6B4210;
-                                    wrap: word-wrap;
-                                    overflow: elide;
-                                }
-                            }
-                        }
-                    }
-                }
             }
-        }
     }
 }

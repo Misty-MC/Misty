@@ -14,7 +14,7 @@ component Pseudo inherits Rectangle {
     callback remove();
     height: 38px;
     width: t.preferred-width + 54px;
-    border-radius: 12px;
+    border-radius: 8px;
     background: Theme.glass-strong;
     border-width: 1px;
     border-color: Theme.glass-border;
@@ -45,7 +45,7 @@ component LigneCompte inherits Rectangle {
     callback use();
     callback forget();
     height: 48px;
-    border-radius: 12px;
+    border-radius: 8px;
     background: root.active ? Theme.accent-soft : survol.has-hover ? Theme.glass-hover : Theme.glass-strong;
     border-width: 1px;
     border-color: root.active ? Theme.accent : Theme.glass-border;
@@ -152,7 +152,7 @@ component LigneOnglet inherits Rectangle {
     in property <bool> verrouille;
     callback toggled(bool);
     height: 56px;
-    border-radius: 14px;
+    border-radius: 8px;
     background: survol.has-hover && !root.verrouille ? Theme.glass-hover : transparent;
     animate background { duration: Theme.fast; }
     survol := TouchArea {
@@ -169,7 +169,7 @@ component LigneOnglet inherits Rectangle {
             Rectangle {
                 width: 38px;
                 height: 38px;
-                border-radius: 12px;
+                border-radius: 8px;
                 background: root.checked ? Theme.accent-soft : Theme.glass-strong;
                 border-width: 1px;
                 border-color: root.checked ? Theme.accent.with-alpha(0.35) : Theme.glass-border;
@@ -219,7 +219,7 @@ component Valeur inherits Rectangle {
     in property <string> text;
     width: max(54px, v.preferred-width + 24px);
     height: 34px;
-    border-radius: 10px;
+    border-radius: 8px;
     background: Theme.glass-strong;
     border-width: 1px;
     border-color: Theme.glass-border;
@@ -284,7 +284,7 @@ component CarteTheme inherits Rectangle {
     callback clicked;
 
     height: 156px;
-    border-radius: 16px;
+    border-radius: 10px;
     background: Theme.glass-strong;
     border-width: root.checked ? 2px : 1px;
     border-color: root.checked ? Theme.accent : touch.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
@@ -402,7 +402,7 @@ component LigneLangue inherits Rectangle {
     in property <bool> checked;
     callback clicked;
     height: 46px;
-    border-radius: 12px;
+    border-radius: 8px;
     background: root.checked ? Theme.accent-soft : touch.has-hover ? Theme.glass-hover : transparent;
     border-width: 1px;
     border-color: root.checked ? Theme.accent : transparent;
@@ -472,7 +472,7 @@ component LigneLangue inherits Rectangle {
 /// Encadré d'avertissement (orange), comme celui de Modrinth sur la page des langues.
 component Avertissement inherits Rectangle {
     in property <string> text;
-    border-radius: 14px;
+    border-radius: 10px;
     background: Theme.dark ? #3A2A12 : #FFF1DC;
     border-width: 1px;
     border-color: Theme.dark ? #F2A33C : #F0B35E;
