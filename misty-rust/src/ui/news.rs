@@ -96,11 +96,14 @@ async fn telecharger_image(app: &App, url: String) -> Option<Image> {
 
 async fn depuis_github() -> anyhow::Result<Vec<News>> {
     let docs: Vec<serde_json::Value> = http::get_json(&format!(
-        "https://api.github.com/repos/{}/releases?per_page={NOMBRE}",
+        "https://api.github.com/repos/{}/releases?per_page=20",
         app_info::GITHUB_REPO
     ))
     .await?;
-    Ok(docs.iter().filter_map(depuis_release).take(NOMBRE).collect())
+    // l'API ne les renvoie pas toujours dans l'ordre de publication (préversions) : la plus récente d'abord
+    let mut releases: Vec<&serde_json::Value> = docs.iter().collect();
+    releases.sort_by(|a, b| b["published_at"].as_str().unwrap_or("").cmp(a["published_at"].as_str().unwrap_or("")));
+    Ok(releases.into_iter().filter_map(depuis_release).take(NOMBRE).collect())
 }
 
 fn depuis_release(doc: &serde_json::Value) -> Option<News> {
