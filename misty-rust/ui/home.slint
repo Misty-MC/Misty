@@ -1,172 +1,123 @@
-// Page d'accueil : choix du compte, du profil (ou jeu rapide : version + mod loader) et lancement du jeu.
+// Page d'accueil, volontairement épurée : le paysage, le titre MISTY et une ligne, la dernière news
+// en petite pastille, et en bas un dock flottant (compte · version ou profil · console · JOUER).
+// Le statut et la progression se glissent sous le dock. En haut à droite : Jouer | Skin.
 
-import { Theme, Tr, Assets } from "theme.slint";
+import { Theme, Tr } from "theme.slint";
 import { HomeState, AppState } from "state.slint";
-import { Icon, PixelLabel, BodyText, OutlinedText, GlassCard, Thumb, IconButton, PlayButton, GlassCombo, SlimProgress } from "widgets.slint";
+import { Icon, PixelLabel, OutlinedText, Thumb, IconButton, PlayButton, GlassCombo } from "widgets.slint";
 import { ConsoleState } from "console.slint";
 import { SkinState, SkinPanel } from "skin.slint";
 
-/// Onglet vertical (« JOUER », « SKIN ») : le texte est écrit de haut en bas.
-component VTab inherits Rectangle {
-    in property <string> text;
-    in property <bool> active;
-    callback clicked;
+/// Sélecteur « Jouer | Skin » : deux segments, une pastille qui glisse sous le choisi.
+component Bascule inherits Rectangle {
+    property <length> segment: max(jouer.preferred-width, skin.preferred-width) + 36px;
+    width: 2 * root.segment + 8px;
+    height: 40px;
+    border-radius: 20px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.glass-border;
 
-    width: 64px;
-    height: lab.preferred-width + 20px;
-    opacity: root.active ? 1 : touch.has-hover ? 0.85 : 0.5;
-    animate opacity { duration: 150ms; }
-
-    // La rotation s'applique à un rectangle qui contient le texte
-    // (elle est ignorée sur l'élément racine d'un composant)
     Rectangle {
-        width: lab.preferred-width;
-        height: lab.preferred-height;
-        x: 36px - self.width / 2;
-        y: (parent.height - self.height) / 2;
-        transform-rotation: 90deg;
-        lab := OutlinedText {
-            text: root.text;
-            font-size: 30px;
-            thickness: 3px;
-            depth: 4px;
+        x: 4px + (SkinState.tab == 1 ? root.segment : 0px);
+        y: 4px;
+        width: root.segment;
+        height: parent.height - 8px;
+        border-radius: self.height / 2;
+        background: Theme.fill;
+        animate x { duration: 320ms; easing: cubic-bezier(0.34, 1.3, 0.64, 1); }
+    }
+    jouer := PixelLabel {
+        x: 4px;
+        width: root.segment;
+        text: Tr.t("Home_Bouton_Jouer");
+        font-size: 12px;
+        horizontal-alignment: center;
+        color: SkinState.tab == 0 ? Theme.on-fill : Theme.navy;
+        animate color { duration: Theme.normal; }
+    }
+    skin := PixelLabel {
+        x: 4px + root.segment;
+        width: root.segment;
+        text: Tr.t("Skin_Onglet");
+        font-size: 12px;
+        horizontal-alignment: center;
+        color: SkinState.tab == 1 ? Theme.on-fill : Theme.navy;
+        animate color { duration: Theme.normal; }
+    }
+    TouchArea {
+        x: 0;
+        width: parent.width / 2;
+        mouse-cursor: pointer;
+        clicked => {
+            SkinState.tab = 0;
+            AppState.nav = 0;
         }
     }
-    // la zone cliquable ne tourne pas
-    touch := TouchArea {
+    TouchArea {
+        x: parent.width / 2;
+        width: parent.width / 2;
         mouse-cursor: pointer;
-        clicked => { root.clicked(); }
+        clicked => {
+            SkinState.tab = 1;
+            AppState.nav = 7;
+            SkinState.open();
+        }
     }
 }
 
-component Chip inherits Rectangle {
-    in property <string> text;
-    height: 28px;
-    width: t.preferred-width + 20px;
-    border-radius: 10px;
-    background: Theme.glass;
-    border-width: 1.5px;
-    border-color: Theme.glass-border;
-    t := PixelLabel {
-        text: root.text;
-        font-size: 11px;
-        color: Theme.navy;
-        horizontal-alignment: center;
-    }
-}
-
-/// Carte « Dernières news » : une seule actualité, sous le titre (là où l'œil va après MISTY).
-component NewsCard inherits Rectangle {
+/// La dernière news en une ligne : point, titre, date, flèche.
+component PastilleNews inherits Rectangle {
     property <bool> survol: touch.has-hover;
-    height: 92px;
-    min-width: 380px;
-    max-width: 460px;
-
-    carte := Rectangle {
-        y: root.survol ? -2px : 0px;
-        height: parent.height;
-        border-radius: 18px;
-        background: root.survol ? Theme.panel-strong : Theme.panel;
-        border-width: 1px;
-        border-color: root.survol ? Theme.accent.with-alpha(0.7) : Theme.glass-border;
-        drop-shadow-blur: root.survol ? 22px : 0px;
-        drop-shadow-offset-y: 6px;
-        drop-shadow-color: Theme.accent.with-alpha(0.22);
-        transform-scale: touch.pressed ? 0.98 : 1;
-        animate y, drop-shadow-blur { duration: 220ms; easing: ease-out; }
-        animate background, border-color { duration: Theme.normal; }
-        animate transform-scale { duration: 140ms; easing: ease-out; }
-
-        HorizontalLayout {
-            padding: 12px;
-            padding-right: 14px;
-            spacing: 14px;
-
-            // vignette : le nuage sur un dégradé de l'accent
+    height: 38px;
+    width: contenu.preferred-width;
+    border-radius: 19px;
+    background: root.survol ? Theme.panel-strong : Theme.panel;
+    border-width: 1px;
+    border-color: root.survol ? Theme.accent.with-alpha(0.6) : Theme.glass-border;
+    animate background, border-color { duration: Theme.normal; }
+    contenu := HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 6px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
             Rectangle {
-                width: 68px;
-                height: 68px;
-                border-radius: 14px;
-                background: Theme.dark ? @linear-gradient(145deg, Theme.fill-hover 0%, Theme.fill-lip 100%) : @linear-gradient(145deg, #2A3347 0%, #1C2335 100%);
-                clip: true;
-                // reflet qui passe au survol
-                Rectangle {
-                    x: root.survol ? 80px : -40px;
-                    width: 24px;
-                    background: #FFFFFF26;
-                    transform-rotation: 20deg;
-                    animate x { duration: 600ms; easing: ease-out; }
-                }
-                Image {
-                    width: 42px;
-                    height: 42px;
-                    source: Assets.logo;
-                    image-fit: contain;
-                }
+                width: 7px;
+                height: 7px;
+                border-radius: 3.5px;
+                background: Theme.accent;
             }
-
-            VerticalLayout {
-                horizontal-stretch: 1;
-                alignment: center;
-                spacing: 3px;
-                HorizontalLayout {
-                    spacing: 8px;
-                    VerticalLayout {
-                        alignment: center;
-                        // point qui « pulse » : il y a du nouveau
-                        Rectangle {
-                            width: 7px;
-                            height: 7px;
-                            border-radius: 3.5px;
-                            background: Theme.accent;
-                            opacity: 0.55 + 0.45 * sin((animation-tick() / 1600ms) * 360deg);
-                        }
-                    }
-                    PixelLabel {
-                        text: Tr.t("Home_News");
-                        font-size: 10px;
-                        color: Theme.accent;
-                    }
-                    Text {
-                        horizontal-stretch: 1;
-                        text: HomeState.news-date;
-                        font-size: 11px;
-                        color: Theme.text-muted;
-                        horizontal-alignment: right;
-                        vertical-alignment: center;
-                    }
-                }
-                Text {
-                    text: HomeState.news-title;
-                    font-size: 15px;
-                    font-weight: 700;
-                    color: Theme.navy;
-                    overflow: elide;
-                }
-                Text {
-                    text: HomeState.news-text;
-                    font-size: 12.5px;
-                    color: Theme.text-muted;
-                    overflow: elide;
-                }
-            }
-
-            // flèche qui avance au survol
-            VerticalLayout {
-                alignment: center;
-                Rectangle {
-                    width: 30px;
-                    height: 30px;
-                    border-radius: 15px;
-                    background: root.survol ? Theme.fill : Theme.glass-strong;
-                    animate background { duration: Theme.normal; }
-                    Icon {
-                        x: (parent.width - self.width) / 2 + (root.survol ? 2px : 0px);
-                        text: "\u{E72A}";
-                        font-size: 11px;
-                        color: root.survol ? Theme.on-fill : Theme.navy;
-                        animate x { duration: 220ms; easing: ease-out; }
-                    }
+        }
+        Text {
+            text: HomeState.news-title;
+            font-size: 13px;
+            font-weight: 700;
+            color: Theme.navy;
+            vertical-alignment: center;
+            max-width: 300px;
+            overflow: elide;
+        }
+        if HomeState.news-date != "": Text {
+            text: HomeState.news-date;
+            font-size: 12px;
+            color: Theme.text-muted;
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 26px;
+                height: 26px;
+                border-radius: 13px;
+                background: root.survol ? Theme.fill : transparent;
+                animate background { duration: Theme.normal; }
+                Icon {
+                    x: (parent.width - self.width) / 2 + (root.survol ? 1px : 0px);
+                    text: "\u{E72A}";
+                    font-size: 10px;
+                    color: root.survol ? Theme.on-fill : Theme.navy;
+                    animate x { duration: 200ms; easing: ease-out; }
                 }
             }
         }
@@ -177,469 +128,262 @@ component NewsCard inherits Rectangle {
     }
 }
 
-component Label inherits PixelLabel {
-    font-size: 10px;
-    x: 4px;
+/// Séparateur vertical du dock.
+component Trait inherits Rectangle {
+    width: 1px;
+    height: 34px;
+    background: Theme.line;
 }
 
-/// Carte de la version choisie : le nuage (ou l'icône du profil) qui flotte, et en bas un bandeau
-/// en verre avec l'étiquette, le numéro de version et le loader.
-component VersionCard inherits Rectangle {
-    width: 330px;
-    height: 350px;
-
-    // Le nuage flotte doucement (sinus sur l'horloge des animations)
-    property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
-
-    Rectangle {
-        border-radius: 28px;
-        clip: true;
-        background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 38%, #161C2B 100%);
-        border-width: 1px;
-        border-color: #FFFFFF2E;
-        drop-shadow-blur: 22px;
-        drop-shadow-offset-y: 8px;
-        drop-shadow-color: Theme.shadow;
-
-        // nuage (ou icône du profil)
-        Image {
-            x: (parent.width - self.width) / 2;
-            y: 46px + 7px * root.onde;
-            width: 140px;
-            height: 140px;
-            source: HomeState.has-card-icon ? HomeState.card-icon : Assets.logo;
-            image-fit: contain;
-            image-rendering: ImageRendering.smooth;
+/// Bouton qui ouvre la fenêtre de choix : icône, petite étiquette, et la version ou le profil.
+component Choix inherits Rectangle {
+    property <bool> actif: HomeState.selectors-enabled;
+    min-width: 180px;
+    height: 52px;
+    border-radius: 16px;
+    background: zone.has-hover && root.actif ? Theme.glass-hover : transparent;
+    opacity: root.actif ? 1 : 0.55;
+    animate background { duration: Theme.fast; }
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 36px;
+                height: 36px;
+                border-radius: 11px;
+                background: HomeState.horizon-selected ? #F0795A29 : Theme.accent-soft;
+                Icon {
+                    text: HomeState.horizon-selected ? "\u{E945}" : HomeState.misty-selected && HomeState.quick ? "\u{E753}" : HomeState.quick ? "\u{E7FC}" : "\u{E8F1}";
+                    font-size: 15px;
+                    color: HomeState.horizon-selected ? #F0795A : Theme.accent;
+                }
+            }
         }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+            PixelLabel {
+                text: HomeState.horizon-selected ? Tr.t("Hz_Moteur") : HomeState.misty-selected && HomeState.quick ? "MISTY CLIENT" : HomeState.quick ? Tr.t("Commun_Version") : Tr.t("Home_Profil");
+                font-size: 9.5px;
+                color: Theme.text-dim;
+                overflow: elide;
+            }
+            Text {
+                text: HomeState.horizon-selected ? "Horizon · " + HomeState.horizon-build
+                    : HomeState.misty-selected && HomeState.quick ? "Misty · " + HomeState.misty-mc
+                    : HomeState.quick ? HomeState.card-version + " · " + HomeState.card-loader
+                    : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
+                font-size: 14.5px;
+                font-weight: 700;
+                color: Theme.navy;
+                overflow: elide;
+            }
+        }
+        Icon {
+            text: "\u{E70D}";
+            font-size: 10px;
+            color: Theme.text-muted;
+        }
+    }
+    zone := TouchArea {
+        enabled: root.actif;
+        mouse-cursor: pointer;
+        clicked => {
+            HomeState.picker-tab = HomeState.quick || HomeState.horizon-selected ? 0 : 1;
+            HomeState.picker-horizon = HomeState.horizon-selected;
+            HomeState.picker-misty = HomeState.misty-selected && HomeState.quick && !HomeState.horizon-selected;
+            HomeState.picker-open = true;
+            if (HomeState.horizon-selected) {
+                HomeState.horizon-refresh();
+            }
+        }
+    }
+}
 
-        // bandeau : étiquette, version et loader
+/// Compte : avatar, liste des comptes (ou le compte Microsoft seul), ajouter un compte Microsoft.
+component Compte inherits HorizontalLayout {
+    spacing: 10px;
+    VerticalLayout {
+        alignment: center;
+        Thumb {
+            width: 44px;
+            height: 44px;
+            radius: 13px;
+            border: 2px;
+            logo-margin: 8px;
+            logo-opacity: 1;
+            source: HomeState.avatar;
+            has-image: HomeState.has-avatar;
+            pixel-art: true;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
         Rectangle {
-            x: 14px;
-            y: parent.height - self.height - 14px;
-            width: parent.width - 28px;
-            height: infos.preferred-height;
-            border-radius: 18px;
-            background: #0A0F1D80;
-            border-width: 1px;
-            border-color: #FFFFFF1A;
-            infos := VerticalLayout {
-                padding-left: 18px;
-                padding-right: 16px;
-                padding-top: 14px;
-                padding-bottom: 14px;
-                spacing: 8px;
+            width: 150px;
+            height: 42px;
+            // comptes Microsoft et hors ligne dans la même liste : on choisit, on joue
+            if HomeState.all-accounts.length > 1: GlassCombo {
+                model: HomeState.all-accounts;
+                current-index <=> HomeState.all-index;
+                enabled: !HomeState.ms-busy;
+                selected(i) => { HomeState.all-selected(i); }
+            }
+            if HomeState.all-accounts.length <= 1 && !HomeState.premium: GlassCombo {
+                model: HomeState.accounts;
+                current-index <=> HomeState.account-index;
+                selected(i) => { HomeState.account-selected(i); }
+            }
+            if HomeState.all-accounts.length <= 1 && HomeState.premium: Rectangle {
+                border-radius: 12px;
+                background: Theme.glass-strong;
+                border-width: 1px;
+                border-color: Theme.glass-border;
                 HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
                     spacing: 8px;
-                    VerticalLayout {
-                        alignment: center;
-                        Rectangle {
-                            width: 6px;
-                            height: 6px;
-                            border-radius: 3px;
-                            background: Theme.dark ? Theme.accent : #9CC0FF;
-                        }
+                    Icon {
+                        text: "\u{E73E}";
+                        color: Theme.toggle-on;
+                        font-size: 12px;
                     }
-                    PixelLabel {
-                        horizontal-stretch: 1;
-                        text: HomeState.card-label;
-                        font-size: 10.5px;
-                        color: #FFFFFFA6;
+                    Text {
+                        text: HomeState.premium-name;
+                        color: Theme.navy;
+                        font-weight: 600;
+                        font-size: 13px;
+                        vertical-alignment: center;
                         overflow: elide;
                     }
                 }
-                // numéro de version, puis le loader dans sa pastille (« 26.3  VANILLA »)
-                HorizontalLayout {
-                    spacing: 12px;
-                    alignment: start;
-                    OutlinedText {
-                        text: HomeState.card-version;
-                        font-size: 32px;
-                        // contour toujours foncé : le chiffre reste net sur la carte, en clair comme en sombre
-                        stroke-color: #141B2B;
-                        shadow: #0A0E18;
-                        thickness: 3px;
-                        depth: 3px;
-                    }
-                    VerticalLayout {
-                        alignment: center;
-                        Rectangle {
-                            height: 24px;
-                            width: chargeur.preferred-width + 18px;
-                            border-radius: 8px;
-                            background: #9CC0FF29;
-                            border-width: 1px;
-                            border-color: #9CC0FF59;
-                            chargeur := PixelLabel {
-                                text: HomeState.card-loader;
-                                font-size: 11px;
-                                color: #CFE0FF;
-                                horizontal-alignment: center;
-                            }
-                        }
-                    }
-                }
             }
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        IconButton {
+            width: 42px;
+            height: 42px;
+            icon: "\u{E8FA}";
+            tooltip: HomeState.ms-names.length > 0 ? Tr.t("Home_AjouterMicrosoft") : Tr.t("Home_ConnecterMicrosoft");
+            enabled: !HomeState.ms-busy;
+            clicked => { HomeState.ms-clicked(); }
         }
     }
 }
 
 export component HomePage inherits Rectangle {
     VerticalLayout {
-        padding-left: 26px;
+        padding-left: 30px;
         padding-right: 30px;
-        padding-bottom: 26px;
-        spacing: 20px;
+        padding-bottom: 22px;
+        spacing: 0px;
 
-        // ═══════════ Héros ═══════════
+        // ═══════════ En haut : Jouer | Skin ═══════════
         HorizontalLayout {
-            vertical-stretch: 1;
-            min-height: 480px;
-            spacing: 0px;
+            alignment: end;
+            padding-bottom: 6px;
+            Bascule { }
+        }
 
-            if SkinState.tab == 0: VerticalLayout {
-                alignment: center;
-                padding-left: 14px;
-                spacing: 0px;
-                HorizontalLayout {
-                    alignment: start;
-                    padding-left: 6px;
-                    padding-bottom: 14px;
-                    Rectangle {
-                        border-radius: 10px;
-                        background: #1C233540;
-                        width: badge.preferred-width + 24px;
-                        height: badge.preferred-height + 12px;
-                        badge := PixelLabel {
-                            text: Tr.t("Home_Badge");
-                            color: white;
-                            font-size: 12px;
-                            horizontal-alignment: center;
-                        }
-                    }
+        // ═══════════ Le titre, ou la skin ═══════════
+        if SkinState.tab == 0: VerticalLayout {
+            vertical-stretch: 1;
+            alignment: center;
+            padding-left: 18px;
+            padding-bottom: 30px;
+            spacing: 0px;
+            HorizontalLayout {
+                alignment: start;
+                OutlinedText {
+                    text: "MISTY";
+                    font-size: 104px;
+                    thickness: 5px;
+                    depth: 8px;
                 }
-                HorizontalLayout {
-                    alignment: start;
-                    OutlinedText {
-                        text: "MISTY";
-                        font-size: 128px;
-                        thickness: 6px;
-                        depth: 9px;
-                    }
-                }
-                BodyText {
-                    text: Tr.t("Home_txt-1") + "\n" + Tr.t("Home_txt-2");
+            }
+            HorizontalLayout {
+                padding-left: 6px;
+                Text {
+                    text: Tr.t("Home_txt-1") + " " + Tr.t("Home_txt-2");
                     font-size: 16px;
                     color: Theme.navy2;
-                    max-width: 420px;
-                    x: 8px;
-                }
-                HorizontalLayout {
-                    alignment: start;
-                    padding-left: 6px;
-                    padding-top: 20px;
-                    spacing: 8px;
-                    Chip { text: "FORGE"; }
-                    Chip { text: "NEOFORGE"; }
-                    Chip { text: "FABRIC"; }
-                    Chip { text: "QUILT"; }
-                    Chip { text: "OPTIFINE"; }
-                    Chip { text: "LITELOADER"; }
-                }
-                if HomeState.news-visible: HorizontalLayout {
-                    alignment: start;
-                    padding-left: 6px;
-                    padding-top: 22px;
-                    NewsCard {
-                        width: 440px;
-                        opacity: 0;
-                        animate opacity { duration: 500ms; easing: ease-out; }
-                        init => { self.opacity = 1; }
-                    }
+                    wrap: word-wrap;
+                    max-width: 520px;
                 }
             }
-
-            if SkinState.tab == 0: Rectangle { horizontal-stretch: 1; }
-
-            // Onglet « Jouer » : la carte de la version
-            if SkinState.tab == 0: VerticalLayout {
-                alignment: center;
-                VersionCard { }
+            if HomeState.news-visible: HorizontalLayout {
+                alignment: start;
+                padding-left: 4px;
+                padding-top: 22px;
+                PastilleNews { }
             }
-
-            // Onglet « Skin » : aperçu, skin et capes
-            if SkinState.tab == 1: VerticalLayout {
-                horizontal-stretch: 1;
-                padding-top: 4px;
-                padding-bottom: 4px;
-                SkinPanel {
-                    vertical-stretch: 1;
-                }
-            }
-
-            // Onglets écrits à la verticale, tout à droite
-            VerticalLayout {
-                alignment: center;
-                Rectangle {
-                    width: 64px;
-                    height: 350px;
-                    VerticalLayout {
-                        alignment: start;
-                        spacing: 16px;
-                        VTab {
-                            text: Tr.t("Home_Bouton_Jouer");
-                            active: SkinState.tab == 0;
-                            clicked => {
-                                SkinState.tab = 0;
-                                AppState.nav = 0;
-                            }
-                        }
-                        VTab {
-                            text: Tr.t("Skin_Onglet");
-                            active: SkinState.tab == 1;
-                            clicked => {
-                                SkinState.tab = 1;
-                                AppState.nav = 7;
-                                SkinState.open();
-                            }
-                        }
-                    }
-                }
+        }
+        if SkinState.tab == 1: VerticalLayout {
+            vertical-stretch: 1;
+            padding-top: 8px;
+            padding-bottom: 18px;
+            SkinPanel {
+                vertical-stretch: 1;
             }
         }
 
-        // ═══════════ Barre de lancement ═══════════
-        GlassCard {
+        // ═══════════ Le dock ═══════════
+        Rectangle {
+            vertical-stretch: 0;
+            height: 76px;
             border-radius: 26px;
             background: Theme.panel;
-            // La barre garde sa hauteur naturelle : c'est le héros au-dessus qui prend la place libre
-            vertical-stretch: 0;
-            height: barre.preferred-height;
-            barre := HorizontalLayout {
-                padding-left: 18px;
-                padding-right: 18px;
-                padding-top: 16px;
-                padding-bottom: 16px;
-                spacing: 24px;
+            border-width: 1px;
+            border-color: Theme.glass-border;
+            drop-shadow-blur: 26px;
+            drop-shadow-offset-y: 10px;
+            drop-shadow-color: Theme.shadow;
 
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    spacing: 16px;
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 12px;
+                spacing: 14px;
 
-                    HorizontalLayout {
-                        alignment: start;
-                        spacing: 0px;
-
-                        // Compte
-                        HorizontalLayout {
-                            spacing: 12px;
-                            VerticalLayout {
-                                alignment: end;
-                                Thumb {
-                                    width: 58px;
-                                    height: 58px;
-                                    radius: 16px;
-                                    border: 2.5px;
-                                    logo-margin: 10px;
-                                    logo-opacity: 1;
-                                    source: HomeState.avatar;
-                                    has-image: HomeState.has-avatar;
-                                    pixel-art: true;
-                                }
-                            }
-                            VerticalLayout {
-                                alignment: end;
-                                spacing: 6px;
-                                Label { text: Tr.t("Home_Compte") + "  ·  " + (HomeState.premium ? "MICROSOFT" : Tr.t("Home_Compte_HorsLigne")); }
-                                HorizontalLayout {
-                                    spacing: 8px;
-                                    Rectangle {
-                                        width: 140px;
-                                        height: 44px;
-                                        // comptes Microsoft et hors ligne dans la même liste : on choisit, on joue
-                                        if HomeState.all-accounts.length > 1: GlassCombo {
-                                            model: HomeState.all-accounts;
-                                            current-index <=> HomeState.all-index;
-                                            enabled: !HomeState.ms-busy;
-                                            selected(i) => { HomeState.all-selected(i); }
-                                        }
-                                        if HomeState.all-accounts.length <= 1 && !HomeState.premium: GlassCombo {
-                                            model: HomeState.accounts;
-                                            current-index <=> HomeState.account-index;
-                                            selected(i) => { HomeState.account-selected(i); }
-                                        }
-                                        if HomeState.all-accounts.length <= 1 && HomeState.premium: Rectangle {
-                                            border-radius: 12px;
-                                            background: Theme.dark ? #162140 : #1C2335;
-                                            HorizontalLayout {
-                                                padding-left: 12px;
-                                                padding-right: 12px;
-                                                spacing: 8px;
-                                                Icon {
-                                                    text: "\u{E73E}";
-                                                    color: Theme.green;
-                                                    font-size: 13px;
-                                                }
-                                                Text {
-                                                    text: HomeState.premium-name;
-                                                    color: white;
-                                                    font-family: Theme.ui-font;
-                                                    font-weight: 600;
-                                                    font-size: 13px;
-                                                    vertical-alignment: center;
-                                                    overflow: elide;
-                                                }
-                                            }
-                                        }
-                                    }
-                                    IconButton {
-                                        width: 44px;
-                                        height: 44px;
-                                        icon: "\u{E8FA}";
-                                        tooltip: HomeState.ms-names.length > 0 ? Tr.t("Home_AjouterMicrosoft") : Tr.t("Home_ConnecterMicrosoft");
-                                        enabled: !HomeState.ms-busy;
-                                        clicked => { HomeState.ms-clicked(); }
-                                    }
-                                }
-                            }
-                        }
-
-                        Rectangle { width: 22px; }
-
-                        // Version ou profil : un seul bouton, qui ouvre la grande fenêtre de choix
-                        VerticalLayout {
-                            alignment: end;
-                            spacing: 6px;
-                            Label { text: HomeState.horizon-selected ? Tr.t("Hz_Moteur") : HomeState.misty-selected && HomeState.quick ? "MISTY CLIENT" : HomeState.quick ? Tr.t("Commun_Version") : Tr.t("Home_Profil"); }
-                            HorizontalLayout {
-                                spacing: 8px;
-                                choix := Rectangle {
-                                    width: 300px;
-                                    height: 44px;
-                                    border-radius: 12px;
-                                    background: zone-choix.has-hover && HomeState.selectors-enabled ? Theme.glass-hover : Theme.glass-strong;
-                                    border-width: 1px;
-                                    border-color: zone-choix.has-hover && HomeState.selectors-enabled ? Theme.accent : Theme.glass-border;
-                                    opacity: HomeState.selectors-enabled ? 1 : 0.55;
-                                    animate background, border-color { duration: Theme.fast; }
-                                    HorizontalLayout {
-                                        padding-left: 14px;
-                                        padding-right: 12px;
-                                        spacing: 10px;
-                                        VerticalLayout {
-                                            alignment: center;
-                                            Icon {
-                                                text: HomeState.horizon-selected ? "\u{E945}" : HomeState.misty-selected && HomeState.quick ? "\u{E753}" : HomeState.quick ? "\u{E7FC}" : "\u{E8F1}";
-                                                font-size: 14px;
-                                                color: HomeState.horizon-selected ? #F0795A : Theme.accent;
-                                            }
-                                        }
-                                        Text {
-                                            horizontal-stretch: 1;
-                                            text: HomeState.horizon-selected ? "HORIZON  ·  " + HomeState.horizon-build : HomeState.misty-selected && HomeState.quick ? "MISTY  ·  " + HomeState.misty-mc : HomeState.quick ? HomeState.card-version + "  ·  " + HomeState.card-loader : (HomeState.profile-index >= 0 && HomeState.profile-index < HomeState.profiles.length ? HomeState.profiles[HomeState.profile-index] : "");
-                                            font-size: 14px;
-                                            font-weight: 700;
-                                            color: Theme.navy;
-                                            vertical-alignment: center;
-                                            overflow: elide;
-                                        }
-                                        Icon {
-                                            text: "\u{E70D}";
-                                            font-size: 10px;
-                                            color: Theme.text-muted;
-                                        }
-                                    }
-                                    zone-choix := TouchArea {
-                                        enabled: HomeState.selectors-enabled;
-                                        mouse-cursor: pointer;
-                                        clicked => {
-                                            HomeState.picker-tab = HomeState.quick || HomeState.horizon-selected ? 0 : 1;
-                                            HomeState.picker-horizon = HomeState.horizon-selected;
-                                            HomeState.picker-misty = HomeState.misty-selected && HomeState.quick && !HomeState.horizon-selected;
-                                            HomeState.picker-open = true;
-                                            if (HomeState.horizon-selected) {
-                                                HomeState.horizon-refresh();
-                                            }
-                                        }
-                                    }
-                                }
-                                // profil : gérer son contenu
-                                if !HomeState.quick: IconButton {
-                                    width: 44px;
-                                    height: 44px;
-                                    icon: "\u{E70F}";
-                                    tooltip: Tr.t("Home_Gerer");
-                                    clicked => { HomeState.manage(); }
-                                }
-                            }
-                        }
-                    }
-
-                    // Statut / progression
-                    VerticalLayout {
-                        spacing: 8px;
-                        padding-left: 2px;
-                        HorizontalLayout {
-                            spacing: 10px;
-                            Text {
-                                horizontal-stretch: 1;
-                                text: HomeState.status;
-                                font-family: Theme.ui-font;
-                                font-size: 13px;
-                                font-weight: 600;
-                                color: Theme.navy2;
-                                overflow: elide;
-                            }
-                            PixelLabel {
-                                text: HomeState.percent-text;
-                                font-size: 11px;
-                                vertical-alignment: center;
-                            }
-                            // mauvaise version lancée par erreur : on arrête le téléchargement
-                            if HomeState.can-cancel: Rectangle {
-                                width: annuler.preferred-width + 18px;
-                                height: 22px;
-                                border-radius: 7px;
-                                background: zone-annuler.has-hover ? #FF5A6E33 : #FF5A6E1F;
-                                border-width: 1px;
-                                border-color: #FF5A6E66;
-                                annuler := HorizontalLayout {
-                                    alignment: center;
-                                    spacing: 5px;
-                                    Icon {
-                                        text: "\u{E711}";
-                                        font-size: 9px;
-                                        color: Theme.danger;
-                                        vertical-alignment: center;
-                                    }
-                                    Text {
-                                        text: Tr.t("Commun_Annuler");
-                                        font-family: Theme.ui-font;
-                                        font-size: 11.5px;
-                                        font-weight: 700;
-                                        color: Theme.danger;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                zone-annuler := TouchArea {
-                                    mouse-cursor: pointer;
-                                    clicked => { HomeState.cancel-install(); }
-                                }
-                            }
-                        }
-                        SlimProgress { progress: HomeState.progress; }
-                    }
-                }
-
-                // Console du jeu, puis Jouer
+                Compte { }
                 VerticalLayout {
                     alignment: center;
-                    PlayButton {
-                        width: 96px;
-                        height: 96px;
+                    Trait { }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Choix {
+                            horizontal-stretch: 1;
+                        }
+                        // profil : gérer son contenu
+                        if !HomeState.quick: VerticalLayout {
+                            alignment: center;
+                            IconButton {
+                                width: 42px;
+                                height: 42px;
+                                icon: "\u{E70F}";
+                                tooltip: Tr.t("Home_Gerer");
+                                clicked => { HomeState.manage(); }
+                            }
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        width: 46px;
+                        height: 46px;
                         icon: "\u{E756}";
-                        icon-size: 26px;
-                        text: Tr.t("Home_Bouton_Logs");
-                        font-size: 13px;
+                        icon-size: 16px;
+                        tooltip: Tr.t("Home_Bouton_Logs");
                         clicked => {
                             ConsoleState.focused = -1;
                             ConsoleState.open = true;
@@ -649,12 +393,81 @@ export component HomePage inherits Rectangle {
                 VerticalLayout {
                     alignment: center;
                     PlayButton {
-                        width: 190px;
-                        height: 96px;
+                        width: 176px;
+                        height: 58px;
+                        font-size: 24px;
                         text: HomeState.play-text;
                         enabled: HomeState.play-enabled;
                         clicked => { HomeState.play(); }
                     }
+                }
+            }
+
+            // progression : un fil lumineux le long du bas du dock
+            Rectangle {
+                x: 26px;
+                y: parent.height - 3px;
+                width: parent.width - 52px;
+                height: 2px;
+                border-radius: 1px;
+                background: HomeState.progress > 0 ? Theme.track : transparent;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * clamp(HomeState.progress, 0, 1);
+                    border-radius: 1px;
+                    background: Theme.accent;
+                    animate width { duration: 200ms; }
+                }
+            }
+        }
+
+        // ═══════════ Statut, sous le dock ═══════════
+        HorizontalLayout {
+            padding-top: 10px;
+            padding-left: 22px;
+            padding-right: 22px;
+            spacing: 10px;
+            height: 32px;
+            Text {
+                horizontal-stretch: 1;
+                text: HomeState.status;
+                font-size: 12.5px;
+                font-weight: 600;
+                color: Theme.navy2;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            PixelLabel {
+                text: HomeState.percent-text;
+                font-size: 10.5px;
+            }
+            // mauvaise version lancée par erreur : on arrête le téléchargement
+            if HomeState.can-cancel: Rectangle {
+                width: annuler.preferred-width + 18px;
+                height: 22px;
+                border-radius: 7px;
+                background: zone-annuler.has-hover ? #FF5A6E33 : #FF5A6E1F;
+                border-width: 1px;
+                border-color: #FF5A6E66;
+                annuler := HorizontalLayout {
+                    alignment: center;
+                    spacing: 5px;
+                    Icon {
+                        text: "\u{E711}";
+                        font-size: 9px;
+                        color: Theme.danger;
+                    }
+                    Text {
+                        text: Tr.t("Commun_Annuler");
+                        font-size: 11.5px;
+                        font-weight: 700;
+                        color: Theme.danger;
+                        vertical-alignment: center;
+                    }
+                }
+                zone-annuler := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { HomeState.cancel-install(); }
                 }
             }
         }

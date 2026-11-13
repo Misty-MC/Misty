@@ -138,6 +138,11 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                 }
                 ui::settings::fermer(&app);
                 attendre(600).await;
+                photo(&app, &format!("accueil-{suffixe}"), &dossier);
+                app.ui.global::<SkinState>().set_tab(1);
+                attendre(2500).await;
+                photo(&app, &format!("skin-{suffixe}"), &dossier);
+                app.ui.global::<SkinState>().set_tab(0);
                 // notes de version, sur la page qui les affiche
                 let etat = app.ui.global::<AppState>();
                 etat.set_nav(3);
