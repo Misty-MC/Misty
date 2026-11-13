@@ -761,5 +761,7 @@
   "Param_Recherche": "Procurar uma definição…",
   "Param_Recherche_Aucun": "Nenhuma definição corresponde a esta pesquisa.",
   "Param_Apercu": "PRÉ-VISUALIZAÇÃO",
-  "Param_Apercu_Texte": "O launcher muda em direto com estas definições."
+  "Param_Apercu_Texte": "O launcher muda em direto com estas definições.",
+  "Ver_Choisir": "Escolher",
+  "Ver_ChoisisVersion": "Escolhe uma versão desta atualização."
 }

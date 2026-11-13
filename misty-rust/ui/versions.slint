@@ -1,6 +1,6 @@
-// Fenêtre de choix de la version, façon Lunar : à gauche les mises à jour (1.21 Tricky Trials…)
-// illustrées en pixel art, à droite une grande bannière, les versions de la mise à jour et les mod
-// loaders. En haut, filtres par type, par mod loader compatible, et recherche.
+// Fenêtre de choix de la version : une affiche par mise à jour (1.21 Tricky Trials…) illustrée en
+// pixel art, et à droite le détail de celle choisie (bannière, versions, mod loader, un bouton qui
+// confirme). En haut, filtres par type, puis Misty Client et Horizon, et recherche.
 
 import { Theme, Tr, Assets } from "theme.slint";
 import { HomeState, VersionItem, ProfileItem, VersionGroup, HorizonBuild } from "state.slint";
@@ -59,57 +59,67 @@ global Couleurs {
     out property <[color]> loaders: [transparent, #DBC9A3, #E0915A, #F2A65A, #E25A5A, #6FA3F0, #B58CF0];
 }
 
-/// Mise à jour dans la colonne de gauche : illustration, titre, nom, nombre de versions.
-component LigneGroupe inherits Rectangle {
+/// Affiche d'une mise à jour dans la grille : l'illustration en grand, puis le numéro, le nom et le
+/// nombre de versions sur un bandeau sombre.
+component Affiche inherits Rectangle {
     in property <VersionGroup> g;
     in property <bool> checked;
     callback clicked;
-    height: 74px;
-    border-radius: 14px;
-    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : transparent;
-    border-width: 1px;
-    border-color: root.checked ? Theme.accent : zone.has-hover ? Theme.glass-border : transparent;
-    animate background, border-color { duration: Theme.normal; }
-    HorizontalLayout {
-        padding: 8px;
-        spacing: 12px;
-        Rectangle {
-            width: 100px;
-            border-radius: 10px;
-            clip: true;
-            Image {
-                width: parent.width;
-                height: parent.height;
-                source: root.g.art;
-                image-fit: cover;
-                image-rendering: pixelated;
-                transform-scale: zone.has-hover || root.checked ? 1.12 : 1;
-                animate transform-scale { duration: 360ms; easing: ease-out; }
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            spacing: 2px;
+    property <bool> survol: zone.has-hover;
+    height: 158px;
+    border-radius: 10px;
+    clip: true;
+    background: #1C2335;
+    drop-shadow-blur: root.checked ? 18px : 0px;
+    drop-shadow-color: Theme.accent.with-alpha(0.4);
+    Image {
+        y: 0;
+        width: parent.width;
+        height: parent.height - 56px;
+        source: root.g.art;
+        image-fit: cover;
+        image-rendering: pixelated;
+        transform-scale: root.survol || root.checked ? 1.08 : 1;
+        animate transform-scale { duration: 360ms; easing: ease-out; }
+    }
+    VerticalLayout {
+        y: parent.height - 56px;
+        height: 56px;
+        padding-left: 12px;
+        padding-right: 10px;
+        alignment: center;
+        spacing: 2px;
+        HorizontalLayout {
+            spacing: 8px;
             Text {
                 text: root.g.title;
                 font-family: Theme.pixel-font;
                 font-size: 15px;
-                color: root.checked ? Theme.accent : Theme.navy;
+                color: white;
             }
             Text {
+                horizontal-stretch: 1;
                 text: root.g.name;
-                font-size: 12.5px;
+                font-size: 12px;
                 font-weight: 600;
-                color: Theme.navy2;
-                overflow: elide;
-            }
-            Text {
-                text: root.g.count + " · " + root.g.years;
-                font-size: 11.5px;
-                color: Theme.text-dim;
+                color: #CFDAF0;
+                vertical-alignment: center;
                 overflow: elide;
             }
         }
+        Text {
+            text: root.g.count + " · " + root.g.years;
+            font-size: 11px;
+            color: #8394AB;
+            overflow: elide;
+        }
+    }
+    // cadre de l'affiche choisie
+    Rectangle {
+        border-radius: parent.border-radius;
+        border-width: root.checked ? 3px : root.survol ? 2px : 0px;
+        border-color: root.checked ? Theme.accent : #FFFFFF99;
+        animate border-width { duration: Theme.fast; }
     }
     zone := TouchArea {
         mouse-cursor: pointer;
@@ -269,129 +279,6 @@ component CarteProfil inherits Rectangle {
             font-size: 12.5px;
             color: Theme.text-muted;
             overflow: elide;
-        }
-    }
-    zone := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { root.clicked(); }
-    }
-}
-
-/// Entrée Horizon, épinglée en haut de la colonne des mises à jour.
-component LigneHorizon inherits Rectangle {
-    in property <bool> checked;
-    callback clicked;
-    height: 74px;
-    border-radius: 14px;
-    background: root.checked ? #F0795A2E : zone.has-hover ? Theme.glass-hover : #F0795A12;
-    border-width: 1px;
-    border-color: root.checked ? #F0795A : #F0795A59;
-    animate background, border-color { duration: Theme.normal; }
-    HorizontalLayout {
-        padding: 8px;
-        spacing: 12px;
-        Rectangle {
-            width: 100px;
-            border-radius: 10px;
-            clip: true;
-            Image {
-                width: parent.width;
-                height: parent.height;
-                source: HomeState.horizon-art;
-                image-fit: cover;
-                image-rendering: pixelated;
-                transform-scale: zone.has-hover || root.checked ? 1.12 : 1;
-                animate transform-scale { duration: 360ms; easing: ease-out; }
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            spacing: 2px;
-            Text {
-                text: "HORIZON";
-                font-family: Theme.pixel-font;
-                font-size: 15px;
-                color: #F0795A;
-            }
-            Text {
-                text: Tr.t("Hz_Sous_Titre");
-                font-size: 12.5px;
-                font-weight: 600;
-                color: Theme.navy2;
-                overflow: elide;
-            }
-            Text {
-                text: HomeState.horizon-build != "" ? HomeState.horizon-build : "26.3 · Rust · MIT";
-                font-size: 11.5px;
-                color: Theme.text-dim;
-                overflow: elide;
-            }
-        }
-    }
-    zone := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { root.clicked(); }
-    }
-}
-
-/// Ligne Misty (en tête de liste) : Fabric + Misty Client.
-component LigneMisty inherits Rectangle {
-    in property <bool> checked;
-    callback clicked;
-    height: 74px;
-    border-radius: 14px;
-    background: root.checked ? Theme.accent-soft : zone.has-hover ? Theme.glass-hover : #2F8CFF12;
-    border-width: 1px;
-    border-color: root.checked ? Theme.accent : #2F8CFF59;
-    animate background, border-color { duration: Theme.normal; }
-    HorizontalLayout {
-        padding: 8px;
-        spacing: 12px;
-        Rectangle {
-            width: 100px;
-            border-radius: 10px;
-            clip: true;
-            background: @linear-gradient(135deg, #16244A 0%, #2F6FD6 100%);
-            Image {
-                width: parent.width;
-                height: parent.height;
-                source: HomeState.misty-art;
-                image-fit: cover;
-                image-rendering: pixelated;
-                opacity: 0.55;
-                transform-scale: zone.has-hover || root.checked ? 1.12 : 1;
-                animate transform-scale { duration: 360ms; easing: ease-out; }
-            }
-            Image {
-                width: 44px;
-                height: 44px;
-                x: (parent.width - self.width) / 2;
-                y: (parent.height - self.height) / 2;
-                source: Assets.logo;
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            spacing: 2px;
-            Text {
-                text: "MISTY";
-                font-family: Theme.pixel-font;
-                font-size: 15px;
-                color: Theme.accent;
-            }
-            Text {
-                text: Tr.t("Misty_Sous_Titre");
-                font-size: 12.5px;
-                font-weight: 600;
-                color: Theme.navy2;
-                overflow: elide;
-            }
-            Text {
-                text: HomeState.misty-mc + " · Fabric · HUD";
-                font-size: 11.5px;
-                color: Theme.text-dim;
-                overflow: elide;
-            }
         }
     }
     zone := TouchArea {
@@ -922,28 +809,21 @@ export component VersionPicker inherits Rectangle {
                 }
             }
 
-            // ── Filtres : types, loader compatible, recherche ──
-            if HomeState.picker-tab == 0 && HomeState.picker-horizon: HorizontalLayout {
-                spacing: 6px;
-                for f[i] in [Tr.t("Ver_TousLoaders"), "Nightly", Tr.t("Hz_Stables")]: Puce {
-                    text: f;
-                    point: i == 1 ? #FFBE5A : i == 2 ? #1DE062 : transparent;
-                    checked: HomeState.horizon-filter == i;
-                    clicked => {
-                        HomeState.horizon-filter = i;
-                        HomeState.horizon-filter-changed();
-                    }
-                }
-                Rectangle { horizontal-stretch: 1; }
-            }
-            if HomeState.picker-tab == 0 && !HomeState.picker-horizon && !HomeState.picker-misty: HorizontalLayout {
+            // ── Filtres : types de versions, puis Misty Client et Horizon ──
+            if HomeState.picker-tab == 0: HorizontalLayout {
                 spacing: 6px;
                 for t[i] in [Tr.t("Ver_Releases"), "Snapshots", Tr.t("Ver_Betas"), "Alphas"]: Puce {
                     text: t;
                     point: Couleurs.types[i];
-                    checked: i == 0 ? HomeState.picker-release : i == 1 ? HomeState.picker-snapshot : i == 2 ? HomeState.picker-beta : HomeState.picker-alpha;
+                    checked: !HomeState.picker-horizon && !HomeState.picker-misty && (i == 0 ? HomeState.picker-release : i == 1 ? HomeState.picker-snapshot : i == 2 ? HomeState.picker-beta : HomeState.picker-alpha);
                     clicked => {
-                        // au moins un type reste coché : sinon la liste serait vide (et le resterait après Horizon)
+                        // depuis Misty ou Horizon : on revient aux versions, sans changer les filtres
+                        if (HomeState.picker-horizon || HomeState.picker-misty) {
+                            HomeState.picker-horizon = false;
+                            HomeState.picker-misty = false;
+                            return;
+                        }
+                        // au moins un type reste coché : sinon la liste serait vide
                         if (self.checked && (HomeState.picker-release ? 1 : 0) + (HomeState.picker-snapshot ? 1 : 0) + (HomeState.picker-beta ? 1 : 0) + (HomeState.picker-alpha ? 1 : 0) <= 1) {
                             return;
                         }
@@ -954,68 +834,82 @@ export component VersionPicker inherits Rectangle {
                         HomeState.picker-changed();
                     }
                 }
+                VerticalLayout {
+                    alignment: center;
+                    padding-left: 6px;
+                    padding-right: 6px;
+                    Rectangle {
+                        width: 1px;
+                        height: 24px;
+                        background: Theme.line;
+                    }
+                }
+                if HomeState.misty-available: Puce {
+                    text: "Misty Client";
+                    point: #9CC0FF;
+                    checked: HomeState.picker-misty;
+                    clicked => {
+                        HomeState.picker-misty = true;
+                        HomeState.picker-horizon = false;
+                    }
+                }
+                Puce {
+                    text: "Horizon";
+                    point: #F0795A;
+                    checked: HomeState.picker-horizon;
+                    clicked => {
+                        HomeState.picker-horizon = true;
+                        HomeState.picker-misty = false;
+                        HomeState.horizon-refresh();
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                // Horizon : nightlies ou versions stables
+                if HomeState.picker-horizon: HorizontalLayout {
+                    spacing: 6px;
+                    for f[i] in [Tr.t("Ver_TousLoaders"), "Nightly", Tr.t("Hz_Stables")]: Puce {
+                        text: f;
+                        point: i == 1 ? #FFBE5A : i == 2 ? #1DE062 : transparent;
+                        checked: HomeState.horizon-filter == i;
+                        clicked => {
+                            HomeState.horizon-filter = i;
+                            HomeState.horizon-filter-changed();
+                        }
+                    }
+                }
             }
 
-            // ── Versions : mises à jour à gauche, détail à droite ──
-            if HomeState.picker-tab == 0: HorizontalLayout {
+            // Misty Client et Horizon : leur panneau sur toute la largeur
+            if HomeState.picker-tab == 0 && HomeState.picker-misty: PanneauMisty {
+                vertical-stretch: 1;
+            }
+            if HomeState.picker-tab == 0 && HomeState.picker-horizon: PanneauHorizon {
+                vertical-stretch: 1;
+            }
+
+            // ── Versions : les affiches des mises à jour, le détail à droite ──
+            if HomeState.picker-tab == 0 && !HomeState.picker-horizon && !HomeState.picker-misty: HorizontalLayout {
                 vertical-stretch: 1;
                 spacing: 16px;
 
-                // colonne des mises à jour
-                Rectangle {
-                    width: 300px;
-                    border-radius: 18px;
-                    background: Theme.surface-2;
-                    border-width: 1px;
-                    border-color: Theme.line;
-                    clip: true;
-                    ScrollView {
-                        x: 8px;
-                        y: 8px;
-                        width: parent.width - 16px;
-                        height: parent.height - 16px;
-                        content-width: self.visible-width;
-                        // décalage des lignes sous Misty (absente si le mod n'est pas dans l'exe)
-                        content-height: (HomeState.misty-available ? 88px : 0px) + (HomeState.picker-groups.length + 1) * 78px + 10px;
-                        if HomeState.misty-available: LigneMisty {
-                            x: 0;
-                            y: 0;
-                            width: parent.width - 4px;
-                            checked: HomeState.picker-misty;
-                            clicked => {
-                                HomeState.picker-misty = true;
-                                HomeState.picker-horizon = false;
-                            }
-                        }
-                        LigneHorizon {
-                            x: 0;
-                            y: (HomeState.misty-available ? 88px : 0px);
-                            width: parent.width - 4px;
-                            checked: HomeState.picker-horizon;
-                            clicked => {
-                                HomeState.picker-horizon = true;
-                                HomeState.picker-misty = false;
-                                HomeState.horizon-refresh();
-                            }
-                        }
-                        for g[i] in HomeState.picker-groups: LigneGroupe {
-                            x: 0;
-                            y: (HomeState.misty-available ? 88px : 0px) + 88px + i * 78px;
-                            width: parent.width - 4px;
-                            g: g;
-                            checked: !HomeState.picker-horizon && !HomeState.picker-misty && i == HomeState.picker-group;
-                            clicked => {
-                                HomeState.picker-horizon = false;
-                                HomeState.picker-misty = false;
-                                HomeState.picker-group-selected(i);
-                            }
-                        }
+                affiches := ScrollView {
+                    horizontal-stretch: 1;
+                    property <int> colonnes: max(2, floor((self.visible-width + 12px) / 212px));
+                    property <length> largeur: (self.visible-width - 8px - (self.colonnes - 1) * 12px) / self.colonnes;
+                    content-width: self.visible-width;
+                    content-height: ceil(HomeState.picker-groups.length / self.colonnes) * 170px + 8px;
+                    for g[i] in HomeState.picker-groups: Affiche {
+                        x: 4px + Math.mod(i, affiches.colonnes) * (affiches.largeur + 12px);
+                        y: 4px + floor(i / affiches.colonnes) * 170px;
+                        width: affiches.largeur;
+                        g: g;
+                        checked: i == HomeState.picker-group;
+                        clicked => { HomeState.picker-group-selected(i); }
                     }
-                    // sous la carte Horizon (qui reste toujours en tête de liste)
-                    if HomeState.picker-groups.length == 0 && !HomeState.picker-horizon && !HomeState.picker-misty: Text {
-                        y: (HomeState.misty-available ? 88px : 0px) + 104px;
-                        x: 16px;
-                        width: parent.width - 32px;
+                    if HomeState.picker-groups.length == 0: Text {
+                        x: 0;
+                        y: 40px;
+                        width: affiches.visible-width;
                         text: Tr.t("Ver_Aucune");
                         font-size: 13px;
                         color: Theme.text-muted;
@@ -1024,130 +918,121 @@ export component VersionPicker inherits Rectangle {
                     }
                 }
 
-                // Misty
-                if HomeState.picker-misty: PanneauMisty {
-                    horizontal-stretch: 1;
-                }
-
-                // Horizon
-                if HomeState.picker-horizon: PanneauHorizon {
-                    horizontal-stretch: 1;
-                }
-
-                // détail de la mise à jour choisie
-                if !HomeState.picker-horizon && !HomeState.picker-misty && root.a-groupe: VerticalLayout {
-                    horizontal-stretch: 1;
-                    spacing: 14px;
-
-                    // grande bannière illustrée
-                    Rectangle {
-                        height: 200px;
-                        border-radius: 20px;
-                        clip: true;
-                        border-width: 1px;
-                        border-color: Theme.glass-border;
-                        Image {
-                            // toute la largeur, aux proportions de l'illustration (160 × 90) ; le bas visible
-                            // s'arrête juste sous le sol (ligne 82 sur 90), pour montrer le sol et le repère de la mise à jour
-                            x: 0;
-                            width: parent.width;
-                            height: max(parent.height, parent.width * 90 / 160);
-                            y: min(0px, parent.height - self.height * 82 / 90);
-                            source: root.groupe.art;
-                            image-fit: fill;
-                            image-rendering: pixelated;
-                        }
+                // détail de la mise à jour choisie : versions, mod loader, et un bouton qui confirme
+                Rectangle {
+                    width: 340px;
+                    border-radius: 12px;
+                    background: Theme.panel-strong;
+                    border-width: 1px;
+                    border-color: Theme.glass-border;
+                    if !root.a-groupe: Text {
+                        width: parent.width - 40px;
+                        text: Tr.t("Ver_LoadersAttente");
+                        font-size: 13px;
+                        color: Theme.text-muted;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                    }
+                    if root.a-groupe: VerticalLayout {
+                        padding: 14px;
+                        spacing: 10px;
+                        // bannière
                         Rectangle {
-                            background: @linear-gradient(90deg, #0A0F1DD9 0%, #0A0F1D80 45%, #0A0F1D00 75%);
-                        }
-                        VerticalLayout {
-                            padding: 22px;
-                            spacing: 6px;
-                            alignment: end;
-                            PixelLabel {
-                                text: Tr.t("Ver_MiseAJour");
-                                font-size: 10.5px;
-                                color: #CFE0FF;
+                            height: 120px;
+                            border-radius: 8px;
+                            clip: true;
+                            Image {
+                                x: 0;
+                                width: parent.width;
+                                height: max(parent.height, parent.width * 90 / 160);
+                                y: min(0px, parent.height - self.height * 82 / 90);
+                                source: root.groupe.art;
+                                image-fit: fill;
+                                image-rendering: pixelated;
                             }
-                            HorizontalLayout {
-                                alignment: start;
-                                OutlinedText {
-                                    text: root.groupe.title;
-                                    font-size: 44px;
-                                    thickness: 4px;
-                                    depth: 5px;
-                                    stroke-color: #141B2B;
-                                    shadow: #0A0E18;
+                            Rectangle {
+                                background: @linear-gradient(0deg, #0A0F1DD9 0%, #0A0F1D00 70%);
+                            }
+                            VerticalLayout {
+                                padding: 12px;
+                                alignment: end;
+                                spacing: 2px;
+                                HorizontalLayout {
+                                    alignment: start;
+                                    OutlinedText {
+                                        text: root.groupe.title;
+                                        font-size: 28px;
+                                        thickness: 3px;
+                                        depth: 3px;
+                                        stroke-color: #141B2B;
+                                        shadow: #0A0E18;
+                                    }
+                                }
+                                Text {
+                                    text: root.groupe.name;
+                                    font-size: 14px;
+                                    font-weight: 800;
+                                    color: white;
+                                    overflow: elide;
                                 }
                             }
-                            Text {
-                                text: root.groupe.name;
-                                font-size: 18px;
-                                font-weight: 800;
-                                color: white;
-                            }
-                            Text {
-                                text: root.groupe.count + " · " + root.groupe.years;
-                                font-size: 13px;
-                                color: #CFDAF0;
-                            }
                         }
-                    }
-
-                    // versions de cette mise à jour
-                    PixelLabel {
-                        text: Tr.t("Ver_Onglet_Versions");
-                        font-size: 10.5px;
-                    }
-                    grille := ScrollView {
-                        vertical-stretch: 1;
-                        property <int> colonnes: max(3, floor((self.visible-width + 8px) / 128px));
-                        property <length> largeur: (self.visible-width - 8px - (self.colonnes - 1) * 8px) / self.colonnes;
-                        content-width: self.visible-width;
-                        content-height: ceil(HomeState.picker-sub.length / self.colonnes) * 50px + 10px;
-                        for v[i] in HomeState.picker-sub: PuceVersion {
-                            x: 4px + Math.mod(i, grille.colonnes) * (grille.largeur + 8px);
-                            y: 4px + floor(i / grille.colonnes) * 50px;
-                            width: grille.largeur;
-                            v: v;
-                            checked: HomeState.quick && !HomeState.horizon-selected && !HomeState.misty-selected && v.id == HomeState.card-version;
-                            clicked => { HomeState.version-picked(v.id); }
+                        PixelLabel {
+                            text: Tr.t("Ver_Onglet_Versions");
+                            font-size: 10px;
                         }
-                    }
-
-                    // mod loader de la version choisie, puis valider
-                    PixelLabel {
-                        text: Tr.t("Commun_ModLoader");
-                        font-size: 10.5px;
-                    }
-                    HorizontalLayout {
-                        spacing: 8px;
-                        for m[i] in HomeState.modes: CarteLoader {
-                            text: m;
-                            checked: i == HomeState.mode-index;
-                            enabled: HomeState.modes-enabled;
-                            clicked => {
-                                HomeState.mode-index = i;
-                                HomeState.mode-selected(i);
+                        grille := ScrollView {
+                            vertical-stretch: 1;
+                            property <int> colonnes: 3;
+                            property <length> largeur: (self.visible-width - 8px - (self.colonnes - 1) * 6px) / self.colonnes;
+                            content-width: self.visible-width;
+                            content-height: ceil(HomeState.picker-sub.length / self.colonnes) * 46px + 8px;
+                            for v[i] in HomeState.picker-sub: PuceVersion {
+                                x: 4px + Math.mod(i, grille.colonnes) * (grille.largeur + 6px);
+                                y: 4px + floor(i / grille.colonnes) * 46px;
+                                width: grille.largeur;
+                                height: 38px;
+                                v: v;
+                                checked: HomeState.quick && !HomeState.horizon-selected && !HomeState.misty-selected && v.id == HomeState.card-version;
+                                clicked => { HomeState.version-picked(v.id); }
                             }
                         }
-                        if HomeState.modes.length == 0: VerticalLayout {
-                            alignment: center;
-                            Text {
-                                text: Tr.t("Ver_LoadersAttente");
-                                font-size: 13px;
+                        PixelLabel {
+                            text: Tr.t("Commun_ModLoader");
+                            font-size: 10px;
+                        }
+                        // loaders : 3 par ligne
+                        Rectangle {
+                            property <int> lignes: max(1, ceil(HomeState.modes.length / 3));
+                            property <length> largeur: (self.width - 2 * 6px) / 3;
+                            height: self.lignes * 46px - 6px;
+                            for m[i] in HomeState.modes: CarteLoader {
+                                x: Math.mod(i, 3) * (parent.largeur + 6px);
+                                y: floor(i / 3) * 46px;
+                                width: parent.largeur;
+                                height: 40px;
+                                text: m;
+                                checked: i == HomeState.mode-index;
+                                enabled: HomeState.modes-enabled;
+                                clicked => {
+                                    HomeState.mode-index = i;
+                                    HomeState.mode-selected(i);
+                                }
+                            }
+                            if HomeState.modes.length == 0: Text {
+                                text: Tr.t("Ver_ChoisisVersion");
+                                font-size: 12.5px;
                                 color: Theme.text-muted;
                             }
                         }
-                        Rectangle { horizontal-stretch: 1; }
-                        VerticalLayout {
-                            alignment: center;
-                            MButton {
-                                kind: 1;
-                                icon: "\u{E73E}";
-                                text: Tr.t("Ver_Valider");
-                                clicked => { HomeState.picker-open = false; }
-                            }
+                        MButton {
+                            kind: 1;
+                            icon: "\u{E73E}";
+                            enabled: HomeState.modes.length > 0;
+                            text: HomeState.mode-index >= 0 && HomeState.mode-index < HomeState.modes.length
+                                ? Tr.t("Ver_Choisir") + " " + HomeState.card-version + " · " + HomeState.modes[HomeState.mode-index]
+                                : Tr.t("Ver_Valider");
+                            clicked => { HomeState.picker-open = false; }
                         }
                     }
                 }

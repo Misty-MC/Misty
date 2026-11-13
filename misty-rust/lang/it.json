@@ -761,5 +761,7 @@
   "Param_Recherche": "Cerca un'impostazione…",
   "Param_Recherche_Aucun": "Nessuna impostazione corrisponde a questa ricerca.",
   "Param_Apercu": "ANTEPRIMA",
-  "Param_Apercu_Texte": "Il launcher cambia in tempo reale con queste impostazioni."
+  "Param_Apercu_Texte": "Il launcher cambia in tempo reale con queste impostazioni.",
+  "Ver_Choisir": "Scegli",
+  "Ver_ChoisisVersion": "Scegli una versione di questo aggiornamento."
 }

@@ -761,5 +761,7 @@
   "Param_Recherche": "Search a setting…",
   "Param_Recherche_Aucun": "No setting matches this search.",
   "Param_Apercu": "PREVIEW",
-  "Param_Apercu_Texte": "The launcher changes live with these settings."
+  "Param_Apercu_Texte": "The launcher changes live with these settings.",
+  "Ver_Choisir": "Choose",
+  "Ver_ChoisisVersion": "Pick a version of this update."
 }

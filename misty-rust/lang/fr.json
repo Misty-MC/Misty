@@ -761,5 +761,7 @@
   "Param_Recherche": "Rechercher un réglage…",
   "Param_Recherche_Aucun": "Aucun réglage ne correspond à cette recherche.",
   "Param_Apercu": "APERÇU",
-  "Param_Apercu_Texte": "Le launcher change en direct avec ces réglages."
+  "Param_Apercu_Texte": "Le launcher change en direct avec ces réglages.",
+  "Ver_Choisir": "Choisir",
+  "Ver_ChoisisVersion": "Choisis une version de cette mise à jour."
 }

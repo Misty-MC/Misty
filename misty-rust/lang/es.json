@@ -761,5 +761,7 @@
   "Param_Recherche": "Buscar un ajuste…",
   "Param_Recherche_Aucun": "Ningún ajuste coincide con esta búsqueda.",
   "Param_Apercu": "VISTA PREVIA",
-  "Param_Apercu_Texte": "El launcher cambia en directo con estos ajustes."
+  "Param_Apercu_Texte": "El launcher cambia en directo con estos ajustes.",
+  "Ver_Choisir": "Elegir",
+  "Ver_ChoisisVersion": "Elige una versión de esta actualización."
 }
