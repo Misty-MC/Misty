@@ -2,6 +2,7 @@
 ## 0.3.8-beta.3
 ### Launcher
 - Your server list and saved hotbars are now the same in every version and profile: add a server once, find it everywhere. The first time, the lists of your profiles are merged (no server is lost) and the servers of the official Minecraft launcher are imported. Can be turned off in Settings → Behavior
+- Redesigned version card on the home page: the cloud floats on its own (no more glowing circle or shadow under it), and the version, its label and the loader sit in a glass strip at the bottom
 - New loading screen when the launcher starts, the same as Misty Client's in game: the night landscape scrolling by, the Misty cloud and name in pixel art, and a blue progress bar. With the Mist (light) theme it shows the same landscape by day
 - New Sidebar settings (Settings → Sidebar): choose which tabs show in the sidebar (Skin, Profiles, Release notes, Texture packs, Friends, game folder). Hidden tabs leave their place to the others
 - Redesigned release notes: the versions are listed on the left with their date and a Latest or Beta badge, and the notes of the chosen version show on the right, grouped by Launcher and Misty Client, with NEW and FIX labels and a link to the release on GitHub

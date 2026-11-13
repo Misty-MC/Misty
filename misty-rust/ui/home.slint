@@ -182,83 +182,78 @@ component Label inherits PixelLabel {
     x: 4px;
 }
 
-/// Carte « vignette » : bloc qui flotte + version sélectionnée.
+/// Carte de la version choisie : le nuage (ou l'icône du profil) qui flotte, et en bas un bandeau
+/// en verre avec l'étiquette, le numéro de version et le loader.
 component VersionCard inherits Rectangle {
     width: 330px;
     height: 350px;
 
-    // Le bloc flotte doucement (sinus sur l'horloge des animations)
+    // Le nuage flotte doucement (sinus sur l'horloge des animations)
     property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
 
     Rectangle {
-        border-radius: 30px;
-        background: Theme.stage;
-        drop-shadow-blur: 24px;
-        drop-shadow-color: Theme.shadow;
+        border-radius: 28px;
+        clip: true;
+        background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 38%, #161C2B 100%);
+        border-width: 1px;
+        border-color: #FFFFFF2E;
+        drop-shadow-blur: 22px;
         drop-shadow-offset-y: 8px;
+        drop-shadow-color: Theme.shadow;
 
+        // nuage (ou icône du profil)
+        Image {
+            x: (parent.width - self.width) / 2;
+            y: 46px + 7px * root.onde;
+            width: 140px;
+            height: 140px;
+            source: HomeState.has-card-icon ? HomeState.card-icon : Assets.logo;
+            image-fit: contain;
+            image-rendering: ImageRendering.smooth;
+        }
+
+        // bandeau : étiquette, version et loader
         Rectangle {
-            x: 5px;
-            y: 5px;
-            width: parent.width - 10px;
-            height: parent.height - 10px;
-            border-radius: 26px;
-            clip: true;
-            background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 35%, #161C2B 100%);
-
-            // lueur
-            Rectangle {
-                x: (parent.width - 260px) / 2;
-                y: -40px;
-                width: 260px;
-                height: 260px;
-                border-radius: 130px;
-                opacity: 0.35;
-                background: @radial-gradient(circle, #C4DFF8 0%, #C4DFF800 100%);
-            }
-
-            // ombre du bloc
-            Rectangle {
-                property <float> s: 0.95 + 0.15 * root.onde;
-                x: (parent.width - self.width) / 2;
-                y: 43px + 172px + (16px - self.height) / 2;
-                width: 120px * self.s;
-                height: 16px * self.s;
-                border-radius: self.height / 2;
-                background: #00000066;
-            }
-
-            // bloc (ou icône du profil)
-            Image {
-                x: (parent.width - 144px) / 2;
-                y: 43px + 1px + 7px * root.onde;
-                width: 144px;
-                height: 144px;
-                source: HomeState.has-card-icon ? HomeState.card-icon : Assets.logo;
-                image-fit: contain;
-                image-rendering: ImageRendering.smooth;
-            }
-
-            // version sélectionnée
-            VerticalLayout {
-                x: 22px;
-                y: parent.height - self.preferred-height - 22px;
-                width: parent.width - 44px;
-                height: self.preferred-height;
-                spacing: 4px;
-                PixelLabel {
-                    text: HomeState.card-label;
-                    font-size: 11px;
-                    color: #FFFFFF99;
-                    overflow: elide;
+            x: 14px;
+            y: parent.height - self.height - 14px;
+            width: parent.width - 28px;
+            height: infos.preferred-height;
+            border-radius: 18px;
+            background: #0A0F1D80;
+            border-width: 1px;
+            border-color: #FFFFFF1A;
+            infos := VerticalLayout {
+                padding-left: 18px;
+                padding-right: 16px;
+                padding-top: 14px;
+                padding-bottom: 14px;
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 6px;
+                            height: 6px;
+                            border-radius: 3px;
+                            background: Theme.dark ? Theme.accent : #9CC0FF;
+                        }
+                    }
+                    PixelLabel {
+                        horizontal-stretch: 1;
+                        text: HomeState.card-label;
+                        font-size: 10.5px;
+                        color: #FFFFFFA6;
+                        overflow: elide;
+                    }
                 }
-                // numéro de version, puis le loader juste à côté (« 26.3 VANILLA »)
+                // numéro de version, puis le loader dans sa pastille (« 26.3  VANILLA »)
                 HorizontalLayout {
                     spacing: 12px;
                     alignment: start;
                     OutlinedText {
                         text: HomeState.card-version;
-                        font-size: 34px;
+                        font-size: 32px;
                         // contour toujours foncé : le chiffre reste net sur la carte, en clair comme en sombre
                         stroke-color: #141B2B;
                         shadow: #0A0E18;
@@ -266,13 +261,20 @@ component VersionCard inherits Rectangle {
                         depth: 3px;
                     }
                     VerticalLayout {
-                        alignment: end;
-                        padding-bottom: 7px;
-                        PixelLabel {
-                            text: HomeState.card-loader;
-                            font-size: 15px;
-                            color: Theme.dark ? Theme.accent : #CFE0FF;
-                            overflow: elide;
+                        alignment: center;
+                        Rectangle {
+                            height: 24px;
+                            width: chargeur.preferred-width + 18px;
+                            border-radius: 8px;
+                            background: #9CC0FF29;
+                            border-width: 1px;
+                            border-color: #9CC0FF59;
+                            chargeur := PixelLabel {
+                                text: HomeState.card-loader;
+                                font-size: 11px;
+                                color: #CFE0FF;
+                                horizontal-alignment: center;
+                            }
                         }
                     }
                 }
