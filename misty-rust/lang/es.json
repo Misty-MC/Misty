@@ -757,5 +757,9 @@
   "Amis_Annonce_Titre": "Tus amigos y a qué juegan",
   "Amis_Annonce_Texte": "Pronto verás qué amigos están jugando, en qué versión o servidor, y podrás unirte a su partida con un clic. El chat también llegará.",
   "Amis_Rejoindre": "Unirse",
-  "Amis_HorsLigne": "Desconectados"
+  "Amis_HorsLigne": "Desconectados",
+  "Param_Recherche": "Buscar un ajuste…",
+  "Param_Recherche_Aucun": "Ningún ajuste coincide con esta búsqueda.",
+  "Param_Apercu": "VISTA PREVIA",
+  "Param_Apercu_Texte": "El launcher cambia en directo con estos ajustes."
 }

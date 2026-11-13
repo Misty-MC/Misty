@@ -3,8 +3,9 @@
 // et ses réglages sont groupés dans des cartes, avec une marge intérieure.
 
 import { Theme, Tr } from "theme.slint";
-import { SettingsState, StorageRow, AppState } from "state.slint";
-import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, MButton, GlassInput, ToggleSwitch, GlassSlider, ChromeButton } from "widgets.slint";
+import { SettingsState, StorageRow, AppState, SettingResult } from "state.slint";
+import { Paysage } from "scene.slint";
+import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, MButton, GlassInput, ToggleSwitch, GlassSlider, ChromeButton, OutlinedText } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
 // ───────────────────────── Petits éléments ─────────────────────────
@@ -655,6 +656,134 @@ component Volet inherits VerticalLayout {
     }
 }
 
+/// Un réglage trouvé par la recherche : titre et catégorie ; un clic ouvre sa catégorie.
+component Resultat inherits Rectangle {
+    in property <SettingResult> r;
+    callback clicked;
+    height: 50px;
+    border-radius: 8px;
+    background: zone.has-hover ? Theme.glass-hover : transparent;
+    animate background { duration: Theme.fast; }
+    VerticalLayout {
+        padding-left: 14px;
+        padding-right: 10px;
+        alignment: center;
+        spacing: 2px;
+        Text {
+            text: root.r.title;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: Theme.navy;
+            overflow: elide;
+        }
+        Text {
+            text: root.r.category;
+            font-size: 11.5px;
+            color: Theme.text-muted;
+            overflow: elide;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Le launcher en miniature : le vrai paysage (thème, saison, flou), la barre latérale, le titre et
+/// la colonne de lancement, aux couleurs du thème choisi. Il change en direct avec l'apparence.
+component Apercu inherits Rectangle {
+    height: 170px;
+    border-radius: 10px;
+    clip: true;
+    background: Theme.sky;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    Paysage {
+        width: parent.width;
+        height: parent.height;
+    }
+    // barre latérale
+    Rectangle {
+        x: 8px;
+        y: 8px;
+        width: 26px;
+        height: parent.height - 16px;
+        border-radius: 6px;
+        background: Theme.glass;
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        for i in 5: Rectangle {
+            x: 5px;
+            y: 6px + i * 22px;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            background: i == 0 ? Theme.fill : i == 1 ? Theme.panel-strong : Theme.glass;
+        }
+    }
+    OutlinedText {
+        x: 48px;
+        y: 18px;
+        text: "MISTY";
+        font-size: 24px;
+        thickness: 2px;
+        depth: 2px;
+    }
+    // la news à la une
+    Rectangle {
+        x: 48px;
+        y: 56px;
+        width: parent.width - 48px - 130px;
+        height: parent.height - 70px;
+        border-radius: 6px;
+        background: Theme.panel-strong;
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        Rectangle {
+            y: 0;
+            height: parent.height - 26px;
+            border-radius: 6px;
+            background: #1C2335;
+        }
+        Rectangle {
+            x: 10px;
+            y: parent.height - 17px;
+            width: parent.width * 0.4;
+            height: 7px;
+            border-radius: 2px;
+            background: Theme.navy;
+            opacity: 0.7;
+        }
+    }
+    // colonne de lancement
+    Rectangle {
+        x: parent.width - 118px;
+        y: 8px;
+        width: 108px;
+        height: parent.height - 16px;
+        border-radius: 7px;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        Rectangle {
+            x: 7px;
+            y: 7px;
+            width: parent.width - 14px;
+            height: parent.height - 46px;
+            border-radius: 5px;
+            background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 40%, #161C2B 100%);
+        }
+        Rectangle {
+            x: 7px;
+            y: parent.height - 32px;
+            width: parent.width - 14px;
+            height: 24px;
+            border-radius: 5px;
+            background: @linear-gradient(180deg, #B4CFFF 0%, #6F9CFF 100%);
+        }
+    }
+}
+
 // ───────────────────────── La fenêtre des options ─────────────────────────
 
 export component SettingsModal inherits Rectangle {
@@ -733,7 +862,41 @@ export component SettingsModal inherits Rectangle {
                         }
                     }
 
-                    ScrollView {
+                    GlassInput {
+                        search: true;
+                        placeholder: Tr.t("Param_Recherche");
+                        text <=> SettingsState.search;
+                        edited => { SettingsState.search-changed(); }
+                    }
+
+                    // recherche en cours : les réglages trouvés à la place des catégories
+                    if SettingsState.search != "": ScrollView {
+                        vertical-stretch: 1;
+                        content-width: self.visible-width;
+                        content-height: trouves.preferred-height;
+                        trouves := VerticalLayout {
+                            width: parent.visible-width;
+                            alignment: start;
+                            spacing: 2px;
+                            for r in SettingsState.results: Resultat {
+                                r: r;
+                                clicked => {
+                                    SettingsState.section = r.section;
+                                    SettingsState.search = "";
+                                    SettingsState.search-changed();
+                                }
+                            }
+                            if SettingsState.results.length == 0: Text {
+                                text: Tr.t("Param_Recherche_Aucun");
+                                font-size: 12.5px;
+                                color: Theme.text-muted;
+                                wrap: word-wrap;
+                                horizontal-alignment: center;
+                            }
+                        }
+                    }
+
+                    if SettingsState.search == "": ScrollView {
                         vertical-stretch: 1;
                         content-width: self.visible-width;
                         content-height: 482px;
@@ -878,6 +1041,25 @@ export component SettingsModal inherits Rectangle {
                         // ── Apparence ──
                         if root.section == 0: Volet {
                             spacing: 16px;
+                            Carte {
+                                spacing: 12px;
+                                HorizontalLayout {
+                                    spacing: 10px;
+                                    PixelLabel {
+                                        text: Tr.t("Param_Apercu");
+                                        font-size: 10px;
+                                        color: Theme.accent;
+                                    }
+                                    Text {
+                                        horizontal-stretch: 1;
+                                        text: Tr.t("Param_Apercu_Texte");
+                                        font-size: 12.5px;
+                                        color: Theme.text-muted;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                Apercu { }
+                            }
                             Carte {
                                 Entete {
                                     titre: Tr.t("Param_Theme");

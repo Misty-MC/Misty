@@ -757,5 +757,9 @@
   "Amis_Annonce_Titre": "Tes amis, et ce qu'ils jouent",
   "Amis_Annonce_Texte": "Bientôt, tu verras quels amis jouent, sur quelle version ou quel serveur, et tu pourras rejoindre leur partie en un clic. Le chat arrive aussi.",
   "Amis_Rejoindre": "Rejoindre",
-  "Amis_HorsLigne": "Hors ligne"
+  "Amis_HorsLigne": "Hors ligne",
+  "Param_Recherche": "Rechercher un réglage…",
+  "Param_Recherche_Aucun": "Aucun réglage ne correspond à cette recherche.",
+  "Param_Apercu": "APERÇU",
+  "Param_Apercu_Texte": "Le launcher change en direct avec ces réglages."
 }

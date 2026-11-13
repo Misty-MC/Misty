@@ -757,5 +757,9 @@
   "Amis_Annonce_Titre": "I tuoi amici e a cosa giocano",
   "Amis_Annonce_Texte": "Presto vedrai quali amici stanno giocando, su quale versione o server, e potrai unirti alla loro partita con un clic. Arriva anche la chat.",
   "Amis_Rejoindre": "Unisciti",
-  "Amis_HorsLigne": "Offline"
+  "Amis_HorsLigne": "Offline",
+  "Param_Recherche": "Cerca un'impostazione…",
+  "Param_Recherche_Aucun": "Nessuna impostazione corrisponde a questa ricerca.",
+  "Param_Apercu": "ANTEPRIMA",
+  "Param_Apercu_Texte": "Il launcher cambia in tempo reale con queste impostazioni."
 }

@@ -3,7 +3,7 @@
 
 use super::{dialogs, lancer, modele, App};
 use crate::services::{account, app_info, client, discord, loc, paths, pseudos, settings, shortcut, storage, system_info};
-use crate::{LangItem, PseudoRow, SettingsState, StorageRow};
+use crate::{LangItem, PseudoRow, SettingResult, SettingsState, StorageRow};
 use slint::ComponentHandle;
 use std::path::Path;
 use std::rc::Rc;
@@ -19,8 +19,63 @@ fn s(app: &App) -> SettingsState<'_> {
     app.ui.global::<SettingsState>()
 }
 
+/// Catégories des options (dans l'ordre de SettingsState.section) : titre et sous-titre.
+const CATEGORIES: [&str; 9] = [
+    "Param_Apparence", "Param_Langue", "Param_Microsoft", "Param_HorsLigne", "Param_Memoire",
+    "Param_Comportement", "Param_Ressources", "Param_Depannage", "Param_Barre",
+];
+
+/// Réglages trouvables par la recherche : clé du titre (sa description est « clé_Texte ») et catégorie.
+const REGLAGES: [(&str, i32); 20] = [
+    ("Param_Theme", 0), ("Param_Saison", 0), ("Param_FondFlou", 0), ("Param_Flou", 0),
+    ("Param_Microsoft_Titre", 2), ("Param_Memoire_Titre", 4),
+    ("Param_Raccourci", 5), ("Param_Partage", 5), ("Param_Discord", 5), ("Param_Console", 5), ("Param_Telemetrie", 5),
+    ("Param_Stockage", 6), ("Param_Dossier", 6), ("Param_Telechargements", 6),
+    ("Param_Cache", 7), ("Param_Journaux", 7), ("Param_Debug", 7), ("Param_MiseAJour", 7), ("Param_PreRelease", 7), ("Param_MistyClient", 7),
+];
+
+/// Texte d'une clé, ou vide si elle n'existe pas (loc::t renvoie alors la clé).
+fn texte_ou_vide(cle: &str) -> String {
+    let t = loc::t(cle);
+    if t == cle { String::new() } else { t }
+}
+
+/// Minuscules sans accents, pour comparer « memoire » et « Mémoire ».
+fn simplifier(texte: &str) -> String {
+    use unicode_normalization::UnicodeNormalization;
+    texte.nfd().filter(|c| !unicode_normalization::char::is_combining_mark(*c)).collect::<String>().to_lowercase()
+}
+
+/// Réglages dont le titre, la description ou la catégorie contiennent la recherche.
+fn chercher(recherche: &str) -> Vec<SettingResult> {
+    let r = simplifier(recherche.trim());
+    if r.is_empty() {
+        return Vec::new();
+    }
+    let mut resultats = Vec::new();
+    // les catégories elles-mêmes (Langue, Comptes hors ligne… n'ont pas de réglage titré)
+    for (i, cle) in CATEGORIES.iter().enumerate() {
+        let (titre, sous) = (loc::t(cle), texte_ou_vide(&format!("{cle}_Sous")));
+        if simplifier(&titre).contains(&r) || simplifier(&sous).contains(&r) {
+            resultats.push(SettingResult { title: titre.into(), category: sous.into(), section: i as i32 });
+        }
+    }
+    for (cle, section) in REGLAGES {
+        let (titre, texte) = (loc::t(cle), texte_ou_vide(&format!("{cle}_Texte")));
+        if simplifier(&titre).contains(&r) || simplifier(&texte).contains(&r) {
+            resultats.push(SettingResult { title: titre.into(), category: loc::t(CATEGORIES[section as usize]).into(), section });
+        }
+    }
+    resultats
+}
+
 pub fn installer(app: &Rc<App>) {
     let st = s(app);
+    let a = app.clone();
+    st.on_search_changed(move || {
+        let st = s(&a);
+        st.set_results(modele(chercher(&st.get_search())));
+    });
     st.set_data_dir(paths::data_dir().to_string_lossy().to_string().into());
     appliquer_barre(app);
     let a = app.clone();
@@ -717,4 +772,13 @@ fn basculer_onglet(app: &App, onglet: &str, visible: bool) {
     }
     settings::set(settings::BARRE_MASQUEE, &masques.join(","));
     appliquer_barre(app);
+}
+
+#[cfg(test)]
+mod tests_recherche {
+    #[test]
+    fn simplifier_sans_accents() {
+        assert_eq!(super::simplifier("Mémoire"), "memoire");
+        assert_eq!(super::simplifier("  ÉTÉ "), "  ete ");
+    }
 }

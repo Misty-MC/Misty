@@ -431,9 +431,21 @@ export struct MsCompte {
     active: bool,
 }
 
+/// Un réglage trouvé par la recherche des options.
+export struct SettingResult {
+    title: string,
+    /// Catégorie (ou, pour une catégorie, son sous-titre)
+    category: string,
+    section: int,
+}
+
 export global SettingsState {
     /// Fenêtre des options ouverte
     in property <bool> open;
+    /// Recherche dans les options, et les réglages trouvés
+    in-out property <string> search;
+    in property <[SettingResult]> results;
+    callback search-changed();
     /// Catégorie affichée : 0 apparence · 1 langue · 2 Microsoft · 3 hors-ligne · 4 mémoire
     /// · 5 comportement · 6 ressources · 7 dépannage · 8 barre latérale
     in-out property <int> section: 0;
