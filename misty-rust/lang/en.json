@@ -763,5 +763,9 @@
   "Param_Apercu": "PREVIEW",
   "Param_Apercu_Texte": "The launcher changes live with these settings.",
   "Ver_Choisir": "Choose",
-  "Ver_ChoisisVersion": "Pick a version of this update."
+  "Ver_ChoisisVersion": "Pick a version of this update.",
+  "Skin_MesSkins": "MY SKINS",
+  "Skin_Precedent": "Previous skin",
+  "Skin_Porte": "Worn",
+  "Skin_Ajouter": "Add a skin (.png)"
 }

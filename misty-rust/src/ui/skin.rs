@@ -3,7 +3,7 @@
 use super::{dialogs, images, lancer, modele, App};
 use crate::services::skins::{self, Profil};
 use crate::services::{account, client, loc};
-use crate::{CapeItem, HomeState, SkinState};
+use crate::{CapeItem, HomeState, SkinHistoryItem, SkinState};
 use slint::{ComponentHandle, Image, Model};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -109,6 +109,10 @@ pub fn installer(app: &Rc<App>) {
         let a = a.clone();
         lancer(async move { appliquer(&a).await });
     });
+
+    let a = app.clone();
+    st.on_history_picked(move |id| reprendre_historique(&a, &id));
+    afficher_historique(app);
 
     let a = app.clone();
     st.on_select_cape(move |id| {
@@ -288,6 +292,7 @@ async fn afficher_charge(app: &Rc<App>, c: Charge, epoque: u64) -> bool {
             st.set_slim(c.profil.fin);
         }
         e.skin_actuel = c.skin;
+        skins::ajouter_historique(&e.skin_actuel, c.profil.fin);
         e.capes_img = vec![None; profil.capes.len()];
         if let Some((i, octets)) = c.cape_active {
             e.capes_img[i] = Some(octets);
@@ -298,6 +303,7 @@ async fn afficher_charge(app: &Rc<App>, c: Charge, epoque: u64) -> bool {
     }
     afficher_personnage(app);
     afficher_capes(app);
+    afficher_historique(app);
     st.set_loading(false);
 
     // Les vignettes des autres capes arrivent après
@@ -551,11 +557,57 @@ async fn choisir_fichier(app: &Rc<App>) {
     }
     // bras fins ou larges : choisis d'après la texture (on peut toujours changer ensuite)
     let fin = skins::est_fin(&octets);
+    skins::ajouter_historique(&octets, fin);
+    afficher_historique(app);
     app.skin.borrow_mut().fichier = Some(octets);
     let st = s(app);
     st.set_slim(fin);
     st.set_has_file(true);
     st.set_file_name(chemin.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default().into());
+    st.set_info("".into());
+    afficher_personnage(app);
+}
+
+/// « Mes skins » : la tête de chaque skin de l'historique, le skin porté marqué.
+fn afficher_historique(app: &Rc<App>) {
+    let actuel = {
+        let e = app.skin.borrow();
+        if e.skin_actuel.is_empty() { String::new() } else { skins::id_historique(&e.skin_actuel) }
+    };
+    let items: Vec<SkinHistoryItem> = skins::historique()
+        .into_iter()
+        .filter_map(|(chemin, _)| {
+            let png = std::fs::read(&chemin).ok()?;
+            let tete = skins::rendre_tete(&png)?;
+            let id = chemin.file_stem()?.to_string_lossy().to_string();
+            Some(SkinHistoryItem {
+                current: id.trim_end_matches("-fin") == actuel,
+                id: id.into(),
+                head: Image::from_rgba8(images::tampon(&tete)),
+            })
+        })
+        .collect();
+    s(app).set_history(modele(items));
+}
+
+/// Un skin de l'historique choisi : il devient le skin à envoyer (comme un fichier choisi).
+fn reprendre_historique(app: &Rc<App>, id: &str) {
+    let Some((chemin, fin)) = skins::historique().into_iter().find(|(p, _)| p.file_stem().is_some_and(|n| n.to_string_lossy() == id)) else {
+        return;
+    };
+    let Ok(octets) = std::fs::read(&chemin) else { return };
+    let st = s(app);
+    // le skin déjà porté : on annule simplement le fichier en attente
+    if skins::id_historique(&octets) == skins::id_historique(&app.skin.borrow().skin_actuel) {
+        app.skin.borrow_mut().fichier = None;
+        st.set_has_file(false);
+        st.set_file_name("".into());
+    } else {
+        app.skin.borrow_mut().fichier = Some(octets);
+        st.set_has_file(true);
+        st.set_file_name(loc::t("Skin_Precedent").into());
+    }
+    st.set_slim(fin);
     st.set_info("".into());
     afficher_personnage(app);
 }
@@ -582,6 +634,8 @@ async fn appliquer(app: &Rc<App>) {
             if let Some(s) = account::session() {
                 skins::memoriser_skin_envoye(&s.uuid, &png, fin);
             }
+            skins::ajouter_historique(&png, fin);
+            afficher_historique(app);
             st.set_info(loc::t("Skin_Applique").into());
             afficher_personnage(app);
             // La pastille de l'accueil montre la nouvelle tête tout de suite

@@ -763,5 +763,9 @@
   "Param_Apercu": "ANTEPRIMA",
   "Param_Apercu_Texte": "Il launcher cambia in tempo reale con queste impostazioni.",
   "Ver_Choisir": "Scegli",
-  "Ver_ChoisisVersion": "Scegli una versione di questo aggiornamento."
+  "Ver_ChoisisVersion": "Scegli una versione di questo aggiornamento.",
+  "Skin_MesSkins": "LE MIE SKIN",
+  "Skin_Precedent": "Skin precedente",
+  "Skin_Porte": "Indossata",
+  "Skin_Ajouter": "Aggiungi una skin (.png)"
 }

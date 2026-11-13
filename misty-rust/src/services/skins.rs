@@ -102,6 +102,56 @@ fn majuscule(alias: &str) -> String {
 }
 
 /// Dossier où sont gardés les skins et capes déjà téléchargés.
+/// Skins portés ou envoyés (« Mes skins » de la page Skin), les plus récents d'abord.
+fn dossier_historique() -> std::path::PathBuf {
+    super::paths::data_dir().join("skins")
+}
+
+/// Nombre de skins gardés dans l'historique.
+const HISTORIQUE_MAX: usize = 12;
+
+/// Garde un skin dans l'historique (ou le remonte en tête s'il y est déjà). Nom : md5 du PNG, et
+/// « -fin » pour les bras fins.
+pub fn ajouter_historique(png: &[u8], fin: bool) {
+    if !skin_valide(png) {
+        return;
+    }
+    let dossier = dossier_historique();
+    let _ = std::fs::create_dir_all(&dossier);
+    let base = format!("{:x}", md5::compute(png));
+    // le même skin avec l'autre modèle de bras : on remplace
+    let _ = std::fs::remove_file(dossier.join(format!("{base}.png")));
+    let _ = std::fs::remove_file(dossier.join(format!("{base}-fin.png")));
+    let _ = std::fs::write(dossier.join(format!("{base}{}.png", if fin { "-fin" } else { "" })), png);
+    for (ancien, _) in historique().into_iter().skip(HISTORIQUE_MAX) {
+        let _ = std::fs::remove_file(ancien);
+    }
+}
+
+/// Les skins de l'historique (fichier, bras fins), du plus récent au plus ancien.
+pub fn historique() -> Vec<(std::path::PathBuf, bool)> {
+    let Ok(entrees) = std::fs::read_dir(dossier_historique()) else { return Vec::new() };
+    let mut liste: Vec<(std::time::SystemTime, std::path::PathBuf)> = entrees
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "png"))
+        .map(|p| (std::fs::metadata(&p).and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH), p))
+        .collect();
+    liste.sort_by(|a, b| b.0.cmp(&a.0));
+    liste
+        .into_iter()
+        .map(|(_, p)| {
+            let fin = p.file_stem().is_some_and(|n| n.to_string_lossy().ends_with("-fin"));
+            (p, fin)
+        })
+        .collect()
+}
+
+/// Identifiant d'un skin de l'historique (son nom de fichier sans « -fin ») : md5 du PNG.
+pub fn id_historique(png: &[u8]) -> String {
+    format!("{:x}", md5::compute(png))
+}
+
 fn dossier_cache() -> std::path::PathBuf {
     super::paths::data_dir().join("cache").join("skins")
 }

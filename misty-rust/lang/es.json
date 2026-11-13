@@ -763,5 +763,9 @@
   "Param_Apercu": "VISTA PREVIA",
   "Param_Apercu_Texte": "El launcher cambia en directo con estos ajustes.",
   "Ver_Choisir": "Elegir",
-  "Ver_ChoisisVersion": "Elige una versión de esta actualización."
+  "Ver_ChoisisVersion": "Elige una versión de esta actualización.",
+  "Skin_MesSkins": "MIS SKINS",
+  "Skin_Precedent": "Skin anterior",
+  "Skin_Porte": "En uso",
+  "Skin_Ajouter": "Añadir un skin (.png)"
 }

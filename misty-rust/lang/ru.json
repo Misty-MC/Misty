@@ -763,5 +763,9 @@
   "Param_Apercu": "ПРЕДПРОСМОТР",
   "Param_Apercu_Texte": "Лаунчер меняется сразу вместе с этими настройками.",
   "Ver_Choisir": "Выбрать",
-  "Ver_ChoisisVersion": "Выбери версию этого обновления."
+  "Ver_ChoisisVersion": "Выбери версию этого обновления.",
+  "Skin_MesSkins": "МОИ СКИНЫ",
+  "Skin_Precedent": "Прошлый скин",
+  "Skin_Porte": "Надет",
+  "Skin_Ajouter": "Добавить скин (.png)"
 }

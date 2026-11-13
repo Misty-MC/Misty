@@ -763,5 +763,9 @@
   "Param_Apercu": "PRÉ-VISUALIZAÇÃO",
   "Param_Apercu_Texte": "O launcher muda em direto com estas definições.",
   "Ver_Choisir": "Escolher",
-  "Ver_ChoisisVersion": "Escolhe uma versão desta atualização."
+  "Ver_ChoisisVersion": "Escolhe uma versão desta atualização.",
+  "Skin_MesSkins": "AS MINHAS SKINS",
+  "Skin_Precedent": "Skin anterior",
+  "Skin_Porte": "Em uso",
+  "Skin_Ajouter": "Adicionar uma skin (.png)"
 }
