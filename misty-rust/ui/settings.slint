@@ -2,9 +2,8 @@
 // apparence, langue, comptes, mémoire, comportement, ressources, dépannage. Chaque catégorie a un en-tête
 // et ses réglages sont groupés dans des cartes, avec une marge intérieure.
 
-import { Theme, Tr } from "theme.slint";
+import { Theme, Tr, Bulle } from "theme.slint";
 import { SettingsState, StorageRow, AppState, SettingResult } from "state.slint";
-import { Paysage } from "scene.slint";
 import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, MButton, GlassInput, ToggleSwitch, GlassSlider, ChromeButton, OutlinedText } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
@@ -103,63 +102,7 @@ component LigneCompte inherits Rectangle {
     }
 }
 
-/// Titre de groupe dans la colonne de navigation (AFFICHAGE, COMPTES…).
-component GroupeNav inherits Rectangle {
-    in property <string> text;
-    height: 26px;
-    Text {
-        x: 14px;
-        y: parent.height - self.height - 6px;
-        text: root.text;
-        font-family: Theme.ui-font;
-        font-size: 11px;
-        color: Theme.text-dim;
-    }
-}
 
-/// Entrée de la colonne de navigation. Le fond de l'entrée choisie est un indicateur commun
-/// qui glisse d'une entrée à l'autre (dessiné par la colonne).
-component EntreeNav inherits Rectangle {
-    in property <string> icon;
-    in property <string> text;
-    in property <bool> checked;
-    callback clicked;
-
-    height: 38px;
-    border-radius: 12px;
-    background: !root.checked && touch.has-hover ? Theme.glass-hover : transparent;
-    animate background { duration: Theme.fast; }
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 12px;
-        spacing: 12px;
-        Icon {
-            width: 18px;
-            text: root.icon;
-            font-size: 15px;
-            color: root.checked ? Theme.accent : Theme.text-muted;
-            transform-scale: touch.pressed ? 0.85 : 1;
-            animate color { duration: Theme.normal; }
-            animate transform-scale { duration: 140ms; easing: ease-out; }
-        }
-        Text {
-            horizontal-stretch: 1;
-            text: root.text;
-            font-family: Theme.ui-font;
-            font-size: 14px;
-            font-weight: 600;
-            color: root.checked ? Theme.accent : touch.has-hover ? Theme.navy : Theme.navy2;
-            vertical-alignment: center;
-            overflow: elide;
-            animate color { duration: Theme.normal; }
-        }
-    }
-    touch := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { root.clicked(); }
-    }
-}
 
 /// Titre de réglage (gras) + description.
 component Entete inherits VerticalLayout {
@@ -270,10 +213,6 @@ component LigneOnglet inherits Rectangle {
     }
 }
 
-component Separateur inherits Rectangle {
-    height: 1px;
-    background: Theme.line;
-}
 
 /// Pastille de valeur (« 4 Go », « 16 »).
 component Valeur inherits Rectangle {
@@ -599,48 +538,6 @@ component Carte inherits Rectangle {
     }
 }
 
-/// En-tête de la catégorie : pastille avec l'icône, titre et sous-titre.
-component EnteteSection inherits HorizontalLayout {
-    in property <string> icon;
-    in property <string> titre;
-    in property <string> texte;
-    spacing: 16px;
-    VerticalLayout {
-        alignment: center;
-        Rectangle {
-            width: 50px;
-            height: 50px;
-            border-radius: 15px;
-            background: Theme.accent-soft;
-            border-width: 1px;
-            border-color: Theme.accent.with-alpha(0.35);
-            Icon {
-                text: root.icon;
-                font-size: 20px;
-                color: Theme.accent;
-            }
-        }
-    }
-    VerticalLayout {
-        horizontal-stretch: 1;
-        alignment: center;
-        spacing: 2px;
-        Text {
-            text: root.titre;
-            font-family: Theme.ui-font;
-            font-size: 22px;
-            font-weight: 800;
-            color: Theme.navy;
-            overflow: elide;
-        }
-        Text {
-            text: root.texte;
-            font-size: 13px;
-            color: Theme.text-muted;
-            wrap: word-wrap;
-        }
-    }
-}
 
 /// Contenu d'une catégorie : apparaît en fondu en glissant légèrement.
 component Volet inherits VerticalLayout {
@@ -689,438 +586,313 @@ component Resultat inherits Rectangle {
     }
 }
 
-/// Le launcher en miniature : le vrai paysage (thème, saison, flou), la barre latérale, le titre et
-/// la colonne de lancement, aux couleurs du thème choisi. Il change en direct avec l'apparence.
-component Apercu inherits Rectangle {
-    height: 170px;
-    border-radius: 10px;
-    clip: true;
-    background: Theme.sky;
-    border-width: 1px;
-    border-color: Theme.glass-border;
-    Paysage {
-        width: parent.width;
-        height: parent.height;
+
+// ───────────────────────── La fenêtre des options ─────────────────────────
+
+/// Onglet d'une catégorie des options : icône, nom, et un trait sous l'onglet actif.
+component OngletReglage inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> actif;
+    /// place comptée : l'icône seule (le nom en bulle d'aide), sauf pour l'onglet actif
+    in property <bool> compact;
+    callback clicked;
+    width: contenu.preferred-width + 20px;
+    border-radius: 6px;
+    background: !root.actif && zone.has-hover ? Theme.glass-hover : transparent;
+    animate background { duration: Theme.fast; }
+    contenu := HorizontalLayout {
+        x: 10px;
+        spacing: 8px;
+        Icon {
+            text: root.icon;
+            font-size: 13px;
+            color: root.actif ? Theme.accent : Theme.text-muted;
+        }
+        if !root.compact || root.actif: Text {
+            text: root.text;
+            font-size: 13.5px;
+            font-weight: root.actif ? 700 : 600;
+            color: root.actif ? Theme.navy : Theme.text-muted;
+            vertical-alignment: center;
+        }
     }
-    // barre latérale
     Rectangle {
-        x: 8px;
-        y: 8px;
-        width: 26px;
-        height: parent.height - 16px;
-        border-radius: 6px;
-        background: Theme.glass;
-        border-width: 1px;
-        border-color: Theme.glass-border;
-        for i in 5: Rectangle {
-            x: 5px;
-            y: 6px + i * 22px;
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-            background: i == 0 ? Theme.fill : i == 1 ? Theme.panel-strong : Theme.glass;
+        x: 10px;
+        y: parent.height - 3px;
+        width: root.actif ? parent.width - 20px : 0px;
+        height: 3px;
+        border-radius: 1.5px;
+        background: Theme.accent;
+        animate width { duration: 260ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            Bulle.visible = false;
+            root.clicked();
         }
     }
-    OutlinedText {
-        x: 48px;
-        y: 18px;
-        text: "MISTY";
-        font-size: 24px;
-        thickness: 2px;
-        depth: 2px;
-    }
-    // la news à la une
-    Rectangle {
-        x: 48px;
-        y: 56px;
-        width: parent.width - 48px - 130px;
-        height: parent.height - 70px;
-        border-radius: 6px;
-        background: Theme.panel-strong;
-        border-width: 1px;
-        border-color: Theme.glass-border;
-        Rectangle {
-            y: 0;
-            height: parent.height - 26px;
-            border-radius: 6px;
-            background: #1C2335;
-        }
-        Rectangle {
-            x: 10px;
-            y: parent.height - 17px;
-            width: parent.width * 0.4;
-            height: 7px;
-            border-radius: 2px;
-            background: Theme.navy;
-            opacity: 0.7;
-        }
-    }
-    // colonne de lancement
-    Rectangle {
-        x: parent.width - 118px;
-        y: 8px;
-        width: 108px;
-        height: parent.height - 16px;
-        border-radius: 7px;
-        background: Theme.panel;
-        border-width: 1px;
-        border-color: Theme.glass-border;
-        Rectangle {
-            x: 7px;
-            y: 7px;
-            width: parent.width - 14px;
-            height: parent.height - 46px;
-            border-radius: 5px;
-            background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 40%, #161C2B 100%);
-        }
-        Rectangle {
-            x: 7px;
-            y: parent.height - 32px;
-            width: parent.width - 14px;
-            height: 24px;
-            border-radius: 5px;
-            background: @linear-gradient(180deg, #B4CFFF 0%, #6F9CFF 100%);
+    property <bool> survol: zone.has-hover;
+    changed survol => {
+        if (self.survol && root.compact && !root.actif) {
+            Bulle.texte = root.text;
+            Bulle.x = root.absolute-position.x + root.width / 2;
+            Bulle.y = root.absolute-position.y + root.height + 6px;
+            Bulle.a-droite = false;
+            Bulle.visible = true;
+        } else if (Bulle.texte == root.text) {
+            Bulle.visible = false;
         }
     }
 }
 
-// ───────────────────────── La fenêtre des options ─────────────────────────
+/// Rangée de deux tuiles de même hauteur.
+component Rangee inherits HorizontalLayout {
+    spacing: 12px;
+}
 
 export component SettingsModal inherits Rectangle {
     property <bool> ouvert: SettingsState.open;
     property <int> section: SettingsState.section;
-
-    // Position de l'indicateur pour chaque entrée (groupes de 26 px, entrées de 38 px + 4 px)
-    property <[length]> positions: [26px, 68px, 178px, 220px, 288px, 356px, 398px, 440px, 110px];
-    // En-tête de chaque catégorie
-    property <[string]> icones: ["\u{E771}", "\u{E774}", "\u{E77B}", "\u{E716}", "\u{E9D9}", "\u{E9E9}", "\u{EDA2}", "\u{E90F}", "\u{E700}"];
-    property <[string]> titres: ["Param_Apparence", "Param_Langue", "Param_Microsoft", "Param_HorsLigne", "Param_Memoire", "Param_Comportement", "Param_Ressources", "Param_Depannage", "Param_Barre"];
+    // Les onglets regroupent les anciennes catégories : Onglets (8) avec l'Apparence, les comptes
+    // hors ligne (3) avec Microsoft. Les numéros de section ne changent pas (recherche, Rust).
+    property <int> cat: root.section == 8 ? 0 : root.section == 3 ? 2 : root.section;
+    property <[{ s: int, icon: string, cle: string, sous: string }]> onglets: [
+        { s: 0, icon: "\u{E771}", cle: "Param_Apparence", sous: "Param_Apparence_Sous" },
+        { s: 1, icon: "\u{E774}", cle: "Param_Langue", sous: "Param_Langue_Sous" },
+        { s: 2, icon: "\u{E77B}", cle: "Param_Comptes", sous: "Param_Microsoft_Sous" },
+        { s: 4, icon: "\u{E9D9}", cle: "Param_Memoire", sous: "Param_Memoire_Sous" },
+        { s: 5, icon: "\u{E9E9}", cle: "Param_Comportement", sous: "Param_Comportement_Sous" },
+        { s: 6, icon: "\u{EDA2}", cle: "Param_Ressources", sous: "Param_Ressources_Sous" },
+        { s: 7, icon: "\u{E90F}", cle: "Param_Depannage", sous: "Param_Depannage_Sous" },
+    ];
+    property <int> onglet-actif: root.cat == 0 ? 0 : root.cat == 1 ? 1 : root.cat == 2 ? 2 : root.cat == 4 ? 3 : root.cat == 5 ? 4 : root.cat == 6 ? 5 : 6;
 
     opacity: root.ouvert ? 1 : 0;
-    visible: self.opacity > 0.01 && !SettingsState.capturing;
+    visible: self.opacity > 0.01;
     animate opacity { duration: root.ouvert ? 220ms : 160ms; easing: ease-out; }
 
-    // Dans la zone centrale de la fenêtre, à la place de la page : deux tuiles alignées sur la
-    // grille (les catégories, puis le contenu), qui glissent un peu en arrivant.
+    // Une seule tuile dans la zone centrale de la fenêtre : en-tête avec les onglets, puis les
+    // réglages de la catégorie en grille de tuiles. Elle glisse un peu en arrivant.
     carte := Rectangle {
         y: root.ouvert ? 0px : 14px;
         animate y { duration: root.ouvert ? 380ms : 160ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+        border-radius: 8px;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        clip: true;
         TouchArea { }
 
-        HorizontalLayout {
-            spacing: 12px;
-            // ═══ Colonne de navigation ═══
-            Rectangle {
-                width: 252px;
-                border-radius: 8px;
-                background: Theme.panel;
-                border-width: 1px;
-                border-color: Theme.glass-border;
-                clip: true;
-
+        VerticalLayout {
+            // ═══ En-tête : titre, catégories, fermer ═══
+            HorizontalLayout {
+                height: 60px;
+                padding-left: 22px;
+                padding-right: 12px;
+                spacing: 18px;
                 VerticalLayout {
-                    padding: 16px;
-                    padding-top: 22px;
-                    spacing: 12px;
-
-                    // Titre de la fenêtre
-                    HorizontalLayout {
-                        padding-left: 10px;
-                        padding-bottom: 4px;
-                        Text {
-                            text: Tr.t("Param_Titre");
-                            font-family: Theme.ui-font;
-                            font-size: 24px;
-                            font-weight: 800;
-                            color: Theme.navy;
-                            overflow: elide;
-                        }
+                    alignment: center;
+                    Text {
+                        text: Tr.t("Param_Titre");
+                        font-size: 20px;
+                        font-weight: 800;
+                        color: Theme.navy;
                     }
-
-                    GlassInput {
-                        search: true;
-                        placeholder: Tr.t("Param_Recherche");
-                        text <=> SettingsState.search;
-                        edited => { SettingsState.search-changed(); }
-                    }
-
-                    // recherche en cours : les réglages trouvés à la place des catégories
-                    if SettingsState.search != "": ScrollView {
-                        vertical-stretch: 1;
-                        content-width: self.visible-width;
-                        content-height: trouves.preferred-height;
-                        trouves := VerticalLayout {
-                            width: parent.visible-width;
-                            alignment: start;
-                            spacing: 2px;
-                            for r in SettingsState.results: Resultat {
-                                r: r;
-                                clicked => {
-                                    SettingsState.section = r.section;
-                                    SettingsState.search = "";
-                                    SettingsState.search-changed();
-                                }
-                            }
-                            if SettingsState.results.length == 0: Text {
-                                text: Tr.t("Param_Recherche_Aucun");
-                                font-size: 12.5px;
-                                color: Theme.text-muted;
-                                wrap: word-wrap;
-                                horizontal-alignment: center;
-                            }
-                        }
-                    }
-
-                    if SettingsState.search == "": ScrollView {
-                        vertical-stretch: 1;
-                        content-width: self.visible-width;
-                        content-height: 482px;
-
-                        Rectangle {
-                            width: parent.visible-width;
-                            height: 482px;
-
-                            // indicateur qui glisse sous l'entrée choisie
-                            Rectangle {
-                                x: 0;
-                                y: root.positions[root.section];
-                                width: parent.width;
-                                height: 38px;
-                                border-radius: 12px;
-                                background: Theme.accent-soft;
-                                border-width: 1px;
-                                border-color: Theme.accent.with-alpha(0.35);
-                                animate y { duration: 380ms; easing: cubic-bezier(0.34, 1.25, 0.64, 1); }
-                                // trait lumineux à gauche
-                                Rectangle {
-                                    x: 0px;
-                                    y: 10px;
-                                    width: 3px;
-                                    height: parent.height - 20px;
-                                    border-radius: 2px;
-                                    background: Theme.accent;
-                                    drop-shadow-blur: 8px;
-                                    drop-shadow-color: Theme.accent;
-                                }
-                            }
-
-                            GroupeNav { y: 0px; width: parent.width; text: Tr.t("Param_Groupe_Affichage"); }
-                            EntreeNav { y: 26px; width: parent.width; icon: root.icones[0]; text: Tr.t("Param_Apparence"); checked: root.section == 0; clicked => { SettingsState.section = 0; } }
-                            EntreeNav { y: 68px; width: parent.width; icon: root.icones[1]; text: Tr.t("Param_Langue"); checked: root.section == 1; clicked => { SettingsState.section = 1; } }
-                            EntreeNav { y: 110px; width: parent.width; icon: root.icones[8]; text: Tr.t("Param_Barre"); checked: root.section == 8; clicked => { SettingsState.section = 8; } }
-
-                            GroupeNav { y: 152px; width: parent.width; text: Tr.t("Param_Groupe_Comptes"); }
-                            EntreeNav { y: 178px; width: parent.width; icon: root.icones[2]; text: Tr.t("Param_Microsoft"); checked: root.section == 2; clicked => { SettingsState.section = 2; } }
-                            EntreeNav { y: 220px; width: parent.width; icon: root.icones[3]; text: Tr.t("Param_HorsLigne"); checked: root.section == 3; clicked => { SettingsState.section = 3; } }
-
-                            GroupeNav { y: 262px; width: parent.width; text: Tr.t("Param_Groupe_Jeu"); }
-                            EntreeNav { y: 288px; width: parent.width; icon: root.icones[4]; text: Tr.t("Param_Memoire"); checked: root.section == 4; clicked => { SettingsState.section = 4; } }
-
-                            GroupeNav { y: 330px; width: parent.width; text: Tr.t("Param_Groupe_Launcher"); }
-                            EntreeNav { y: 356px; width: parent.width; icon: root.icones[5]; text: Tr.t("Param_Comportement"); checked: root.section == 5; clicked => { SettingsState.section = 5; } }
-                            EntreeNav { y: 398px; width: parent.width; icon: root.icones[6]; text: Tr.t("Param_Ressources"); checked: root.section == 6; clicked => { SettingsState.section = 6; } }
-                            EntreeNav { y: 440px; width: parent.width; icon: root.icones[7]; text: Tr.t("Param_Depannage"); checked: root.section == 7; clicked => { SettingsState.section = 7; } }
-                        }
-                    }
-
-                    // Pied de colonne : version de Misty et de Windows, dans une petite carte
-                    Rectangle {
-                        height: 56px;
-                        border-radius: 14px;
-                        background: Theme.glass;
-                        border-width: 1px;
-                        border-color: Theme.glass-border;
-                        HorizontalLayout {
-                            padding-left: 11px;
-                            padding-right: 12px;
-                            spacing: 11px;
-                            VerticalLayout {
-                                alignment: center;
-                                Rectangle {
-                                    width: 34px;
-                                    height: 34px;
-                                    border-radius: 10px;
-                                    background: Theme.dark ? #162140 : #1C2335;
-                                    Image {
-                                        width: 24px;
-                                        height: 24px;
-                                        source: @image-url("../assets/logo-nuage.png");
-                                        image-fit: contain;
-                                    }
-                                }
-                            }
-                            VerticalLayout {
-                                alignment: center;
-                                spacing: 1px;
-                                Text {
-                                    text: SettingsState.about-text;
-                                    font-size: 12px;
-                                    font-weight: 600;
-                                    color: Theme.navy2;
-                                    overflow: elide;
-                                }
-                                Text {
-                                    text: SettingsState.system-text;
-                                    font-size: 11.5px;
-                                    color: Theme.text-muted;
-                                    overflow: elide;
-                                }
+                }
+                Rectangle {
+                    width: 1px;
+                    height: 26px;
+                    y: (parent.height - self.height) / 2;
+                    background: Theme.line;
+                }
+                // les catégories défilent si elles ne tiennent pas
+                Flickable {
+                    horizontal-stretch: 1;
+                    content-width: max(self.width, rangee-onglets.preferred-width);
+                    interactive: rangee-onglets.preferred-width > self.width;
+                    rangee-onglets := HorizontalLayout {
+                        padding-top: 10px;
+                        spacing: 2px;
+                        for o[i] in root.onglets: OngletReglage {
+                            height: 50px;
+                            icon: o.icon;
+                            text: Tr.t(o.cle);
+                            actif: i == root.onglet-actif;
+                            // la tuile est étroite : les autres onglets n'affichent que leur icône
+                            compact: carte.width < 1040px;
+                            clicked => {
+                                SettingsState.search = "";
+                                SettingsState.search-changed();
+                                SettingsState.section = o.s;
                             }
                         }
                     }
                 }
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 38px;
+                        height: 38px;
+                        border-radius: 8px;
+                        background: fermer.pressed ? Theme.glass-strong : fermer.has-hover ? Theme.glass-hover : transparent;
+                        border-width: 1px;
+                        border-color: fermer.has-hover ? Theme.accent.with-alpha(0.6) : Theme.glass-border;
+                        animate background, border-color { duration: Theme.fast; }
+                        Icon {
+                            text: "\u{E8BB}";
+                            font-size: 11px;
+                            color: Theme.navy;
+                        }
+                        fermer := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { SettingsState.close(); }
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                height: 1px;
+                background: Theme.line;
             }
 
-            // ═══ Contenu de la catégorie choisie ═══
-            Rectangle {
-                horizontal-stretch: 1;
-                border-radius: 8px;
-                background: Theme.panel;
-                border-width: 1px;
-                border-color: Theme.glass-border;
-                clip: true;
+            // ═══ La description de la catégorie, et la recherche ═══
+            HorizontalLayout {
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-top: 16px;
+                padding-bottom: 4px;
+                spacing: 16px;
+                Text {
+                    horizontal-stretch: 1;
+                    text: SettingsState.search != "" ? Tr.t("Param_Recherche") : Tr.t(root.onglets[root.onglet-actif].sous);
+                    font-size: 13px;
+                    color: Theme.text-muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                GlassInput {
+                    width: 250px;
+                    search: true;
+                    placeholder: Tr.t("Param_Recherche");
+                    text <=> SettingsState.search;
+                    edited => { SettingsState.search-changed(); }
+                }
+            }
 
-                ScrollView {
-                    width: parent.width;
-                    height: parent.height;
-                    content-width: self.visible-width;
-                    content-height: contenu.preferred-height;
+            // ═══ Les réglages ═══
+            ScrollView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                content-height: contenu.preferred-height;
 
-                    contenu := VerticalLayout {
-                        width: parent.visible-width;
-                        padding-left: 36px;
-                        padding-right: 40px;
-                        padding-top: 30px;
-                        padding-bottom: 36px;
-                        spacing: 24px;
-                        alignment: start;
+                contenu := VerticalLayout {
+                    width: parent.visible-width;
+                    padding: 24px;
+                    padding-top: 12px;
+                    spacing: 12px;
+                    alignment: start;
 
-                        // marge à droite pour la croix de fermeture
-                        HorizontalLayout {
-                            padding-right: 52px;
-                            EnteteSection {
-                                icon: root.icones[root.section];
-                                titre: Tr.t(root.titres[root.section]);
-                                texte: root.section == 0 ? Tr.t("Param_Apparence_Sous")
-                                    : root.section == 1 ? Tr.t("Param_Langue_Sous")
-                                    : root.section == 2 ? Tr.t("Param_Microsoft_Sous")
-                                    : root.section == 3 ? Tr.t("Param_HorsLigne_Sous")
-                                    : root.section == 4 ? Tr.t("Param_Memoire_Sous")
-                                    : root.section == 5 ? Tr.t("Param_Comportement_Sous")
-                                    : root.section == 6 ? Tr.t("Param_Ressources_Sous")
-                                    : root.section == 8 ? Tr.t("Param_Barre_Sous")
-                                    : Tr.t("Param_Depannage_Sous");
+                    // ── Recherche : les réglages trouvés ──
+                    if SettingsState.search != "": VerticalLayout {
+                        spacing: 4px;
+                        for r in SettingsState.results: Resultat {
+                            r: r;
+                            clicked => {
+                                SettingsState.section = r.section;
+                                SettingsState.search = "";
+                                SettingsState.search-changed();
                             }
                         }
+                        if SettingsState.results.length == 0: Text {
+                            text: Tr.t("Param_Recherche_Aucun");
+                            font-size: 13px;
+                            color: Theme.text-muted;
+                            horizontal-alignment: center;
+                            wrap: word-wrap;
+                        }
+                    }
 
-                        // ── Apparence ──
-                        if root.section == 0: Volet {
-                            spacing: 16px;
-                            Carte {
-                                spacing: 12px;
+                    // ── Apparence (et les onglets affichés) ──
+                    if SettingsState.search == "" && root.cat == 0: Volet {
+                        spacing: 12px;
+                        Carte {
+                            Entete {
+                                titre: Tr.t("Param_Theme");
+                                texte: Tr.t("Param_Theme_Texte");
+                            }
+                            if Theme.event != 0: Rectangle {
+                                height: 40px;
+                                border-radius: 8px;
+                                background: Theme.accent-soft;
+                                border-width: 1px;
+                                border-color: Theme.accent.with-alpha(0.5);
                                 HorizontalLayout {
+                                    padding-left: 14px;
+                                    padding-right: 14px;
                                     spacing: 10px;
-                                    PixelLabel {
-                                        text: Tr.t("Param_Apercu");
-                                        font-size: 11px;
+                                    Icon {
+                                        width: 16px;
+                                        text: "\u{E706}";
+                                        font-size: 14px;
                                         color: Theme.accent;
                                     }
                                     Text {
                                         horizontal-stretch: 1;
-                                        text: Tr.t("Param_Apercu_Texte");
-                                        font-size: 12.5px;
-                                        color: Theme.text-muted;
+                                        text: Theme.halloween ? Tr.t("Param_Saison_Halloween") : Tr.t("Param_Saison_Noel");
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                        color: Theme.accent;
                                         vertical-alignment: center;
-                                    }
-                                }
-                                Apercu { }
-                            }
-                            Carte {
-                                Entete {
-                                    titre: Tr.t("Param_Theme");
-                                    texte: Tr.t("Param_Theme_Texte");
-                                }
-                                if Theme.event != 0: Rectangle {
-                                    height: 42px;
-                                    border-radius: 12px;
-                                    background: Theme.accent-soft;
-                                    border-width: 1px;
-                                    border-color: Theme.accent.with-alpha(0.5);
-                                    HorizontalLayout {
-                                        padding-left: 14px;
-                                        padding-right: 14px;
-                                        spacing: 10px;
-                                        Icon {
-                                            width: 16px;
-                                            text: "\u{E706}";
-                                            font-size: 14px;
-                                            color: Theme.accent;
-                                        }
-                                        Text {
-                                            horizontal-stretch: 1;
-                                            text: Theme.halloween ? Tr.t("Param_Saison_Halloween") : Tr.t("Param_Saison_Noel");
-                                            font-size: 13px;
-                                            font-weight: 600;
-                                            color: Theme.accent;
-                                            vertical-alignment: center;
-                                            overflow: elide;
-                                        }
-                                    }
-                                }
-                                HorizontalLayout {
-                                    spacing: 14px;
-                                    CarteTheme {
-                                        horizontal-stretch: 1;
-                                        genre: 0;
-                                        text: Tr.t("Param_Theme_Brume");
-                                        icon: "\u{E706}";
-                                        checked: Theme.mode == 0;
-                                        clicked => { SettingsState.theme-selected(0); }
-                                    }
-                                    CarteTheme {
-                                        horizontal-stretch: 1;
-                                        genre: 1;
-                                        text: Tr.t("Param_Theme_Nuit");
-                                        icon: "\u{E708}";
-                                        checked: Theme.mode == 1;
-                                        clicked => { SettingsState.theme-selected(1); }
-                                    }
-                                    CarteTheme {
-                                        horizontal-stretch: 1;
-                                        genre: 2;
-                                        text: Tr.t("Param_Theme_Systeme");
-                                        icon: "\u{E7F4}";
-                                        checked: Theme.mode == 2;
-                                        clicked => { SettingsState.theme-selected(2); }
+                                        overflow: elide;
                                     }
                                 }
                             }
+                            HorizontalLayout {
+                                spacing: 12px;
+                                CarteTheme {
+                                    horizontal-stretch: 1;
+                                    genre: 0;
+                                    text: Tr.t("Param_Theme_Brume");
+                                    icon: "\u{E706}";
+                                    checked: Theme.mode == 0;
+                                    clicked => { SettingsState.theme-selected(0); }
+                                }
+                                CarteTheme {
+                                    horizontal-stretch: 1;
+                                    genre: 1;
+                                    text: Tr.t("Param_Theme_Nuit");
+                                    icon: "\u{E708}";
+                                    checked: Theme.mode == 1;
+                                    clicked => { SettingsState.theme-selected(1); }
+                                }
+                                CarteTheme {
+                                    horizontal-stretch: 1;
+                                    genre: 2;
+                                    text: Tr.t("Param_Theme_Systeme");
+                                    icon: "\u{E7F4}";
+                                    checked: Theme.mode == 2;
+                                    clicked => { SettingsState.theme-selected(2); }
+                                }
+                            }
+                        }
+                        Rangee {
                             Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_Saison");
                                     texte: Tr.t("Param_Saison_Texte");
                                     checked <=> SettingsState.seasonal;
                                     toggled(v) => { SettingsState.seasonal-toggled(v); }
                                 }
-                                Separateur { }
-                                VerticalLayout {
-                                    spacing: 12px;
-                                    Entete {
-                                        titre: Tr.t("Param_FondFlou");
-                                        texte: Tr.t("Param_FondFlou_Texte");
-                                    }
-                                    CurseurBorne {
-                                        minimum: 0;
-                                        maximum: 10;
-                                        step: 1;
-                                        min-text: Tr.t("Param_FondFlou_Net");
-                                        max-text: Tr.t("Param_FondFlou_Max");
-                                        value-text: SettingsState.bg-blur == 0 ? Tr.t("Param_FondFlou_Off") : round(SettingsState.bg-blur);
-                                        value <=> SettingsState.bg-blur;
-                                        changed(v) => { SettingsState.bg-blur-changed(v); }
-                                    }
-                                }
-                                Separateur { }
+                            }
+                            Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_Flou");
                                     texte: Tr.t("Param_Flou_Texte");
@@ -1129,58 +901,85 @@ export component SettingsModal inherits Rectangle {
                                 }
                             }
                         }
-
-                        // ── Langue ──
-                        if root.section == 1: Volet {
-                            spacing: 16px;
-                            Avertissement { text: Tr.t("Param_Langue_Avert"); }
-                            Carte {
-                                spacing: 12px;
-                                BodyText { text: Tr.t("Options_Langue_Texte"); }
+                        Carte {
+                            Entete {
+                                titre: Tr.t("Param_FondFlou");
+                                texte: Tr.t("Param_FondFlou_Texte");
+                            }
+                            CurseurBorne {
+                                minimum: 0;
+                                maximum: 10;
+                                step: 1;
+                                min-text: Tr.t("Param_FondFlou_Net");
+                                max-text: Tr.t("Param_FondFlou_Max");
+                                value-text: SettingsState.bg-blur == 0 ? Tr.t("Param_FondFlou_Off") : round(SettingsState.bg-blur);
+                                value <=> SettingsState.bg-blur;
+                                changed(v) => { SettingsState.bg-blur-changed(v); }
+                            }
+                        }
+                        // les onglets du haut : deux colonnes
+                        Carte {
+                            spacing: 10px;
+                            Entete {
+                                titre: Tr.t("Param_Barre");
+                                texte: Tr.t("Param_Barre_Texte");
+                            }
+                            Rangee {
                                 VerticalLayout {
-                                    spacing: 6px;
-                                    for l[i] in SettingsState.langs: LigneLangue {
-                                        nom: l.name;
-                                        anglais: l.english;
-                                        flag: l.flag;
-                                        checked: i == SettingsState.lang-index;
-                                        clicked => {
-                                            SettingsState.lang-index = i;
-                                            SettingsState.lang-selected(i);
-                                        }
+                                    horizontal-stretch: 1;
+                                    spacing: 4px;
+                                    LigneOnglet { icon: "\u{E80F}"; titre: Tr.t("Onglet_Jouer"); texte: Tr.t("Param_Barre_Toujours"); verrouille: true; checked: true; }
+                                    LigneOnglet { icon: "\u{E77B}"; titre: Tr.t("Onglet_Skin"); checked: AppState.nav-skin; toggled(v) => { SettingsState.sidebar-toggled("skin", v); } }
+                                    LigneOnglet { icon: "\u{E8F1}"; titre: Tr.t("Onglet_Profils"); checked: AppState.nav-profils; toggled(v) => { SettingsState.sidebar-toggled("profils", v); } }
+                                    LigneOnglet { icon: "\u{E81C}"; titre: Tr.t("Onglet_Notes"); checked: AppState.nav-notes; toggled(v) => { SettingsState.sidebar-toggled("notes", v); } }
+                                }
+                                VerticalLayout {
+                                    horizontal-stretch: 1;
+                                    spacing: 4px;
+                                    LigneOnglet { icon: "\u{E790}"; titre: Tr.t("Onglet_Packs"); checked: AppState.nav-packs; toggled(v) => { SettingsState.sidebar-toggled("packs", v); } }
+                                    LigneOnglet { icon: "\u{E716}"; titre: Tr.t("Onglet_Amis"); checked: AppState.nav-amis; toggled(v) => { SettingsState.sidebar-toggled("amis", v); } }
+                                    LigneOnglet { icon: "\u{E8B7}"; titre: Tr.t("Nav_Dossier"); checked: AppState.nav-dossier; toggled(v) => { SettingsState.sidebar-toggled("dossier", v); } }
+                                    LigneOnglet { icon: "\u{E713}"; titre: Tr.t("Nav_Options"); texte: Tr.t("Param_Barre_Toujours"); verrouille: true; checked: true; }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Langue : les langues sur deux colonnes ──
+                    if SettingsState.search == "" && root.cat == 1: Volet {
+                        spacing: 12px;
+                        Avertissement { text: Tr.t("Param_Langue_Avert"); }
+                        Carte {
+                            spacing: 12px;
+                            BodyText { text: Tr.t("Options_Langue_Texte"); }
+                            grille-langues := Rectangle {
+                                property <length> largeur: (self.width - 8px) / 2;
+                                height: ceil(SettingsState.langs.length / 2) * 52px - 6px;
+                                for l[i] in SettingsState.langs: LigneLangue {
+                                    x: Math.mod(i, 2) * (grille-langues.largeur + 8px);
+                                    y: floor(i / 2) * 52px;
+                                    width: grille-langues.largeur;
+                                    nom: l.name;
+                                    anglais: l.english;
+                                    flag: l.flag;
+                                    checked: i == SettingsState.lang-index;
+                                    clicked => {
+                                        SettingsState.lang-index = i;
+                                        SettingsState.lang-selected(i);
                                     }
                                 }
                             }
                         }
+                    }
 
-                        // ── Barre latérale : onglets affichés ──
-                        if root.section == 8: Volet {
-                            spacing: 16px;
+                    // ── Comptes : Microsoft et hors ligne, côte à côte ──
+                    if SettingsState.search == "" && root.cat == 2: Volet {
+                        spacing: 12px;
+                        Rangee {
                             Carte {
-                                spacing: 6px;
-                                BodyText { text: Tr.t("Param_Barre_Texte"); }
-                                VerticalLayout {
-                                    padding-top: 8px;
-                                    spacing: 6px;
-                                    LigneOnglet { icon: "\u{E80F}"; titre: Tr.t("Nav_Jouer"); texte: Tr.t("Param_Barre_Toujours"); verrouille: true; checked: true; }
-                                    LigneOnglet { icon: "\u{E77B}"; titre: Tr.t("Nav_Skin"); checked: AppState.nav-skin; toggled(v) => { SettingsState.sidebar-toggled("skin", v); } }
-                                    LigneOnglet { icon: "\u{E8F1}"; titre: Tr.t("Nav_Profils"); checked: AppState.nav-profils; toggled(v) => { SettingsState.sidebar-toggled("profils", v); } }
-                                    LigneOnglet { icon: "\u{E81C}"; titre: Tr.t("Nav_Notes"); checked: AppState.nav-notes; toggled(v) => { SettingsState.sidebar-toggled("notes", v); } }
-                                    LigneOnglet { icon: "\u{E790}"; titre: Tr.t("Nav_Soon"); checked: AppState.nav-packs; toggled(v) => { SettingsState.sidebar-toggled("packs", v); } }
-                                    LigneOnglet { icon: "\u{E716}"; titre: Tr.t("Nav_Amis"); checked: AppState.nav-amis; toggled(v) => { SettingsState.sidebar-toggled("amis", v); } }
-                                }
-                            }
-                            Carte {
-                                spacing: 6px;
-                                LigneOnglet { icon: "\u{E8B7}"; titre: Tr.t("Nav_Dossier"); checked: AppState.nav-dossier; toggled(v) => { SettingsState.sidebar-toggled("dossier", v); } }
-                                LigneOnglet { icon: "\u{E713}"; titre: Tr.t("Nav_Options"); texte: Tr.t("Param_Barre_Toujours"); verrouille: true; checked: true; }
-                            }
-                        }
-
-                        // ── Compte Microsoft ──
-                        if root.section == 2: Volet {
-                            spacing: 16px;
-                            Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 Entete {
                                     titre: Tr.t("Param_Microsoft_Titre");
                                     texte: SettingsState.ms-state;
@@ -1194,9 +993,8 @@ export component SettingsModal inherits Rectangle {
                                         forget => { SettingsState.ms-forget(c.uuid); }
                                     }
                                 }
-                                HorizontalLayout {
-                                    spacing: 10px;
-                                    alignment: start;
+                                VerticalLayout {
+                                    spacing: 8px;
                                     MButton {
                                         kind: 1;
                                         icon: "\u{E710}";
@@ -1214,13 +1012,14 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                             }
-                        }
-
-                        // ── Comptes hors-ligne ──
-                        if root.section == 3: Volet {
-                            spacing: 16px;
                             Carte {
-                                BodyText { text: Tr.t("Options_hors_ligne_text"); }
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
+                                Entete {
+                                    titre: Tr.t("Param_HorsLigne");
+                                    texte: Tr.t("Options_hors_ligne_text");
+                                }
                                 if SettingsState.pseudo-rows.length > 0: VerticalLayout {
                                     spacing: 8px;
                                     for ligne in SettingsState.pseudo-rows: HorizontalLayout {
@@ -1233,7 +1032,7 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                                 HorizontalLayout {
-                                    spacing: 10px;
+                                    spacing: 8px;
                                     GlassInput {
                                         horizontal-stretch: 1;
                                         placeholder: Tr.t("Param_Pseudo_Placeholder");
@@ -1250,83 +1049,61 @@ export component SettingsModal inherits Rectangle {
                                 }
                             }
                         }
+                    }
 
-                        // ── Java et mémoire ──
-                        if root.section == 4: Volet {
-                            spacing: 16px;
-                            Carte {
+                    // ── Mémoire ──
+                    if SettingsState.search == "" && root.cat == 4: Volet {
+                        spacing: 12px;
+                        Carte {
+                            HorizontalLayout {
+                                spacing: 16px;
                                 Entete {
+                                    horizontal-stretch: 1;
                                     titre: Tr.t("Param_Memoire_Titre");
                                     texte: SettingsState.ram-total-text;
                                 }
-                                CurseurBorne {
-                                    minimum: 1024;
-                                    maximum: SettingsState.ram-max;
-                                    step: 1024;
-                                    min-text: "1 " + Tr.t("Unite_Go");
-                                    max-text: round(SettingsState.ram-max / 1024) + " " + Tr.t("Unite_Go");
-                                    value-text: SettingsState.ram-text;
-                                    value <=> SettingsState.ram-value;
-                                    changed(v) => { SettingsState.ram-changed(v); }
+                                VerticalLayout {
+                                    alignment: start;
+                                    Valeur { text: SettingsState.ram-text; }
                                 }
-                                Separateur { }
-                                BodyText { text: Tr.t("Param_Memoire_Conseil"); }
+                            }
+                            CurseurBorne {
+                                minimum: 1024;
+                                maximum: SettingsState.ram-max;
+                                step: 1024;
+                                min-text: "1 " + Tr.t("Unite_Go");
+                                max-text: round(SettingsState.ram-max / 1024) + " " + Tr.t("Unite_Go");
+                                value-text: SettingsState.ram-text;
+                                value <=> SettingsState.ram-value;
+                                changed(v) => { SettingsState.ram-changed(v); }
                             }
                         }
-
-                        // ── Comportement : raccourci, partage, Discord, console, télémétrie ──
-                        if root.section == 5: Volet {
-                            spacing: 16px;
-                            Carte {
-                                LigneInterrupteur {
-                                    titre: Tr.t("Param_Raccourci");
-                                    texte: Tr.t("Options_Raccourci_Texte");
-                                    checked <=> SettingsState.shortcut-enabled;
-                                    toggled(v) => { SettingsState.shortcut-toggled(v); }
+                        Carte {
+                            HorizontalLayout {
+                                spacing: 12px;
+                                Icon {
+                                    width: 18px;
+                                    vertical-alignment: top;
+                                    text: "\u{E946}";
+                                    font-size: 15px;
+                                    color: Theme.accent;
                                 }
-                                if SettingsState.shortcut-enabled: VerticalLayout {
-                                    spacing: 12px;
-                                    Rectangle {
-                                        height: 42px;
-                                        border-radius: 12px;
-                                        background: Theme.glass-strong;
-                                        border-width: 1px;
-                                        border-color: Theme.glass-border;
-                                        HorizontalLayout {
-                                            padding-left: 14px;
-                                            padding-right: 14px;
-                                            spacing: 10px;
-                                            Icon {
-                                                width: 16px;
-                                                text: "\u{E8B7}";
-                                                font-size: 13px;
-                                                color: Theme.text-muted;
-                                            }
-                                            Text {
-                                                horizontal-stretch: 1;
-                                                text: SettingsState.shortcut-path;
-                                                font-size: 13px;
-                                                color: Theme.navy2;
-                                                vertical-alignment: center;
-                                                overflow: elide;
-                                            }
-                                        }
-                                    }
-                                    HorizontalLayout {
-                                        spacing: 10px;
-                                        alignment: start;
-                                        MButton {
-                                            text: Tr.t("Options_ChoisirDossier");
-                                            clicked => { SettingsState.choose-shortcut(); }
-                                        }
-                                        MButton {
-                                            text: Tr.t("Options_Recreer");
-                                            clicked => { SettingsState.recreate-shortcut(); }
-                                        }
-                                    }
+                                BodyText {
+                                    horizontal-stretch: 1;
+                                    text: Tr.t("Param_Memoire_Conseil");
                                 }
                             }
+                        }
+                    }
+
+                    // ── Comportement : une tuile par réglage ──
+                    if SettingsState.search == "" && root.cat == 5: Volet {
+                        spacing: 12px;
+                        Rangee {
                             Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_Partage");
                                     texte: Tr.t("Param_Partage_Texte");
@@ -1335,20 +1112,33 @@ export component SettingsModal inherits Rectangle {
                                 }
                             }
                             Carte {
-                                LigneInterrupteur {
-                                    titre: Tr.t("Param_Discord");
-                                    texte: Tr.t("Options_Discord_Texte");
-                                    checked <=> SettingsState.rich;
-                                    toggled(v) => { SettingsState.rich-toggled(v); }
-                                }
-                                Separateur { }
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_Console");
                                     texte: Tr.t("Param_Console_Texte");
                                     checked <=> SettingsState.console-auto;
                                     toggled(v) => { SettingsState.console-auto-toggled(v); }
                                 }
-                                Separateur { }
+                            }
+                        }
+                        Rangee {
+                            Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
+                                LigneInterrupteur {
+                                    titre: Tr.t("Param_Discord");
+                                    texte: Tr.t("Options_Discord_Texte");
+                                    checked <=> SettingsState.rich;
+                                    toggled(v) => { SettingsState.rich-toggled(v); }
+                                }
+                            }
+                            Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_Telemetrie");
                                     texte: Tr.t("Param_Telemetrie_Texte");
@@ -1357,13 +1147,66 @@ export component SettingsModal inherits Rectangle {
                                 }
                             }
                         }
+                        Carte {
+                            LigneInterrupteur {
+                                titre: Tr.t("Param_Raccourci");
+                                texte: Tr.t("Options_Raccourci_Texte");
+                                checked <=> SettingsState.shortcut-enabled;
+                                toggled(v) => { SettingsState.shortcut-toggled(v); }
+                            }
+                            if SettingsState.shortcut-enabled: HorizontalLayout {
+                                spacing: 10px;
+                                Rectangle {
+                                    horizontal-stretch: 1;
+                                    height: 40px;
+                                    border-radius: 8px;
+                                    background: Theme.glass-strong;
+                                    border-width: 1px;
+                                    border-color: Theme.glass-border;
+                                    HorizontalLayout {
+                                        padding-left: 12px;
+                                        padding-right: 12px;
+                                        spacing: 10px;
+                                        Icon {
+                                            width: 16px;
+                                            text: "\u{E8B7}";
+                                            font-size: 13px;
+                                            color: Theme.text-muted;
+                                        }
+                                        Text {
+                                            horizontal-stretch: 1;
+                                            text: SettingsState.shortcut-path;
+                                            font-size: 13px;
+                                            color: Theme.navy2;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                        }
+                                    }
+                                }
+                                MButton {
+                                    horizontal-stretch: 0;
+                                    text: Tr.t("Options_ChoisirDossier");
+                                    clicked => { SettingsState.choose-shortcut(); }
+                                }
+                                MButton {
+                                    horizontal-stretch: 0;
+                                    text: Tr.t("Options_Recreer");
+                                    clicked => { SettingsState.recreate-shortcut(); }
+                                }
+                            }
+                        }
+                    }
 
-                        // ── Ressources ──
-                        if root.section == 6: Volet {
-                            spacing: 16px;
+                    // ── Stockage ──
+                    if SettingsState.search == "" && root.cat == 6: Volet {
+                        spacing: 12px;
+                        Rangee {
                             Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 HorizontalLayout {
-                                    spacing: 16px;
+                                    spacing: 12px;
                                     Entete {
                                         horizontal-stretch: 1;
                                         titre: Tr.t("Param_Stockage");
@@ -1374,9 +1217,8 @@ export component SettingsModal inherits Rectangle {
                                         Valeur { text: SettingsState.size-text; }
                                     }
                                 }
-                                HorizontalLayout {
-                                    spacing: 10px;
-                                    alignment: start;
+                                VerticalLayout {
+                                    spacing: 8px;
                                     MButton {
                                         kind: 1;
                                         icon: "\u{EDA2}";
@@ -1392,20 +1234,22 @@ export component SettingsModal inherits Rectangle {
                                 }
                             }
                             Carte {
-                                spacing: 12px;
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 Entete {
                                     titre: Tr.t("Param_Dossier");
                                     texte: Tr.t("Param_Dossier_Texte");
                                 }
                                 Rectangle {
-                                    height: 46px;
-                                    border-radius: 12px;
+                                    height: 44px;
+                                    border-radius: 8px;
                                     background: Theme.glass-strong;
                                     border-width: 1px;
                                     border-color: Theme.glass-border;
                                     HorizontalLayout {
-                                        padding-left: 14px;
-                                        padding-right: 6px;
+                                        padding-left: 12px;
+                                        padding-right: 5px;
                                         spacing: 10px;
                                         Icon {
                                             width: 16px;
@@ -1416,7 +1260,7 @@ export component SettingsModal inherits Rectangle {
                                         Text {
                                             horizontal-stretch: 1;
                                             text: SettingsState.data-dir;
-                                            font-size: 13px;
+                                            font-size: 12.5px;
                                             color: Theme.navy2;
                                             vertical-alignment: center;
                                             overflow: elide;
@@ -1435,70 +1279,47 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                             }
-                            Carte {
-                                spacing: 12px;
-                                Entete {
-                                    titre: Tr.t("Param_Telechargements");
-                                    texte: Tr.t("Param_Telechargements_Texte");
-                                }
-                                CurseurBorne {
-                                    minimum: 2;
-                                    maximum: 32;
-                                    step: 1;
-                                    min-text: "2";
-                                    max-text: "32";
-                                    value-text: round(SettingsState.downloads);
-                                    value <=> SettingsState.downloads;
-                                    changed(v) => { SettingsState.downloads-changed(v); }
-                                }
+                        }
+                        Carte {
+                            Entete {
+                                titre: Tr.t("Param_Telechargements");
+                                texte: Tr.t("Param_Telechargements_Texte");
+                            }
+                            CurseurBorne {
+                                minimum: 2;
+                                maximum: 32;
+                                step: 1;
+                                min-text: "2";
+                                max-text: "32";
+                                value-text: round(SettingsState.downloads);
+                                value <=> SettingsState.downloads;
+                                changed(v) => { SettingsState.downloads-changed(v); }
                             }
                         }
+                    }
 
-                        // ── Dépannage ──
-                        if root.section == 7: Volet {
-                            spacing: 16px;
+                    // ── Dépannage ──
+                    if SettingsState.search == "" && root.cat == 7: Volet {
+                        spacing: 12px;
+                        Rangee {
                             Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 BlocAction {
                                     titre: Tr.t("Param_Cache");
-                                    texte: Tr.t("Param_Cache_Texte");
+                                    texte: Tr.t("Param_Cache_Texte") + (SettingsState.cache-size != "" ? "  (" + SettingsState.cache-size + ")" : "");
                                     MButton {
                                         icon: "\u{E74D}";
                                         text: Tr.t("Param_Cache_Bouton");
                                         clicked => { SettingsState.clear-cache(); }
                                     }
-                                    VerticalLayout {
-                                        alignment: center;
-                                        Text {
-                                            text: SettingsState.cache-size;
-                                            font-size: 13px;
-                                            color: Theme.text-muted;
-                                        }
-                                    }
                                 }
-                                Separateur { }
-                                BlocAction {
-                                    titre: Tr.t("Param_Journaux");
-                                    texte: Tr.t("Param_Journaux_Texte");
-                                    MButton {
-                                        icon: "\u{E838}";
-                                        text: Tr.t("Param_Journaux_Bouton");
-                                        clicked => { SettingsState.open-logs(); }
-                                    }
-                                    MButton {
-                                        icon: "\u{E756}";
-                                        text: Tr.t("Param_JournalMisty");
-                                        clicked => { SettingsState.open-launcher-log(); }
-                                    }
-                                    VerticalLayout {
-                                        alignment: center;
-                                        Text {
-                                            text: SettingsState.logs-size;
-                                            font-size: 13px;
-                                            color: Theme.text-muted;
-                                        }
-                                    }
-                                }
-                                Separateur { }
+                            }
+                            Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 BlocAction {
                                     titre: Tr.t("Param_Debug");
                                     texte: Tr.t("Param_Debug_Texte");
@@ -1509,7 +1330,28 @@ export component SettingsModal inherits Rectangle {
                                     }
                                 }
                             }
+                        }
+                        Carte {
+                            BlocAction {
+                                titre: Tr.t("Param_Journaux");
+                                texte: Tr.t("Param_Journaux_Texte") + (SettingsState.logs-size != "" ? "  (" + SettingsState.logs-size + ")" : "");
+                                MButton {
+                                    icon: "\u{E838}";
+                                    text: Tr.t("Param_Journaux_Bouton");
+                                    clicked => { SettingsState.open-logs(); }
+                                }
+                                MButton {
+                                    icon: "\u{E756}";
+                                    text: Tr.t("Param_JournalMisty");
+                                    clicked => { SettingsState.open-launcher-log(); }
+                                }
+                            }
+                        }
+                        Rangee {
                             Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 BlocAction {
                                     titre: Tr.t("Param_MiseAJour");
                                     texte: SettingsState.about-text;
@@ -1525,7 +1367,11 @@ export component SettingsModal inherits Rectangle {
                                         clicked => { SettingsState.github(); }
                                     }
                                 }
-                                Separateur { }
+                            }
+                            Carte {
+                                horizontal-stretch: 1;
+                                // moitié de la rangée, quel que soit le texte
+                                preferred-width: 0px;
                                 LigneInterrupteur {
                                     titre: Tr.t("Param_PreRelease");
                                     texte: Tr.t("Param_PreRelease_Texte");
@@ -1533,41 +1379,26 @@ export component SettingsModal inherits Rectangle {
                                     toggled(v) => { SettingsState.prerelease-toggled(v); }
                                 }
                             }
-                            if SettingsState.misty-client-available: Carte {
-                                LigneInterrupteur {
-                                    titre: Tr.t("Param_MistyClient");
-                                    texte: Tr.t("Param_MistyClient_Texte") + " Fabric " + SettingsState.misty-client-mc + ".";
-                                    checked <=> SettingsState.misty-client;
-                                    toggled(v) => { SettingsState.misty-client-toggled(v); }
-                                }
+                        }
+                        if SettingsState.misty-client-available: Carte {
+                            LigneInterrupteur {
+                                titre: Tr.t("Param_MistyClient");
+                                texte: Tr.t("Param_MistyClient_Texte") + " Fabric " + SettingsState.misty-client-mc + ".";
+                                checked <=> SettingsState.misty-client;
+                                toggled(v) => { SettingsState.misty-client-toggled(v); }
                             }
                         }
-                    }
-                }
-
-                // Croix de fermeture, en haut à droite (loin du bord)
-                Rectangle {
-                    x: parent.width - self.width - 26px;
-                    y: 26px;
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 20px;
-                    background: fermer.pressed ? Theme.glass-strong : fermer.has-hover ? Theme.glass-hover : Theme.glass;
-                    border-width: 1px;
-                    border-color: fermer.has-hover ? Theme.accent : Theme.glass-border;
-                    transform-scale: fermer.pressed ? 0.88 : 1;
-                    transform-rotation: fermer.has-hover ? 90deg : 0deg;
-                    animate background, border-color { duration: Theme.fast; }
-                    animate transform-scale { duration: 140ms; easing: ease-out; }
-                    animate transform-rotation { duration: 260ms; easing: ease-out; }
-                    Icon {
-                        text: "\u{E8BB}";
-                        font-size: 12px;
-                        color: Theme.navy;
-                    }
-                    fermer := TouchArea {
-                        mouse-cursor: pointer;
-                        clicked => { SettingsState.close(); }
+                        // version de Misty et de Windows
+                        HorizontalLayout {
+                            padding-top: 4px;
+                            alignment: center;
+                            Text {
+                                text: SettingsState.about-text + "  ·  " + SettingsState.system-text;
+                                font-size: 12px;
+                                color: Theme.text-dim;
+                                overflow: elide;
+                            }
+                        }
                     }
                 }
             }

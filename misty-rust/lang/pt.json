@@ -790,5 +790,6 @@
   "Choix_HorsLigne_2": "Servidores que aceitam jogadores offline",
   "Choix_HorsLigne_3": "Sem iniciar sessão",
   "Choix_Pseudo": "O teu nome de utilizador",
-  "Choix_HorsLigne_Bouton": "Jogar offline"
+  "Choix_HorsLigne_Bouton": "Jogar offline",
+  "Param_Comptes": "Contas"
 }
