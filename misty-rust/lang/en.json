@@ -744,5 +744,14 @@
   "Notes_Filtre_Corrige": "FIXES",
   "Notes_Filtre_Launcher": "LAUNCHER",
   "Notes_Filtre_Client": "MISTY CLIENT",
-  "Notes_Rien": "Nothing in this version for this filter."
+  "Notes_Rien": "Nothing in this version for this filter.",
+  "Pack_ImportDialogue": "Import a texture pack",
+  "Pack_ImportImpossible": "Import failed",
+  "Pack_ImportPasUnPack": "This zip is not a resource pack: it has no pack.mcmeta.",
+  "Pack_Importer": "Import a .zip",
+  "Pack_Importer_Texte": "A resource pack you already have, to edit it here",
+  "Pack_Commencer": "GET STARTED",
+  "Pack_Commencer_Titre": "Make your own texture pack",
+  "Pack_Commencer_Texte": "Pick a Minecraft version, change its textures pixel by pixel, then export your pack as a .zip.",
+  "Pack_SansApercu": "No texture changed yet"
 }

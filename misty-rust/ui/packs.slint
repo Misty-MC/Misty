@@ -1,105 +1,108 @@
-// Packs de textures : liste, création, export, suppression. L'édition se fait dans editor.slint.
+// Packs de textures : galerie (bandeau « Commencer », cartes avec aperçu des textures, import d'un
+// .zip), création, export, suppression. L'édition se fait dans editor.slint.
 
 import { Theme, Tr, Assets } from "theme.slint";
-import { PacksState } from "state.slint";
-import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, Badge, IconButton, MButton, GlassInput, GlassCombo } from "widgets.slint";
+import { PacksState, PackCard } from "state.slint";
+import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, Badge, IconButton, MButton, GlassInput, GlassCombo, Etiquette } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
+/// Carte d'un pack : un bandeau sombre avec ses textures modifiées en pixel art, puis le nom, la
+/// description, la version et le nombre de textures. Un clic l'ouvre dans l'éditeur ; au survol :
+/// exporter, dossier, supprimer.
 component PackCardView inherits Rectangle {
-    in property <string> name;
-    in property <string> description;
-    in property <string> version;
-    in property <string> count;
-    in property <image> icon;
-    in property <bool> has-icon;
+    in property <PackCard> pack;
     callback edit();
     callback folder();
     callback export();
     callback delete();
+    property <bool> survol: touch.has-hover;
 
     width: 316px;
-    height: 160px;
-    border-radius: 20px;
-    background: touch.has-hover ? Theme.glass-hover : Theme.glass;
-    border-width: 1.5px;
-    border-color: touch.has-hover ? white : Theme.glass-border;
-    animate background { duration: 120ms; }
+    height: 200px;
+    border-radius: 12px;
+    clip: true;
+    background: root.survol ? Theme.panel-strong : Theme.panel;
+    border-width: 1px;
+    border-color: root.survol ? Theme.accent.with-alpha(0.6) : Theme.glass-border;
+    animate background, border-color { duration: Theme.normal; }
 
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.edit(); }
     }
-    VerticalLayout {
-        padding: 16px;
-        spacing: 16px;
-        HorizontalLayout {
-            spacing: 14px;
-            Thumb {
-                width: 72px;
-                height: 72px;
-                radius: 18px;
-                border: 2.5px;
-                logo-margin: 16px;
-                logo-opacity: 1;
-                pixel-art: true;
-                source: root.icon;
-                has-image: root.has-icon;
-            }
-            VerticalLayout {
-                horizontal-stretch: 1;
-                spacing: 3px;
-                alignment: start;
-                Text {
-                    text: root.name;
-                    font-family: Theme.ui-font;
-                    font-weight: 600;
-                    font-size: 16px;
-                    color: Theme.navy;
-                    overflow: elide;
-                }
-                Text {
-                    text: root.description;
-                    font-family: Theme.ui-font;
-                    font-size: 12.5px;
-                    color: Theme.text-muted;
-                    overflow: elide;
-                }
-                Rectangle { height: 4px; }
-                HorizontalLayout {
-                    spacing: 6px;
-                    alignment: start;
-                    if root.version != "": Badge {
-                        text: root.version;
-                        font-size: 10px;
-                    }
-                    Badge {
-                        text: root.count;
-                        couleur: Theme.green-dark;
-                        font-size: 10px;
-                    }
+    // bandeau : les textures, ou l'icône du pack
+    Rectangle {
+        y: 0;
+        height: 84px;
+        background: #1C2335;
+        if root.pack.previews.length > 0: HorizontalLayout {
+            x: 14px;
+            y: (parent.height - 30px) / 2;
+            height: 30px;
+            spacing: 6px;
+            for img in root.pack.previews: Rectangle {
+                width: 30px;
+                height: 30px;
+                border-radius: 3px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: img;
+                    image-fit: fill;
+                    image-rendering: ImageRendering.pixelated;
                 }
             }
         }
-        HorizontalLayout {
-            spacing: 6px;
-            MButton {
-                kind: 1;
-                icon: "\u{E70F}";
-                text: Tr.t("Pack_Editer");
-                clicked => { root.edit(); }
+        if root.pack.previews.length == 0: HorizontalLayout {
+            padding-left: 14px;
+            spacing: 12px;
+            VerticalLayout {
+                alignment: center;
+                Thumb {
+                    width: 52px;
+                    height: 52px;
+                    radius: 8px;
+                    border: 2px;
+                    logo-margin: 10px;
+                    logo-opacity: 1;
+                    pixel-art: true;
+                    source: root.pack.icon;
+                    has-image: root.pack.has-icon;
+                }
             }
-            Rectangle { horizontal-stretch: 1; }
+            Text {
+                text: Tr.t("Pack_SansApercu");
+                font-size: 12px;
+                color: #CFDAF0;
+                vertical-alignment: center;
+            }
+        }
+        // actions au survol
+        HorizontalLayout {
+            x: parent.width - self.preferred-width - 8px;
+            y: 8px;
+            height: 32px;
+            spacing: 5px;
+            opacity: root.survol ? 1 : 0;
+            animate opacity { duration: Theme.normal; }
             IconButton {
+                width: 32px;
+                height: 32px;
                 icon: "\u{E896}";
                 tooltip: Tr.t("Pack_Exporter");
                 clicked => { root.export(); }
             }
             IconButton {
+                width: 32px;
+                height: 32px;
                 icon: "\u{E8B7}";
                 tooltip: Tr.t("Pack_Dossier");
                 clicked => { root.folder(); }
             }
             IconButton {
+                width: 32px;
+                height: 32px;
                 icon: "\u{E74D}";
                 fond: Theme.danger;
                 encre: white;
@@ -108,6 +111,187 @@ component PackCardView inherits Rectangle {
                 clicked => { root.delete(); }
             }
         }
+    }
+    VerticalLayout {
+        y: 84px;
+        height: parent.height - 84px;
+        padding: 14px;
+        padding-top: 12px;
+        spacing: 4px;
+        Text {
+            text: root.pack.name;
+            font-weight: 700;
+            font-size: 15px;
+            color: Theme.navy;
+            overflow: elide;
+        }
+        Text {
+            text: root.pack.description;
+            font-size: 12.5px;
+            color: Theme.text-muted;
+            overflow: elide;
+        }
+        Rectangle { vertical-stretch: 1; }
+        HorizontalLayout {
+            spacing: 6px;
+            if root.pack.version != "": VerticalLayout {
+                alignment: center;
+                Etiquette { text: root.pack.version; }
+            }
+            VerticalLayout {
+                alignment: center;
+                Etiquette { text: root.pack.count; couleur: Theme.toggle-on; }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Rectangle {
+                height: 30px;
+                width: editer.preferred-width + 24px;
+                border-radius: 6px;
+                background: root.survol ? Theme.fill : Theme.glass-strong;
+                animate background { duration: Theme.normal; }
+                editer := HorizontalLayout {
+                    alignment: center;
+                    spacing: 6px;
+                    Icon {
+                        text: "\u{E70F}";
+                        font-size: 11px;
+                        color: root.survol ? Theme.on-fill : Theme.navy;
+                    }
+                    Text {
+                        text: Tr.t("Pack_Editer");
+                        font-size: 12.5px;
+                        font-weight: 600;
+                        color: root.survol ? Theme.on-fill : Theme.navy;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Bandeau « Commencer » en haut de la galerie : ce que fait l'éditeur, et le bouton pour créer.
+component Commencer inherits Rectangle {
+    height: 150px;
+    border-radius: 12px;
+    clip: true;
+    background: Theme.dark ? @linear-gradient(120deg, #162140 0%, #0E1527 100%) : @linear-gradient(120deg, #2A3347 0%, #1C2335 100%);
+    // une mosaïque de blocs, à droite (couleurs de terre, d'herbe, de pierre, d'eau…)
+    property <[color]> blocs: [#5EA35A, #4E8A4B, #7A5A3A, #6B4A3A, #8B8B8B, #9A9A9A, #D9874E, #2F6FD6, #E58FB4, #F7C98B, #25B0B5, #FFF1A8];
+    for c[i] in root.blocs: Rectangle {
+        x: root.width - 250px + mod(i, 6) * 38px + (floor(i / 6) == 1 ? 19px : 0px);
+        y: 28px + floor(i / 6) * 50px;
+        width: 34px;
+        height: 34px;
+        border-radius: 3px;
+        background: c;
+        opacity: 0.9;
+        // les blocs ondulent doucement
+        transform-rotation: 6deg * sin((animation-tick() / 3000ms + i * 0.15) * 360deg);
+    }
+    VerticalLayout {
+        x: 0;
+        width: root.width - 280px;
+        padding: 22px;
+        padding-left: 26px;
+        spacing: 6px;
+        alignment: center;
+        PixelLabel {
+            text: Tr.t("Pack_Commencer");
+            font-size: 10px;
+            color: #9CC0FF;
+        }
+        Text {
+            text: Tr.t("Pack_Commencer_Titre");
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+        }
+        Text {
+            text: Tr.t("Pack_Commencer_Texte");
+            font-size: 13px;
+            color: #CFDAF0;
+            wrap: word-wrap;
+        }
+        HorizontalLayout {
+            alignment: start;
+            padding-top: 6px;
+            Rectangle {
+                height: 34px;
+                width: creer.preferred-width + 28px;
+                border-radius: 6px;
+                background: zone.has-hover ? #FFFFFF : #FFFFFFE0;
+                animate background { duration: Theme.fast; }
+                creer := HorizontalLayout {
+                    alignment: center;
+                    spacing: 8px;
+                    Icon {
+                        text: "\u{E710}";
+                        font-size: 11px;
+                        color: #1C2335;
+                    }
+                    Text {
+                        text: Tr.t("Soon_CreerPack");
+                        font-size: 13px;
+                        font-weight: 700;
+                        color: #1C2335;
+                        vertical-alignment: center;
+                    }
+                }
+                zone := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { PacksState.new-pack(); }
+                }
+            }
+        }
+    }
+}
+
+/// Dernière carte de la galerie : importer un pack de ressources (.zip).
+component CarteImport inherits Rectangle {
+    width: 316px;
+    height: 200px;
+    border-radius: 12px;
+    background: zone.has-hover ? Theme.glass : transparent;
+    border-width: 2px;
+    border-color: zone.has-hover ? Theme.accent : Theme.glass-border;
+    animate background, border-color { duration: Theme.normal; }
+    VerticalLayout {
+        alignment: center;
+        padding: 20px;
+        spacing: 8px;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 48px;
+                height: 48px;
+                border-radius: 10px;
+                background: Theme.fill;
+                Icon {
+                    text: "\u{E8E5}";
+                    font-size: 17px;
+                    color: Theme.on-fill;
+                }
+            }
+        }
+        Text {
+            text: Tr.t("Pack_Importer");
+            font-size: 15px;
+            font-weight: 700;
+            color: Theme.navy;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: Tr.t("Pack_Importer_Texte");
+            font-size: 12px;
+            color: Theme.text-muted;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { PacksState.import(); }
     }
 }
 
@@ -201,26 +385,25 @@ export component PacksPage inherits Rectangle {
         padding-left: 26px;
         padding-right: 30px;
         padding-bottom: 26px;
-        spacing: 18px;
+        spacing: 16px;
 
         HorizontalLayout {
             padding-left: 6px;
-            VerticalLayout {
-                spacing: 6px;
-                HorizontalLayout {
-                    alignment: start;
-                    OutlinedText {
-                        text: Tr.t("Pack_Titre");
-                        font-size: 40px;
-                        depth: 5px;
-                    }
-                }
-                BodyText {
-                    text: Tr.t("Pack_SousTitre");
-                    x: 4px;
-                }
+            spacing: 10px;
+            OutlinedText {
+                text: Tr.t("Pack_Titre");
+                font-size: 40px;
+                depth: 5px;
             }
             Rectangle { horizontal-stretch: 1; }
+            VerticalLayout {
+                alignment: center;
+                MButton {
+                    icon: "\u{E8E5}";
+                    text: Tr.t("Pack_Importer");
+                    clicked => { PacksState.import(); }
+                }
+            }
             VerticalLayout {
                 alignment: center;
                 MButton {
@@ -235,45 +418,30 @@ export component PacksPage inherits Rectangle {
         zone := ScrollView {
             vertical-stretch: 1;
             property <int> colonnes: max(1, floor((self.visible-width + 16px) / 332px));
+            property <length> haut: 166px;
+            // les packs, puis la carte « Importer »
+            property <int> nombre: PacksState.list.length + 1;
             content-width: self.visible-width;
-            content-height: PacksState.list.length == 0 ? self.visible-height : ceil(PacksState.list.length / self.colonnes) * 176px;
+            content-height: self.haut + ceil(self.nombre / self.colonnes) * 216px;
 
+            Commencer {
+                x: 0;
+                y: 0;
+                width: zone.colonnes * 332px - 16px;
+            }
             for p[i] in PacksState.list: PackCardView {
                 x: mod(i, zone.colonnes) * 332px;
-                y: floor(i / zone.colonnes) * 176px;
-                name: p.name;
-                description: p.description;
-                version: p.version;
-                count: p.count;
-                icon: p.icon;
-                has-icon: p.has-icon;
+                y: zone.haut + floor(i / zone.colonnes) * 216px;
+                pack: p;
                 edit => { PacksState.edit(i); }
                 folder => { PacksState.folder(i); }
                 export => { PacksState.export(i); }
                 delete => { PacksState.delete(i); }
             }
-
-            // État vide : centré, sans icône (comme les profils)
-            if PacksState.list.length == 0: VerticalLayout {
-                x: 0;
-                y: 0;
-                width: zone.visible-width;
-                height: zone.visible-height;
-                alignment: center;
-                spacing: 8px;
-                SectionTitle {
-                    text: Tr.t("Pack_AucunTitre");
-                    horizontal-alignment: center;
-                }
-                BodyText {
-                    text: Tr.t("Soon_Aucun");
-                    horizontal-alignment: center;
-                    wrap: word-wrap;
-                }
+            CarteImport {
+                x: mod(PacksState.list.length, zone.colonnes) * 332px;
+                y: zone.haut + floor(PacksState.list.length / zone.colonnes) * 216px;
             }
         }
     }
-
-    // ═══ Création d'un pack ═══
-    
 }

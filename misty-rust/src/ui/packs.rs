@@ -35,6 +35,11 @@ pub fn installer(app: &Rc<App>) {
         lancer(async move { valider(&a).await });
     });
     let a = app.clone();
+    st.on_import(move || {
+        let a = a.clone();
+        lancer(async move { importer(&a).await });
+    });
+    let a = app.clone();
     st.on_cancel_create(move || s(&a).set_creating(false));
     let a = app.clone();
     st.on_edit(move |i| {
@@ -80,6 +85,7 @@ pub fn rafraichir(app: &Rc<App>) {
             count: format!("{} {}", p.nb_textures, loc::t("Pack_Modifiees")).to_uppercase().into(),
             icon: images::vide(),
             has_icon: false,
+            previews: modele(p.apercus.iter().filter_map(|f| apercu(f)).collect()),
         })
         .collect();
     let m = modele(cartes);
@@ -93,6 +99,25 @@ pub fn rafraichir(app: &Rc<App>) {
         }
     }
     app.packs.borrow_mut().liste = liste;
+}
+
+/// Une texture pour l'aperçu : le premier carré (les textures animées sont des bandes verticales).
+fn apercu(fichier: &std::path::Path) -> Option<slint::Image> {
+    let img = image::open(fichier).ok()?.to_rgba8();
+    let cote = img.width().min(img.height()).min(64);
+    let carre = image::imageops::crop_imm(&img, 0, 0, cote, cote).to_image();
+    Some(slint::Image::from_rgba8(images::tampon(&carre)))
+}
+
+/// Importe un .zip choisi par l'utilisateur.
+async fn importer(app: &Rc<App>) {
+    let Some(fichier) = dialogs::choisir_fichier(&loc::t("Pack_ImportDialogue"), &loc::t("Pack_ExportFiltre"), &["zip"]).await else {
+        return;
+    };
+    match app.bloquant(move || packs::importer(&fichier)).await {
+        Ok(_) => rafraichir(app),
+        Err(e) => dialogs::erreur(app, &loc::t("Pack_ImportImpossible"), &e.to_string()).await,
+    }
 }
 
 // ───────────────────────── Création ─────────────────────────

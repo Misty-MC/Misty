@@ -564,6 +564,8 @@ export struct PackCard {
     count: string,
     icon: image,
     has-icon: bool,
+    /// Quelques textures modifiées (aperçu de la carte)
+    previews: [image],
 }
 
 export global PacksState {
@@ -577,6 +579,8 @@ export global PacksState {
     in property <bool> create-enabled: true;
 
     callback new-pack();
+    /// Importer un pack de ressources (.zip)
+    callback import();
     callback validate();
     callback cancel-create();
     callback edit(int);

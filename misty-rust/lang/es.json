@@ -744,5 +744,14 @@
   "Notes_Filtre_Corrige": "CORRECCIONES",
   "Notes_Filtre_Launcher": "LAUNCHER",
   "Notes_Filtre_Client": "MISTY CLIENT",
-  "Notes_Rien": "Nada en esta versión para este filtro."
+  "Notes_Rien": "Nada en esta versión para este filtro.",
+  "Pack_ImportDialogue": "Importar un paquete de texturas",
+  "Pack_ImportImpossible": "Importación imposible",
+  "Pack_ImportPasUnPack": "Este zip no es un paquete de recursos: no tiene pack.mcmeta.",
+  "Pack_Importer": "Importar un .zip",
+  "Pack_Importer_Texte": "Un paquete de recursos que ya tienes, para editarlo aquí",
+  "Pack_Commencer": "EMPEZAR",
+  "Pack_Commencer_Titre": "Crea tu propio paquete de texturas",
+  "Pack_Commencer_Texte": "Elige una versión de Minecraft, cambia sus texturas píxel a píxel y exporta tu paquete en .zip.",
+  "Pack_SansApercu": "Ninguna textura modificada"
 }

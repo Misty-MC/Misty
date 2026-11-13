@@ -744,5 +744,14 @@
   "Notes_Filtre_Corrige": "ИСПРАВЛЕНИЯ",
   "Notes_Filtre_Launcher": "ЛАУНЧЕР",
   "Notes_Filtre_Client": "MISTY CLIENT",
-  "Notes_Rien": "В этой версии нет ничего для этого фильтра."
+  "Notes_Rien": "В этой версии нет ничего для этого фильтра.",
+  "Pack_ImportDialogue": "Импорт набора текстур",
+  "Pack_ImportImpossible": "Не удалось импортировать",
+  "Pack_ImportPasUnPack": "Этот zip не является набором ресурсов: в нём нет pack.mcmeta.",
+  "Pack_Importer": "Импорт .zip",
+  "Pack_Importer_Texte": "Уже имеющийся набор ресурсов, чтобы изменить его здесь",
+  "Pack_Commencer": "НАЧАТЬ",
+  "Pack_Commencer_Titre": "Создай свой набор текстур",
+  "Pack_Commencer_Texte": "Выбери версию Minecraft, измени её текстуры попиксельно и экспортируй набор в .zip.",
+  "Pack_SansApercu": "Текстуры ещё не изменены"
 }

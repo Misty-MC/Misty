@@ -22,6 +22,8 @@ pub struct PackInfo {
     pub dossier: PathBuf,
     pub nb_textures: usize,
     pub version_mc: String,
+    /// Quelques textures modifiées (blocs d'abord), pour l'aperçu de la carte
+    pub apercus: Vec<PathBuf>,
 }
 
 impl PackInfo {
@@ -175,6 +177,65 @@ pub fn creer_pack(nom: &str, description: &str, format: i64, version_mc: &str) -
     Ok(dossier)
 }
 
+/// Version de Minecraft qui correspond au pack_format d'un pack importé (la plus récente de ce format).
+fn version_du_format(format: i64) -> &'static str {
+    const TABLE: [(i64, &str); 22] = [
+        (1, "1.8.9"), (2, "1.10.2"), (3, "1.12.2"), (4, "1.14.4"), (5, "1.15.2"), (6, "1.16.5"),
+        (7, "1.17.1"), (8, "1.18.1"), (9, "1.19.2"), (12, "1.19.3"), (13, "1.19.4"), (15, "1.20.1"),
+        (18, "1.20.2"), (22, "1.20.4"), (32, "1.20.6"), (34, "1.21.1"), (42, "1.21.3"), (46, "1.21.4"),
+        (55, "1.21.5"), (63, "1.21.6"), (64, "1.21.8"), (69, "1.21.10"),
+    ];
+    TABLE.iter().rev().find(|(f, _)| *f <= format).map(|(_, v)| *v).unwrap_or("1.8.9")
+}
+
+/// Importe un pack de ressources (.zip) dans les packs de Misty. Renvoie le nom du pack créé.
+pub fn importer(zip_fichier: &Path) -> anyhow::Result<String> {
+    let mut archive = zip::ZipArchive::new(fs::File::open(zip_fichier)?)?;
+    let base = zip_fichier.file_stem().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "pack".into());
+    let base = download::nom_fichier_sur(&base).trim().trim_end_matches('.').to_string();
+    anyhow::ensure!(!base.is_empty(), loc::t("Pack_NomInvalide"));
+    // nom libre : « Pack », « Pack (2) »…
+    let mut nom = base.clone();
+    let mut n = 2;
+    while dossier_packs().join(&nom).exists() {
+        nom = format!("{base} ({n})");
+        n += 1;
+    }
+    // certains zips mettent tout dans un dossier : on le retire s'il contient pack.mcmeta
+    let prefixe = (0..archive.len())
+        .filter_map(|i| archive.by_index(i).ok().and_then(|f| f.enclosed_name()))
+        .find(|p| p.file_name().is_some_and(|f| f == "pack.mcmeta"))
+        .and_then(|p| p.parent().map(Path::to_path_buf))
+        .unwrap_or_default();
+    let dossier = dossier_packs().join(&nom);
+    fs::create_dir_all(&dossier)?;
+    for i in 0..archive.len() {
+        let mut fichier = archive.by_index(i)?;
+        let Some(chemin) = fichier.enclosed_name() else { continue };
+        let Ok(relatif) = chemin.strip_prefix(&prefixe) else { continue };
+        if fichier.is_dir() || relatif.as_os_str().is_empty() {
+            continue;
+        }
+        let cible = dossier.join(relatif);
+        if let Some(parent) = cible.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let mut octets = Vec::new();
+        fichier.read_to_end(&mut octets)?;
+        fs::write(cible, octets)?;
+    }
+    let format = fs::read_to_string(dossier.join("pack.mcmeta"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|d| d["pack"]["pack_format"].as_i64());
+    let Some(format) = format else {
+        let _ = fs::remove_dir_all(&dossier);
+        anyhow::bail!(loc::t("Pack_ImportPasUnPack"));
+    };
+    fs::write(dossier.join("misty.json"), serde_json::json!({ "versionMc": version_du_format(format) }).to_string())?;
+    Ok(nom)
+}
+
 /// Remplace l'icône du pack (pack.png), redimensionnée en 128 px.
 pub fn definir_icone(pack: &PackInfo, image: &Path) -> anyhow::Result<()> {
     enregistrer_icone(image, &pack.dossier.join("pack.png"))
@@ -305,7 +366,15 @@ pub fn lister() -> Vec<PackInfo> {
 
         let mut pngs = Vec::new();
         lister_fichiers(&dossier.join("assets").join("minecraft").join("textures"), &mut pngs);
-        let nb = pngs.iter().filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("png"))).count();
+        pngs.retain(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("png")));
+        let nb = pngs.len();
+        // aperçu : les blocs d'abord, puis les objets, puis le reste
+        let rang = |p: &PathBuf| {
+            let t = p.to_string_lossy().replace('\\', "/");
+            if t.contains("/block/") || t.contains("/blocks/") { 0 } else if t.contains("/item/") || t.contains("/items/") { 1 } else { 2 }
+        };
+        pngs.sort_by_key(|p| (rang(p), p.clone()));
+        let apercus: Vec<PathBuf> = pngs.into_iter().take(8).collect();
 
         liste.push(PackInfo {
             nom: entree.file_name().to_string_lossy().to_string(),
@@ -313,6 +382,7 @@ pub fn lister() -> Vec<PackInfo> {
             dossier,
             nb_textures: nb,
             version_mc,
+            apercus,
         });
     }
     liste.sort_by_key(|p| p.nom.to_lowercase());
@@ -344,4 +414,16 @@ pub fn lister_textures(dossier_template: &Path) -> Vec<String> {
         .collect();
     liste.sort();
     liste
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn version_du_format_importe() {
+        assert_eq!(super::version_du_format(1), "1.8.9");
+        assert_eq!(super::version_du_format(15), "1.20.1");
+        assert_eq!(super::version_du_format(16), "1.20.1");
+        assert_eq!(super::version_du_format(46), "1.21.4");
+        assert_eq!(super::version_du_format(999), "1.21.10");
+    }
 }
