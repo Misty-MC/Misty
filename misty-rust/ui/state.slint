@@ -31,6 +31,10 @@ export global AppState {
     in property <bool> nav-packs: true;
     in property <bool> nav-amis: true;
     in property <bool> nav-dossier: true;
+    /// Premier lancement : écran partagé en deux, Premium (compte Microsoft) ou Hors ligne (pseudo)
+    in-out property <bool> account-choice;
+    callback choose-premium();
+    callback choose-offline(string);
     in property <string> version-text;
     /// Fenêtre agrandie (plein écran fenêtré)
     in property <bool> maximized;

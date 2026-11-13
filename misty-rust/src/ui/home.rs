@@ -137,6 +137,34 @@ pub fn installer(app: &Rc<App>) {
         }
         maj_avatar(&a);
     });
+    // Premier lancement : Premium (compte Microsoft) ou Hors ligne (un pseudo)
+    let a = app.clone();
+    a.ui.global::<AppState>().on_choose_premium({
+        let a = a.clone();
+        move || {
+            settings::set(settings::MODE_COMPTE, "premium");
+            a.ui.global::<AppState>().set_account_choice(false);
+            if account::session().is_none() {
+                let a = a.clone();
+                lancer(async move { se_connecter(&a).await });
+            }
+        }
+    });
+    let a = app.clone();
+    a.ui.global::<AppState>().on_choose_offline({
+        let a = a.clone();
+        move |pseudo| {
+            let pseudo = nettoyer_pseudo(&pseudo);
+            if pseudo.is_empty() {
+                return;
+            }
+            pseudos::ajouter(&pseudo);
+            settings::set(settings::LAST_PSEUDO, &pseudo);
+            settings::set(settings::MODE_COMPTE, "horsligne");
+            charger_pseudos(&a);
+            a.ui.global::<AppState>().set_account_choice(false);
+        }
+    });
     let a = app.clone();
     s.on_ms_clicked(move || {
         let a = a.clone();
@@ -307,10 +335,34 @@ fn statut(app: &App, texte: &str) {
 // ───────────────────────── Initialisation ─────────────────────────
 
 /// Appelé une fois au démarrage, après la préparation des fichiers de config.
+/// Pseudo Minecraft valide : lettres, chiffres et _ seulement, 16 caractères au plus.
+fn nettoyer_pseudo(texte: &str) -> String {
+    texte.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '_').take(16).collect()
+}
+
+/// Au démarrage, tant qu'aucune façon de jouer n'a été choisie : l'écran Premium | Hors ligne.
+/// Un compte Microsoft déjà connecté vaut le choix « premium » (pas de question).
+fn proposer_mode_compte(app: &Rc<App>) {
+    if !settings::get(settings::MODE_COMPTE).is_empty() {
+        return;
+    }
+    if account::session().is_some() || settings::get_bool(settings::PREMIUM, false) {
+        settings::set(settings::MODE_COMPTE, "premium");
+        return;
+    }
+    // captures d'écran de développement : seulement si on le demande (il cacherait les pages)
+    let capture = cfg!(debug_assertions) && std::env::var_os("MISTY_CAPTURE").is_some();
+    if capture && std::env::var_os("MISTY_CAPTURE_CHOIX").is_none() {
+        return;
+    }
+    app.ui.global::<AppState>().set_account_choice(true);
+}
+
 pub async fn initialiser(app: &Rc<App>) {
     charger_pseudos(app);
     maj_compte(app);
     charger_profils(app);
+    proposer_mode_compte(app);
 
     // Connexion automatique en parallèle du chargement des versions
     // (pas pendant les captures d'écran de développement : la fenêtre de connexion s'ouvrirait)

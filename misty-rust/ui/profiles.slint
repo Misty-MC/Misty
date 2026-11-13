@@ -298,24 +298,16 @@ export component ProfileWaitOverlay inherits Rectangle {
 export component ProfilesPage inherits Rectangle {
     // ═══════════ Liste des profils ═══════════
     if ProfilesState.view == 0: VerticalLayout {
-        padding-left: 26px;
-        padding-right: 30px;
-        padding-bottom: 26px;
+        // la page est dans la grille de la fenêtre : pas de marge autour
+        padding: 0px;
         spacing: 18px;
 
         HorizontalLayout {
-            padding-left: 6px;
             spacing: 10px;
-            OutlinedText {
-                text: Tr.t("Profil_Titre");
-                font-size: 48px;
-                depth: 5px;
-            }
             Rectangle { horizontal-stretch: 1; }
             VerticalLayout {
                 alignment: center;
                 MButton {
-                    width: 230px;
                     text: Tr.t("Profil_ImporterModpack");
                     icon: "\u{E8E5}";
                     clicked => { ProfilesState.import-modpack(); }
@@ -324,7 +316,6 @@ export component ProfilesPage inherits Rectangle {
             VerticalLayout {
                 alignment: center;
                 MButton {
-                    width: 230px;
                     text: Tr.t("Profil_InstallerModpack");
                     icon: "\u{E896}";
                     clicked => { ProfilesState.modpacks(); }
@@ -333,7 +324,6 @@ export component ProfilesPage inherits Rectangle {
             VerticalLayout {
                 alignment: center;
                 MButton {
-                    width: 230px;
                     kind: 1;
                     text: Tr.t("Profil_Nouveau");
                     icon: "\u{E710}";
@@ -379,9 +369,8 @@ export component ProfilesPage inherits Rectangle {
     }
     // ═══════════ Modpacks ═══════════
     if ProfilesState.view == 1: VerticalLayout {
-        padding-left: 26px;
-        padding-right: 30px;
-        padding-bottom: 26px;
+        // la page est dans la grille de la fenêtre : pas de marge autour
+        padding: 0px;
         spacing: 18px;
         HorizontalLayout {
             spacing: 16px;

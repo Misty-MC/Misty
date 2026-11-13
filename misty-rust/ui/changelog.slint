@@ -7,7 +7,7 @@ import { ChangelogState, ChangelogSection } from "state.slint";
 import { Icon, PixelLabel, OutlinedText, GlassCard, MButton, IconButton, Puces } from "widgets.slint";
 import { ListView, ScrollView } from "std-widgets.slint";
 
-/// Petite étiquette pixel (DERNIÈRE, BÊTA, NOUVEAU, CORRIGÉ).
+/// Petite étiquette (DERNIÈRE, BÊTA, NOUVEAU, CORRIGÉ).
 component Etiquette inherits Rectangle {
     in property <string> text;
     in property <color> couleur;
@@ -23,6 +23,7 @@ component Etiquette inherits Rectangle {
         text: root.text;
         font-family: Theme.ui-font;
         font-size: 11px;
+        font-weight: 700;
         color: root.plein ? white : root.couleur;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -66,11 +67,14 @@ component LigneNote inherits Rectangle {
         spacing: 12px;
         // colonne des étiquettes, de la même largeur partout pour aligner les textes
         Rectangle {
-            width: 58px;
+            // assez large pour la plus longue des deux étiquettes, dans la langue choisie
+            width: max(mesure-n.preferred-width, mesure-c.preferred-width) + 18px;
+            mesure-n := Text { visible: false; text: Tr.t("Notes_Nouveau"); font-size: 11px; font-weight: 700; }
+            mesure-c := Text { visible: false; text: Tr.t("Notes_Corrige"); font-size: 11px; font-weight: 700; }
             if root.genre == 1: Etiquette { x: 0; y: 0; text: Tr.t("Notes_Nouveau"); couleur: Theme.green-dark; }
             if root.genre == 2: Etiquette { x: 0; y: 0; text: Tr.t("Notes_Corrige"); couleur: #E8932F; }
             if root.genre == 0: Rectangle {
-                x: 22px;
+                x: (parent.width - self.width) / 2 - 6px;
                 y: 7px;
                 width: 6px;
                 height: 6px;
@@ -306,19 +310,12 @@ component Version inherits HorizontalLayout {
 
 export component ChangelogPage inherits Rectangle {
     VerticalLayout {
-        padding-left: 26px;
-        padding-right: 30px;
-        padding-bottom: 26px;
+        // la page est dans la grille de la fenêtre : pas de marge autour
+        padding: 0px;
         spacing: 16px;
 
         HorizontalLayout {
-            padding-left: 6px;
             spacing: 16px;
-            OutlinedText {
-                text: Tr.t("Notes_Titre");
-                font-size: 48px;
-                depth: 5px;
-            }
             Rectangle { horizontal-stretch: 1; }
             VerticalLayout {
                 alignment: center;

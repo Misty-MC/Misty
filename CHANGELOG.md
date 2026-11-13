@@ -1,6 +1,8 @@
 # Changelog
 ## 0.3.8-beta.3
 ### Launcher
+- New layout in tiles, all aligned on one grid with the same gap everywhere: the Misty logo, a top bar with the tabs (Play, Skin, Profiles, Release notes, Texture packs, Friends), a column with Quick play and each of your profiles (one click picks it), the page in the middle, and a launch bar at the bottom with Settings, the version or profile, Play, the console, your account and your avatar
+- First launch: the screen is split in two to choose how you play, Premium (sign in with Microsoft) or Offline (just a username)
 - Cleaner, easier to read interface everywhere: small labels and badges use the regular font instead of the pixel one (which stays for the big titles), no text is smaller than 11 px, cards are more opaque on the light sky, and long texts are cut with … instead of spilling out of their button (checked in every language)
 - Scrollbars, lists and fields follow Misty's theme (Mist or Night) instead of the Windows one, and "Sync with Windows" now follows Windows when you switch its mode while Misty is open
 - The minimize, maximize and close buttons stay on top of every window (version picker, settings, console, dialogs), which leave them room

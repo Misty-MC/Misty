@@ -1,0 +1,263 @@
+// Premier lancement : l'écran partagé en deux. À gauche Premium (se connecter avec un compte
+// Microsoft), à droite Hors ligne (juste un pseudo). Le côté survolé s'élargit un peu.
+// Le choix est gardé dans data.txt (modecompte) ; on peut changer ensuite depuis le compte.
+
+import { Theme, Tr, Assets } from "theme.slint";
+import { AppState } from "state.slint";
+import { Icon, PixelLabel, OutlinedText, GlassInput } from "widgets.slint";
+
+/// Une ligne d'avantage : une coche et le texte.
+component Avantage inherits HorizontalLayout {
+    in property <string> text;
+    in property <color> couleur;
+    spacing: 12px;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 22px;
+            height: 22px;
+            border-radius: 11px;
+            background: root.couleur.with-alpha(0.22);
+            Icon {
+                text: "\u{E73E}";
+                font-size: 11px;
+                color: root.couleur;
+            }
+        }
+    }
+    Text {
+        horizontal-stretch: 1;
+        text: root.text;
+        font-size: 15px;
+        color: #FFFFFFE6;
+        vertical-alignment: center;
+        wrap: word-wrap;
+    }
+}
+
+/// Gros bouton plein (le choix de chaque moitié).
+component GrosBouton inherits Rectangle {
+    in property <string> text;
+    in property <color> fond;
+    in property <color> encre;
+    in property <bool> enabled: true;
+    /// logo Microsoft (quatre carrés) devant le texte
+    in property <bool> microsoft;
+    callback clicked;
+    height: 54px;
+    border-radius: 14px;
+    background: !root.enabled ? root.fond.with-alpha(0.4) : zone.pressed ? root.fond.darker(0.1) : zone.has-hover ? root.fond.brighter(0.08) : root.fond;
+    drop-shadow-blur: zone.has-hover && root.enabled ? 22px : 10px;
+    drop-shadow-offset-y: 6px;
+    drop-shadow-color: #00000059;
+    transform-scale: zone.pressed && root.enabled ? 0.98 : 1;
+    animate background, drop-shadow-blur { duration: Theme.fast; }
+    animate transform-scale { duration: 120ms; easing: ease-out; }
+    HorizontalLayout {
+        alignment: center;
+        spacing: 12px;
+        if root.microsoft: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                Rectangle { x: 0; y: 0; width: 8.5px; height: 8.5px; background: #F25022; }
+                Rectangle { x: 9.5px; y: 0; width: 8.5px; height: 8.5px; background: #7FBA00; }
+                Rectangle { x: 0; y: 9.5px; width: 8.5px; height: 8.5px; background: #00A4EF; }
+                Rectangle { x: 9.5px; y: 9.5px; width: 8.5px; height: 8.5px; background: #FFB900; }
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: 16px;
+            font-weight: 700;
+            color: root.encre;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    zone := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Une moitié : son fond, son icône, son titre, ses avantages, et son action en bas.
+component Moitie inherits Rectangle {
+    in property <brush> fond;
+    in property <color> accent;
+    in property <string> icon;
+    in property <string> sur-titre;
+    in property <string> titre;
+    in property <[string]> avantages;
+    out property <bool> survol: zone.has-hover;
+    background: root.fond;
+    clip: true;
+    zone := TouchArea { }
+    // halo de l'accent, qui grandit au survol
+    Rectangle {
+        property <length> r: root.survol ? 520px : 420px;
+        x: (parent.width - self.r * 2) / 2;
+        y: parent.height * 0.32 - self.r;
+        width: self.r * 2;
+        height: self.r * 2;
+        border-radius: self.r;
+        background: @radial-gradient(circle, root.accent.with-alpha(0.32) 0%, root.accent.with-alpha(0) 65%);
+        animate r { duration: 420ms; easing: ease-out; }
+    }
+    VerticalLayout {
+        x: (parent.width - self.width) / 2;
+        width: min(380px, parent.width - 64px);
+        alignment: center;
+        spacing: 0px;
+        Rectangle {
+            height: 88px;
+            Rectangle {
+                width: 76px;
+                height: 76px;
+                y: 0;
+                border-radius: 22px;
+                background: root.accent.with-alpha(0.22);
+                border-width: 1px;
+                border-color: root.accent.with-alpha(0.55);
+                Icon {
+                    text: root.icon;
+                    font-size: 32px;
+                    color: white;
+                }
+            }
+        }
+        PixelLabel {
+            text: root.sur-titre;
+            font-size: 12px;
+            color: root.accent;
+            horizontal-alignment: center;
+        }
+        HorizontalLayout {
+            alignment: center;
+            padding-top: 6px;
+            padding-bottom: 28px;
+            OutlinedText {
+                text: root.titre;
+                font-size: 46px;
+                thickness: 3px;
+                depth: 5px;
+                stroke-color: #0E1527;
+                shadow: #070B16;
+            }
+        }
+        VerticalLayout {
+            spacing: 12px;
+            padding-bottom: 32px;
+            for a in root.avantages: Avantage {
+                text: a;
+                couleur: root.accent;
+            }
+        }
+        @children
+    }
+}
+
+export component ChoixCompte inherits Rectangle {
+    property <string> pseudo;
+    property <bool> pseudo-ok: root.pseudo != "" && root.pseudo.character-count <= 16;
+    // la moitié survolée prend un peu plus de place
+    property <float> part: gauche.survol ? 0.54 : droite.survol ? 0.46 : 0.5;
+    animate part { duration: 380ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+    opacity: 0;
+    animate opacity { duration: 260ms; easing: ease-out; }
+    init => { self.opacity = 1; }
+    TouchArea { }
+
+    gauche := Moitie {
+        x: 0;
+        width: parent.width * root.part;
+        fond: @linear-gradient(160deg, #2F6FD6 0%, #1D3F86 55%, #0E1F45 100%);
+        accent: #9CC0FF;
+        icon: "\u{E77B}";
+        sur-titre: Tr.t("Choix_Premium_Sous");
+        titre: Tr.t("Choix_Premium");
+        avantages: [Tr.t("Choix_Premium_1"), Tr.t("Choix_Premium_2"), Tr.t("Choix_Premium_3")];
+        GrosBouton {
+            text: Tr.t("Choix_Premium_Bouton");
+            microsoft: true;
+            fond: white;
+            encre: #1C2335;
+            clicked => { AppState.choose-premium(); }
+        }
+    }
+    droite := Moitie {
+        x: parent.width * root.part;
+        width: parent.width - self.x;
+        fond: @linear-gradient(200deg, #1C2335 0%, #111829 55%, #070B16 100%);
+        accent: #1DE062;
+        icon: "\u{E7FC}";
+        sur-titre: Tr.t("Choix_HorsLigne_Sous");
+        titre: Tr.t("Choix_HorsLigne");
+        avantages: [Tr.t("Choix_HorsLigne_1"), Tr.t("Choix_HorsLigne_2"), Tr.t("Choix_HorsLigne_3")];
+        VerticalLayout {
+            spacing: 12px;
+            GlassInput {
+                height: 48px;
+                font-size: 15px;
+                placeholder: Tr.t("Choix_Pseudo");
+                text <=> root.pseudo;
+                accepted => {
+                    if (root.pseudo-ok) {
+                        AppState.choose-offline(root.pseudo);
+                    }
+                }
+            }
+            GrosBouton {
+                text: Tr.t("Choix_HorsLigne_Bouton");
+                fond: #13B24C;
+                encre: white;
+                enabled: root.pseudo-ok;
+                clicked => { AppState.choose-offline(root.pseudo); }
+            }
+        }
+    }
+
+    // séparation, avec « ou » au milieu
+    Rectangle {
+        x: parent.width * root.part - 1px;
+        width: 2px;
+        background: #FFFFFF1F;
+    }
+    Rectangle {
+        x: parent.width * root.part - self.width / 2;
+        y: (parent.height - self.height) / 2;
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        background: #0E1527;
+        border-width: 2px;
+        border-color: #FFFFFF2E;
+        Text {
+            text: "/";
+            font-size: 18px;
+            font-weight: 800;
+            color: #FFFFFFB3;
+        }
+    }
+
+    // en haut : la question ; en bas : on pourra changer
+    Text {
+        y: 36px;
+        width: parent.width;
+        text: Tr.t("Choix_Titre");
+        font-size: 22px;
+        font-weight: 800;
+        color: white;
+        horizontal-alignment: center;
+    }
+    Text {
+        y: parent.height - 44px;
+        width: parent.width;
+        text: Tr.t("Choix_Plus_Tard");
+        font-size: 13px;
+        color: #FFFFFF99;
+        horizontal-alignment: center;
+    }
+}

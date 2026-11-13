@@ -821,10 +821,10 @@ export component SettingsModal inherits Rectangle {
 
     carte := Rectangle {
         width: min(1040px, parent.width - 80px);
-        // en haut, la place des boutons de la fenêtre (réduire, agrandir, fermer : 44 px)
-        height: min(740px, parent.height - 80px);
+        // en haut, la rangée de la grille avec les boutons de la fenêtre (92 px)
+        height: min(740px, parent.height - 106px);
         x: (parent.width - self.width) / 2;
-        y: 44px + (parent.height - 44px - self.height) / 2 + (root.ouvert ? 0px : 18px);
+        y: 92px + (parent.height - 92px - self.height) / 2 + (root.ouvert ? 0px : 18px);
         border-radius: 24px;
         background: Theme.surface;
         border-width: 1px;

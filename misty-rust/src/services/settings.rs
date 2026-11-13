@@ -48,12 +48,15 @@ pub const MISTY_VERSION: &str = "mistyversion";
 pub const PARTAGE: &str = "partage";
 /// Onglets masqués de la barre latérale, séparés par des virgules ("skin,notes")
 pub const BARRE_MASQUEE: &str = "barremasquee";
+/// Façon de jouer choisie au premier lancement : "" pas encore choisie, "premium" (compte
+/// Microsoft) ou "horsligne" (un pseudo)
+pub const MODE_COMPTE: &str = "modecompte";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
-    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, CHAPEAU, MISTY_CHOISI, MISTY_VERSION, PARTAGE, BARRE_MASQUEE,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, CHAPEAU, MISTY_CHOISI, MISTY_VERSION, PARTAGE, BARRE_MASQUEE, MODE_COMPTE,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {
