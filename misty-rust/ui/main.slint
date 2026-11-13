@@ -149,7 +149,7 @@ component ColonneProfils inherits Rectangle {
 /// nappes qui traversent la fenêtre de gauche à droite (chacune à son rythme). Plus dense le jour.
 component Brume inherits Rectangle {
     property <color> c: Theme.dark ? #C8D8FF : #FFFFFF;
-    property <float> force: Theme.dark ? 0.6 : 1;
+    property <float> force: Theme.dark ? 0.35 : 0.55;
     // bandes : hauteur, épaisseur, opacité, période (ms) de l'ondulation
     for b in [
         { y: 0.26, h: 0.24, a: 0.12, p: 61000 },
@@ -605,15 +605,25 @@ export component MainWindow inherits Window {
                 }
                 Rectangle {
                     horizontal-stretch: 1;
-                    // Les pages principales restent créées : changer d'onglet ne fait qu'un fondu.
-                    // Le détail d'un profil et l'éditeur sont recréés à chaque ouverture (ils dépendent de ce qu'on ouvre).
-                    Onglet { actif: AppState.page == 0; HomePage { } }
-                    Onglet { actif: AppState.page == 1; ProfilesPage { } }
-                    Onglet { actif: AppState.page == 3; ChangelogPage { } }
-                    Onglet { actif: AppState.page == 4; PacksPage { } }
-                    Onglet { actif: AppState.page == 8; FriendsPage { } }
-                    if AppState.page == 5: Apparition { InstancePage { } }
-                    if AppState.page == 6: Apparition { EditorPage { } }
+                    // La page s'efface quand le choix de version s'ouvre : il prend sa place.
+                    Rectangle {
+                        opacity: HomeState.picker-open || SettingsState.open ? 0 : 1;
+                        visible: self.opacity > 0.01;
+                        animate opacity { duration: HomeState.picker-open || SettingsState.open ? 160ms : 260ms; easing: ease-out; }
+                        // Les pages principales restent créées : changer d'onglet ne fait qu'un fondu.
+                        // Le détail d'un profil et l'éditeur sont recréés à chaque ouverture (ils dépendent de ce qu'on ouvre).
+                        Onglet { actif: AppState.page == 0; HomePage { } }
+                        Onglet { actif: AppState.page == 1; ProfilesPage { } }
+                        Onglet { actif: AppState.page == 3; ChangelogPage { } }
+                        Onglet { actif: AppState.page == 4; PacksPage { } }
+                        Onglet { actif: AppState.page == 8; FriendsPage { } }
+                        if AppState.page == 5: Apparition { InstancePage { } }
+                        if AppState.page == 6: Apparition { EditorPage { } }
+                    }
+                    // ═══ Choix de la version ou du profil : dans la zone centrale ═══
+                    VersionPicker { }
+                    // ═══ Options : dans la zone centrale aussi (toujours présentes, pour animer leur fermeture) ═══
+                    SettingsModal { }
                 }
             }
 
@@ -625,11 +635,7 @@ export component MainWindow inherits Window {
             }
         }
 
-        // ═══ Fenêtre des options (toujours présente, pour pouvoir animer sa fermeture) ═══
-        SettingsModal { }
 
-        // ═══ Choix de la version ou du profil ═══
-        VersionPicker { }
 
         // ═══ Écran de chargement (au lancement) ═══
         // ═══ Premier lancement : Premium ou Hors ligne (sous l'écran de chargement, qui s'efface) ═══

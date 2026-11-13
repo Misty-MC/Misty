@@ -144,38 +144,6 @@ component TuileChoix inherits Rectangle {
     }
 }
 
-/// Silhouette de nuage : un corps arrondi et quatre bosses de tailles différentes (pas un ovale
-/// parfait : un vrai nuage). Dessinée deux fois par BlocJouer (le relief, puis la face).
-component FormeNuage inherits Rectangle {
-    in property <brush> fond;
-    property <length> h: root.height;
-    property <length> w: root.width;
-    // corps
-    Rectangle {
-        x: root.w * 0.03;
-        y: root.h * 0.40;
-        width: root.w * 0.94;
-        height: root.h * 0.60;
-        border-radius: self.height / 2;
-        background: root.fond;
-    }
-    // bosses, de gauche à droite (rayon, centre)
-    for b in [
-        { cx: 0.16, cy: 0.58, r: 0.30 },
-        { cx: 0.32, cy: 0.40, r: 0.38 },
-        { cx: 0.53, cy: 0.36, r: 0.44 },
-        { cx: 0.71, cy: 0.42, r: 0.34 },
-        { cx: 0.85, cy: 0.60, r: 0.28 },
-    ]: Rectangle {
-        x: root.w * b.cx - root.h * b.r;
-        y: root.h * b.cy - root.h * b.r;
-        width: root.h * b.r * 2;
-        height: self.width;
-        border-radius: self.width / 2;
-        background: root.fond;
-    }
-}
-
 /// JOUER : un nuage sur lequel on clique. Il flotte un peu, monte au survol, s'écrase et
 /// s'enfonce dans son ombre quand on appuie ; gris quand on ne peut pas jouer. La progression d'un
 /// téléchargement court sous le texte.
@@ -189,24 +157,38 @@ component BlocJouer inherits Rectangle {
     animate lever { duration: 140ms; easing: ease-out; }
 
     // ombre : le même nuage, bleuté, un peu plus bas
-    FormeNuage {
+    Image {
         x: 0;
         y: 6px;
         width: parent.width;
         height: parent.height - 6px;
-        fond: !root.actif ? #6B7C93 : Theme.dark ? #2C4F9E : #7896CA;
+        source: Assets.play-cloud;
+        image-fit: fill;
+        colorize: !root.actif ? #6B7C93 : Theme.dark ? #2C4F9E : #7896CA;
     }
-    face := FormeNuage {
+    // le nuage (dessiné par Rust : images::nuage_jouer)
+    Image {
         x: 0;
         y: root.lever;
         width: parent.width;
         height: parent.height - 6px;
+        source: Assets.play-cloud;
+        image-fit: fill;
         transform-scale-y: root.appui ? 0.92 : 1;
         transform-scale-x: root.appui ? 1.02 : 1;
         animate transform-scale-x, transform-scale-y { duration: 140ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
-        fond: !root.actif ? @linear-gradient(180deg, #C9D2DE 0%, #A9B5C5 100%)
-            : root.survol ? @linear-gradient(180deg, #FFFFFF 0%, #EAF2FF 100%)
-            : @linear-gradient(180deg, #FFFFFF 0%, #DCE8FA 100%);
+        opacity: root.actif ? 1 : 0.75;
+    }
+    // reflet au survol
+    if root.survol: Image {
+        x: 0;
+        y: root.lever;
+        width: parent.width;
+        height: parent.height - 6px;
+        source: Assets.play-cloud;
+        image-fit: fill;
+        colorize: #FFFFFF;
+        opacity: 0.5;
     }
     Text {
         y: root.lever + (parent.height - 6px) * 0.56 - self.height / 2;

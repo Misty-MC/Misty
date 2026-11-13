@@ -293,7 +293,6 @@ pub fn installer(app: &Rc<App>) {
     st.on_theme_selected(move |mode| {
         settings::set(settings::THEME, &mode.to_string());
         a.ui.global::<crate::Theme>().set_mode(mode);
-        recapturer_fond(&a);
     });
     let a = app.clone();
     st.on_blur_toggled(move |actif| {
@@ -305,7 +304,6 @@ pub fn installer(app: &Rc<App>) {
     st.on_seasonal_toggled(move |actif| {
         settings::set_bool(settings::SAISON, actif);
         super::appliquer_saison(&a);
-        recapturer_fond(&a);
     });
 
     let a = app.clone();
@@ -359,60 +357,22 @@ pub fn installer(app: &Rc<App>) {
     });
 }
 
-/// Ouvre la fenêtre des options : capture floutée de la fenêtre en fond, puis réglages à jour.
+/// Ouvre les options, dans la zone centrale de la fenêtre (à la place de la page et du choix de
+/// version), avec des réglages à jour.
 pub fn ouvrir(app: &Rc<App>) {
     let st = s(app);
     if st.get_open() {
         return;
     }
     app.ui.global::<crate::Bulle>().set_visible(false);
-    let fond = if app.ui.global::<crate::Theme>().get_blur() { capture_floutee(app) } else { None };
-    st.set_has_backdrop(fond.is_some());
-    if let Some(image) = fond {
-        st.set_backdrop(image);
-    }
+    app.ui.global::<crate::HomeState>().set_picker_open(false);
     rafraichir(app);
     st.set_open(true);
 }
 
-/// Ferme la fenêtre des options.
+/// Ferme les options.
 pub fn fermer(app: &Rc<App>) {
     s(app).set_open(false);
-}
-
-/// Après un changement de thème : le fond flouté montre encore l'ancien thème. On le retire, on attend
-/// la fin du fondu entre les thèmes, puis on refait la capture en masquant la fenêtre des options.
-fn recapturer_fond(app: &Rc<App>) {
-    s(app).set_has_backdrop(false);
-    if !app.ui.global::<crate::Theme>().get_blur() {
-        return;
-    }
-    let a = app.clone();
-    slint::Timer::single_shot(std::time::Duration::from_millis(520), move || {
-        let st = s(&a);
-        if !st.get_open() {
-            return;
-        }
-        st.set_capturing(true);
-        let fond = capture_floutee(&a);
-        st.set_capturing(false);
-        if let Some(image) = fond {
-            st.set_backdrop(image);
-            st.set_has_backdrop(true);
-        }
-    });
-}
-
-/// Capture de la fenêtre, réduite puis floutée (le fond « verre dépoli » de la fenêtre des options).
-fn capture_floutee(app: &App) -> Option<slint::Image> {
-    let capture = app.ui.window().take_snapshot().ok()?;
-    let image = image::RgbaImage::from_raw(capture.width(), capture.height(), capture.as_bytes().to_vec())?;
-    // Réduire d'abord : le flou est bien plus rapide, et l'agrandissement à l'affichage l'adoucit encore
-    let (l, h) = ((image.width() / 6).max(1), (image.height() / 6).max(1));
-    let petite = image::imageops::resize(&image, l, h, image::imageops::FilterType::Triangle);
-    let floue = image::imageops::blur(&petite, 3.5);
-    let tampon = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(floue.as_raw(), floue.width(), floue.height());
-    Some(slint::Image::from_rgba8(tampon))
 }
 
 /// Tailles du cache et des journaux (page Dépannage).

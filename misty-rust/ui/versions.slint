@@ -720,32 +720,14 @@ export component VersionPicker inherits Rectangle {
     visible: self.opacity > 0.01;
     animate opacity { duration: root.ouvert ? 200ms : 150ms; easing: ease-out; }
 
-    Rectangle { background: Theme.scrim; }
-    TouchArea {
-        enabled: root.ouvert;
-        clicked => { HomeState.picker-open = false; }
-    }
-
+    // dans la zone centrale de la fenêtre (à la place de la page) : pas de voile, pas de fenêtre
+    // flottante ; le contenu repose sur le paysage, les affiches tombent une à une
     carte := Rectangle {
-        width: min(1180px, parent.width - 60px);
-        // en haut, la rangée de la grille avec les boutons de la fenêtre (92 px)
-        height: min(720px, parent.height - 106px);
-        x: (parent.width - self.width) / 2;
-        y: 92px + (parent.height - 92px - self.height) / 2 + (root.ouvert ? 0px : 16px);
-        border-radius: 26px;
-        background: Theme.surface;
-        border-width: 1px;
-        border-color: Theme.glass-border;
-        drop-shadow-blur: 50px;
-        drop-shadow-offset-y: 12px;
-        drop-shadow-color: Theme.shadow;
-        transform-scale: root.ouvert ? 1 : 0.96;
-        animate y, transform-scale { duration: root.ouvert ? 380ms : 160ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
         clip: true;
         TouchArea { }
 
         VerticalLayout {
-            padding: 22px;
+            padding: 0px;
             spacing: 14px;
 
             // ── En-tête ──
@@ -901,7 +883,11 @@ export component VersionPicker inherits Rectangle {
                     content-height: ceil(HomeState.picker-groups.length / self.colonnes) * 170px + 8px;
                     for g[i] in HomeState.picker-groups: Affiche {
                         x: 4px + Math.mod(i, affiches.colonnes) * (affiches.largeur + 12px);
-                        y: 4px + floor(i / affiches.colonnes) * 170px;
+                        // elles tombent du haut quand le choix s'ouvre, l'une après l'autre
+                        y: 4px + floor(i / affiches.colonnes) * 170px + (root.ouvert ? 0px : -220px);
+                        opacity: root.ouvert ? 1 : 0;
+                        animate y { duration: 520ms; delay: root.ouvert ? i * 45ms : 0ms; easing: cubic-bezier(0.34, 1.32, 0.64, 1); }
+                        animate opacity { duration: 260ms; delay: root.ouvert ? i * 45ms : 0ms; easing: ease-out; }
                         width: affiches.largeur;
                         g: g;
                         checked: i == HomeState.picker-group;

@@ -144,6 +144,7 @@ pub fn installer(app: &Rc<App>) {
     // Traductions
     ui.global::<Tr>().on_lookup(|cle| loc::t(&cle).into());
     ui.global::<Assets>().set_logo(images::logo_nuage());
+    ui.global::<Assets>().set_play_cloud(images::nuage_jouer());
     // version sous la barre latérale : « v0.3.8 » puis « beta.3 » sur sa propre ligne (la barre est étroite)
     ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).replacen('-', "\n", 1).into());
 

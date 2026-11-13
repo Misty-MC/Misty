@@ -3,7 +3,7 @@
 // l'onglet Skin, le studio. Les onglets sont dans la tuile du haut, le lancement dans la barre du
 // bas (dock.slint).
 
-import { Theme, Tr, Assets } from "theme.slint";
+import { Theme, Tr } from "theme.slint";
 import { HomeState, AppState } from "state.slint";
 import { Icon, PixelLabel, OutlinedText } from "widgets.slint";
 import { SkinState, SkinPanel } from "skin.slint";
@@ -90,23 +90,19 @@ export component HomePage inherits Rectangle {
         Rectangle {
             background: @linear-gradient(180deg, #00000000 0%, #00000000 55%, (Theme.dark ? #05080F80 : #14203A40) 100%);
         }
-        // des nuages Misty qui traversent le ciel, chacun à sa hauteur, sa taille et sa vitesse
+        // brume à peine visible qui passe lentement dans le cadre
         for n in [
-            { y: 0.10, s: 76, p: 76000, o: 0.10, a: 0.65 },
-            { y: 0.24, s: 44, p: 52000, o: 0.55, a: 0.45 },
-            { y: 0.16, s: 34, p: 44000, o: 0.30, a: 0.35 },
-            { y: 0.62, s: 96, p: 98000, o: 0.80, a: 0.30 },
-            { y: 0.70, s: 54, p: 66000, o: 0.35, a: 0.25 },
-        ]: Image {
+            { y: 0.18, s: 560, p: 140000, o: 0.10 },
+            { y: 0.52, s: 720, p: 180000, o: 0.60 },
+            { y: 0.78, s: 620, p: 160000, o: 0.35 },
+        ]: Rectangle {
             property <float> t: Math.mod(animation-tick() / (n.p * 1ms) + n.o, 1);
             x: -n.s * 1px + (parent.width + n.s * 2px) * self.t;
-            y: parent.height * n.y + 4px * sin((animation-tick() / 5000ms + n.o) * 360deg);
+            y: parent.height * n.y - n.s * 0.2px;
             width: n.s * 1px;
-            height: self.width;
-            source: Assets.logo;
-            image-fit: contain;
-            colorize: white;
-            opacity: n.a;
+            height: n.s * 0.4px;
+            border-radius: self.height / 2;
+            background: @radial-gradient(circle, #FFFFFF14 0%, #FFFFFF00 70%);
         }
         // le logo, comme celui de Minecraft sur la maquette
         VerticalLayout {

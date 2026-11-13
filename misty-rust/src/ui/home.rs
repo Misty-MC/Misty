@@ -604,6 +604,23 @@ fn charger_profils(app: &Rc<App>) {
         })
         .collect();
     h(app).set_profile_items(modele(cartes));
+    // icônes distantes (modpacks sans icon.png) : chargées ensuite, sans bloquer la liste
+    for (i, p) in profils.iter().enumerate() {
+        let Some(instance) = p else { continue };
+        let Some(url) = instance.icone_url.clone().filter(|_| !instance.chemin_icone().exists()) else { continue };
+        let (a, nom) = (app.clone(), instance.nom.clone());
+        lancer(async move {
+            use slint::Model;
+            let Some(image) = images::depuis_url(&a, &url).await else { return };
+            let liste = h(&a).get_profile_items();
+            // la liste a pu changer entre-temps : on vérifie que c'est toujours ce profil
+            if let Some(mut item) = liste.row_data(i).filter(|item| item.name.as_str() == nom) {
+                item.icon = image;
+                item.has_icon = true;
+                liste.set_row_data(i, item);
+            }
+        });
+    }
     {
         let mut e = app.home.borrow_mut();
         e.profil = profils[index].clone();

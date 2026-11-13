@@ -584,7 +584,7 @@ component BlocAction inherits VerticalLayout {
 /// interrupteur ne touche un bord.
 component Carte inherits Rectangle {
     in property <length> spacing: 18px;
-    border-radius: 18px;
+    border-radius: 10px;
     background: Theme.glass;
     border-width: 1px;
     border-color: Theme.glass-border;
@@ -800,49 +800,23 @@ export component SettingsModal inherits Rectangle {
     visible: self.opacity > 0.01 && !SettingsState.capturing;
     animate opacity { duration: root.ouvert ? 220ms : 160ms; easing: ease-out; }
 
-    // Fond : capture floutée de la fenêtre + voile
-    if SettingsState.has-backdrop && Theme.blur: Image {
-        width: parent.width;
-        height: parent.height;
-        source: SettingsState.backdrop;
-        image-fit: fill;
-        image-rendering: smooth;
-        opacity: 0;
-        animate opacity { duration: 300ms; easing: ease-out; }
-        init => { self.opacity = 1; }
-    }
-    Rectangle {
-        background: Theme.scrim;
-    }
-    TouchArea {
-        enabled: root.ouvert;
-        clicked => { SettingsState.close(); }
-    }
-
+    // Dans la zone centrale de la fenêtre, à la place de la page : deux tuiles alignées sur la
+    // grille (les catégories, puis le contenu), qui glissent un peu en arrivant.
     carte := Rectangle {
-        width: min(1040px, parent.width - 80px);
-        // en haut, la rangée de la grille avec les boutons de la fenêtre (92 px)
-        height: min(740px, parent.height - 106px);
-        x: (parent.width - self.width) / 2;
-        y: 92px + (parent.height - 92px - self.height) / 2 + (root.ouvert ? 0px : 18px);
-        border-radius: 24px;
-        background: Theme.surface;
-        border-width: 1px;
-        border-color: Theme.glass-border;
-        drop-shadow-blur: 50px;
-        drop-shadow-offset-y: 12px;
-        drop-shadow-color: Theme.shadow;
-        transform-scale: root.ouvert ? 1 : 0.96;
-        animate y { duration: root.ouvert ? 380ms : 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
-        animate transform-scale { duration: root.ouvert ? 380ms : 180ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
-        clip: true;
+        y: root.ouvert ? 0px : 14px;
+        animate y { duration: root.ouvert ? 380ms : 160ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
         TouchArea { }
 
         HorizontalLayout {
+            spacing: 12px;
             // ═══ Colonne de navigation ═══
             Rectangle {
                 width: 252px;
-                background: Theme.surface-2;
+                border-radius: 8px;
+                background: Theme.panel;
+                border-width: 1px;
+                border-color: Theme.glass-border;
+                clip: true;
 
                 VerticalLayout {
                     padding: 16px;
@@ -995,16 +969,16 @@ export component SettingsModal inherits Rectangle {
                         }
                     }
                 }
-                Rectangle {
-                    x: parent.width - 1px;
-                    width: 1px;
-                    background: Theme.line;
-                }
             }
 
             // ═══ Contenu de la catégorie choisie ═══
             Rectangle {
                 horizontal-stretch: 1;
+                border-radius: 8px;
+                background: Theme.panel;
+                border-width: 1px;
+                border-color: Theme.glass-border;
+                clip: true;
 
                 ScrollView {
                     width: parent.width;
