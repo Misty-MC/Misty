@@ -839,3 +839,52 @@ export component LangCombo inherits Rectangle {
         }
     }
 }
+
+/// Rangée de filtres en pastilles (« TOUS », « FABRIC »…) : celui choisi est plein.
+export component Puces inherits HorizontalLayout {
+    in property <[string]> model;
+    in property <int> current;
+    callback selected(int);
+    spacing: 6px;
+    alignment: start;
+    for t[i] in root.model: Rectangle {
+        property <bool> actif: i == root.current;
+        height: 30px;
+        width: lab.preferred-width + 22px;
+        border-radius: 6px;
+        background: self.actif ? Theme.fill : zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
+        border-width: 1px;
+        border-color: self.actif ? Theme.fill : Theme.glass-border;
+        animate background { duration: Theme.fast; }
+        lab := Text {
+            text: t;
+            font-family: Theme.pixel-font;
+            font-size: 10.5px;
+            color: parent.actif ? Theme.on-fill : Theme.navy;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        zone := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.selected(i); }
+        }
+    }
+}
+
+/// Petite étiquette en police pixel (version, loader…) posée sur une carte.
+export component Etiquette inherits Rectangle {
+    in property <string> text;
+    in property <color> couleur: Theme.accent;
+    height: 22px;
+    width: t.preferred-width + 14px;
+    border-radius: 5px;
+    background: root.couleur.with-alpha(0.16);
+    t := Text {
+        text: root.text;
+        font-family: Theme.pixel-font;
+        font-size: 9.5px;
+        color: root.couleur;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}

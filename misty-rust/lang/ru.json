@@ -733,5 +733,10 @@
   "Notes_Beta": "БЕТА",
   "Notes_Nouveau": "НОВОЕ",
   "Notes_Corrige": "ИСПРАВЛЕНО",
-  "Notes_GitHub": "Открыть на GitHub"
+  "Notes_GitHub": "Открыть на GitHub",
+  "Profil_Filtre_Tous": "Все",
+  "Profil_Filtre_Modpacks": "Сборки",
+  "Profil_NouveauCarte": "Новый профиль",
+  "Profil_NouveauCarte_Texte": "Своя версия, моды и миры",
+  "Profil_Gerer": "Управлять"
 }

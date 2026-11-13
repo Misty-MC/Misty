@@ -1,79 +1,70 @@
 // Liste des profils, création d'un profil, installation d'un modpack.
 
 import { Theme, Tr, Assets } from "theme.slint";
-import { ProfilesState } from "state.slint";
-import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, IconButton, MButton, GlassInput, GlassCombo, Spinner } from "widgets.slint";
+import { ProfilesState, ProfileCard } from "state.slint";
+import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, IconButton, MButton, GlassInput, GlassCombo, Spinner, Puces, Etiquette } from "widgets.slint";
 import { ContentBrowser } from "browser.slint";
 import { ScrollView } from "std-widgets.slint";
 
+/// Carte d'un profil : l'illustration de sa version (ou son icône) en haut, puis le nom, la version
+/// et le loader, la dernière partie. Au survol : Jouer, Gérer et Supprimer sur l'image.
 component ProfileCardView inherits Rectangle {
-    in property <string> name;
-    in property <string> summary;
-    in property <string> last;
-    in property <image> icon;
-    in property <bool> has-icon;
+    in property <ProfileCard> carte;
     callback open();
     callback play();
     callback delete();
+    property <bool> survol: touch.has-hover;
 
     width: 236px;
     height: 236px;
-    border-radius: 20px;
-    background: touch.has-hover ? Theme.glass-hover : Theme.glass;
-    border-width: 1.5px;
-    border-color: touch.has-hover ? white : Theme.glass-border;
-    animate background { duration: 120ms; }
+    border-radius: 12px;
+    clip: true;
+    background: root.survol ? Theme.panel-strong : Theme.panel;
+    border-width: 1px;
+    border-color: root.survol ? Theme.accent.with-alpha(0.6) : Theme.glass-border;
+    animate background, border-color { duration: Theme.normal; }
 
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.open(); }
     }
-    VerticalLayout {
-        padding: 16px;
-        spacing: 0px;
+    // en-tête : l'illustration, et l'icône du profil par-dessus s'il en a une
+    Rectangle {
+        y: 0;
+        height: 118px;
+        clip: true;
+        background: #1C2335;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.carte.art;
+            image-fit: cover;
+            image-rendering: ImageRendering.pixelated;
+            // léger zoom au survol
+            transform-scale: root.survol ? 1.06 : 1;
+            animate transform-scale { duration: 400ms; easing: ease-out; }
+        }
+        if root.carte.has-icon: Thumb {
+            x: 12px;
+            y: parent.height - self.height - 10px;
+            width: 52px;
+            height: 52px;
+            radius: 8px;
+            border: 2px;
+            source: root.carte.icon;
+            has-image: true;
+        }
+        // actions au survol
         HorizontalLayout {
-            alignment: start;
-            Thumb {
-                width: 76px;
-                height: 76px;
-                radius: 20px;
-                border: 2.5px;
-                logo-margin: 16px;
-                logo-opacity: 1;
-                source: root.icon;
-                has-image: root.has-icon;
-            }
-        }
-        Text {
-            text: root.name;
-            font-family: Theme.ui-font;
-            font-weight: 600;
-            font-size: 16px;
-            color: Theme.navy;
-            overflow: elide;
-            height: 44px;
-            vertical-alignment: bottom;
-        }
-        PixelLabel {
-            text: root.summary;
-            font-size: 11px;
-            height: 22px;
-        }
-        Rectangle { vertical-stretch: 1; }
-        HorizontalLayout {
+            x: parent.width - self.preferred-width - 10px;
+            y: 10px;
+            height: 36px;
             spacing: 6px;
-            Text {
-                horizontal-stretch: 1;
-                text: root.last;
-                font-family: Theme.ui-font;
-                font-size: 12px;
-                color: Theme.text-muted;
-                vertical-alignment: center;
-                overflow: elide;
-            }
+            opacity: root.survol ? 1 : 0;
+            animate opacity { duration: Theme.normal; }
             IconButton {
-                width: 42px;
-                height: 42px;
+                width: 36px;
+                height: 36px;
                 icon: "\u{E74D}";
                 fond: Theme.danger;
                 encre: white;
@@ -82,16 +73,114 @@ component ProfileCardView inherits Rectangle {
                 clicked => { root.delete(); }
             }
             IconButton {
-                width: 42px;
-                height: 42px;
-                icon: "\u{E768}";
-                fond: Theme.green-dark;
-                encre: white;
-                bord: #FFFFFF66;
-                tooltip: Tr.t("Nav_Jouer");
+                width: 36px;
+                height: 36px;
+                icon: "\u{E70F}";
+                tooltip: Tr.t("Profil_Gerer");
+                clicked => { root.open(); }
+            }
+        }
+        // jouer : gros bouton rond au centre de l'image
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 54px;
+            height: 54px;
+            border-radius: 10px;
+            background: zone-jouer.has-hover ? Theme.green : Theme.green-dark;
+            border-width: 2px;
+            border-color: #FFFFFF80;
+            opacity: root.survol ? 1 : 0;
+            transform-scale: root.survol ? 1 : 0.8;
+            animate opacity, transform-scale { duration: Theme.normal; easing: ease-out; }
+            Icon {
+                text: "\u{E768}";
+                font-size: 20px;
+                color: white;
+            }
+            zone-jouer := TouchArea {
+                enabled: root.survol;
+                mouse-cursor: pointer;
                 clicked => { root.play(); }
             }
         }
+    }
+    VerticalLayout {
+        y: 118px;
+        height: parent.height - 118px;
+        padding: 12px;
+        padding-top: 10px;
+        spacing: 7px;
+        Text {
+            text: root.carte.name;
+            font-weight: 700;
+            font-size: 15px;
+            color: Theme.navy;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            spacing: 5px;
+            alignment: start;
+            Etiquette { text: root.carte.version; }
+            Etiquette { text: root.carte.loader; couleur: Theme.toggle-on; }
+            if root.carte.modpack: Etiquette { text: "MODPACK"; couleur: #F0795A; }
+        }
+        Rectangle { vertical-stretch: 1; }
+        Text {
+            text: root.carte.last;
+            font-size: 12px;
+            color: Theme.text-muted;
+            overflow: elide;
+        }
+    }
+}
+
+/// Dernière carte de la grille : créer un profil (bordure en pointillés simulée par un cadre clair).
+component NouvelleCarte inherits Rectangle {
+    callback clicked;
+    width: 236px;
+    height: 236px;
+    border-radius: 12px;
+    background: zone.has-hover ? Theme.glass : transparent;
+    border-width: 2px;
+    border-color: zone.has-hover ? Theme.accent : Theme.glass-border;
+    animate background, border-color { duration: Theme.normal; }
+    VerticalLayout {
+        alignment: center;
+        spacing: 8px;
+        padding: 18px;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 52px;
+                height: 52px;
+                border-radius: 10px;
+                background: Theme.fill;
+                Icon {
+                    text: "\u{E710}";
+                    font-size: 18px;
+                    color: Theme.on-fill;
+                }
+            }
+        }
+        Text {
+            text: Tr.t("Profil_NouveauCarte");
+            font-size: 15px;
+            font-weight: 700;
+            color: Theme.navy;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: Tr.t("Profil_NouveauCarte_Texte");
+            font-size: 12px;
+            color: Theme.text-muted;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+    zone := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
     }
 }
 
@@ -253,42 +342,38 @@ export component ProfilesPage inherits Rectangle {
             }
         }
 
+        if ProfilesState.filters.length > 2: HorizontalLayout {
+            padding-left: 6px;
+            Puces {
+                model: ProfilesState.filters;
+                current: ProfilesState.filter-index;
+                selected(i) => {
+                    ProfilesState.filter-index = i;
+                    ProfilesState.filter-changed();
+                }
+            }
+        }
+
         zone := ScrollView {
             vertical-stretch: 1;
             property <int> colonnes: max(1, floor((self.visible-width + 16px) / 252px));
+            // les profils, puis la carte « Nouveau profil »
+            property <int> nombre: ProfilesState.list.length + 1;
             content-width: self.visible-width;
-            content-height: ProfilesState.list.length == 0 ? 300px : ceil(ProfilesState.list.length / self.colonnes) * 252px;
+            content-height: ceil(self.nombre / self.colonnes) * 252px;
 
             for p[i] in ProfilesState.list: ProfileCardView {
                 x: mod(i, zone.colonnes) * 252px;
                 y: floor(i / zone.colonnes) * 252px;
-                name: p.name;
-                summary: p.summary;
-                last: p.last;
-                icon: p.icon;
-                has-icon: p.has-icon;
+                carte: p;
                 open => { ProfilesState.open(p.id); }
                 play => { ProfilesState.play(p.id); }
                 delete => { ProfilesState.delete(p.id); }
             }
-
-            // État vide : centré, sans icône
-            if ProfilesState.list.length == 0: VerticalLayout {
-                x: 0;
-                y: 0;
-                width: zone.visible-width;
-                height: zone.visible-height;
-                alignment: center;
-                spacing: 8px;
-                SectionTitle {
-                    text: Tr.t("Profil_Aucun");
-                    horizontal-alignment: center;
-                }
-                BodyText {
-                    text: Tr.t("Profil_Aucun_Texte");
-                    horizontal-alignment: center;
-                    wrap: word-wrap;
-                }
+            NouvelleCarte {
+                x: mod(ProfilesState.list.length, zone.colonnes) * 252px;
+                y: floor(ProfilesState.list.length / zone.colonnes) * 252px;
+                clicked => { ProfilesState.new-profile(); }
             }
         }
     }

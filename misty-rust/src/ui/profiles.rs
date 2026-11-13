@@ -62,6 +62,8 @@ pub fn installer(app: &Rc<App>) {
     let a = app.clone();
     s.on_back(move || rafraichir(&a));
     let a = app.clone();
+    s.on_filter_changed(move || rafraichir_liste(&a));
+    let a = app.clone();
     s.on_create_version_selected(move |i| {
         let a = a.clone();
         lancer(async move { version_choisie(&a, i).await });
@@ -85,7 +87,30 @@ pub fn rafraichir(app: &Rc<App>) {
 
 /// Cartes des profils (« Joué hier »… est recalculé, d'où l'appel au changement de langue).
 pub fn rafraichir_liste(app: &Rc<App>) {
-    let liste = instances::lister();
+    let toutes = instances::lister();
+
+    // Filtres : « Tous », chaque mod loader présent, puis « Modpacks » s'il y en a
+    let mut filtres: Vec<String> = vec![loc::t("Profil_Filtre_Tous")];
+    for i in &toutes {
+        if !filtres.iter().skip(1).any(|f| f == &i.loader) {
+            filtres.push(i.loader.clone());
+        }
+    }
+    let avec_modpacks = toutes.iter().any(|i| i.est_modpack());
+    if avec_modpacks {
+        filtres.push(loc::t("Profil_Filtre_Modpacks"));
+    }
+    let choisi = (p(app).get_filter_index().max(0) as usize).min(filtres.len() - 1);
+    let filtre = filtres[choisi].clone();
+    let garder = |i: &Instance| match choisi {
+        0 => true,
+        n if avec_modpacks && n == filtres.len() - 1 => i.est_modpack(),
+        _ => i.loader == filtre,
+    };
+    let liste: Vec<Instance> = toutes.into_iter().filter(|i| garder(i)).collect();
+    p(app).set_filters(modele_textes(&filtres.iter().map(|f| f.to_uppercase()).collect::<Vec<_>>()));
+    p(app).set_filter_index(choisi as i32);
+
     let cartes: Vec<ProfileCard> = liste
         .iter()
         .map(|i| ProfileCard {
@@ -95,6 +120,10 @@ pub fn rafraichir_liste(app: &Rc<App>) {
             last: i.dernier_lancement_texte().into(),
             icon: images::vide(),
             has_icon: false,
+            version: i.version_mc.clone().into(),
+            loader: i.loader.to_uppercase().into(),
+            modpack: i.est_modpack(),
+            art: super::picker::illustration(&super::picker::cle_groupe(&i.version_mc, 0)),
         })
         .collect();
     let m: ModelRc<ProfileCard> = modele(cartes);

@@ -256,10 +256,19 @@ export struct ProfileCard {
     last: string,
     icon: image,
     has-icon: bool,
+    version: string,
+    loader: string,
+    modpack: bool,
+    /// illustration pixel art de sa version (en-tête de la carte)
+    art: image,
 }
 
 export global ProfilesState {
     in property <[ProfileCard]> list;
+    /// Filtres de la liste (« Tous », les mod loaders présents, « Modpacks ») et celui choisi
+    in property <[string]> filters;
+    in-out property <int> filter-index: 0;
+    callback filter-changed();
     /// 0 liste, 1 modpacks
     in-out property <int> view;
 

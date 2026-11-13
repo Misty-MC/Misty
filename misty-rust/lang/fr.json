@@ -733,5 +733,10 @@
   "Notes_Beta": "BÊTA",
   "Notes_Nouveau": "NOUVEAU",
   "Notes_Corrige": "CORRIGÉ",
-  "Notes_GitHub": "Voir sur GitHub"
+  "Notes_GitHub": "Voir sur GitHub",
+  "Profil_Filtre_Tous": "Tous",
+  "Profil_Filtre_Modpacks": "Modpacks",
+  "Profil_NouveauCarte": "Nouveau profil",
+  "Profil_NouveauCarte_Texte": "Sa version, ses mods et ses mondes",
+  "Profil_Gerer": "Gérer"
 }
