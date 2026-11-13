@@ -97,7 +97,8 @@ component Onglet inherits Rectangle {
 }
 
 /// Écran de chargement, le même que celui de Misty Client (MistyLoading.java) : le paysage de nuit
-/// qui défile vers la droite, le nuage et le nom MISTY en pixel art, et une barre bleue.
+/// qui défile vers la droite, le nuage et le nom MISTY en pixel art, et une barre bleue. En thème
+/// clair (Brume), le même paysage de jour : ciel bleu pâle, crêtes claires, sans étoiles.
 /// Il reste au moins 0,7 s (pas de flash) et au plus 2,5 s (on ne bloque jamais le launcher).
 component Chargement inherits Rectangle {
     property <bool> fini: AppState.ready && self.minimum;
@@ -119,15 +120,19 @@ component Chargement inherits Rectangle {
     property <length> haut: root.height - root.sh;
     property <float> secondes: animation-tick() / 1s;
     property <[float]> vitesses: [4, 7, 11, 17];
-    property <[color]> couleurs: [#24345A, #1A2748, #121C36, #0D1528];
+    // nuit (comme le client, et pour les thèmes de saison) ou jour (thème Brume)
+    property <bool> nuit: Theme.dark;
+    property <[color]> couleurs: root.nuit ? [#24345A, #1A2748, #121C36, #0D1528] : [#B7CDEB, #A0BBE2, #8BA9D7, #7896CA];
+    property <color> bas: root.nuit ? #070B16 : #6D8EC2;
 
-    background: @linear-gradient(180deg, #0A0F1D 0%, #17264D 100%);
+    background: root.nuit ? @linear-gradient(180deg, #0A0F1D 0%, #17264D 100%) : @linear-gradient(180deg, #DDEBFB 0%, #B4D0F1 55%, #95B9E4 100%);
     clip: true;
     TouchArea { }
 
     // étoiles : le champ (symétrique) glisse lentement et se répète tous les 1600 px
     property <length> decalage-etoiles: Math.mod(root.secondes * 1.5, 1600) * root.s * 1px;
     for k in 2: Image {
+        visible: root.nuit;
         x: root.decalage-etoiles - root.sw + k * root.sw;
         y: root.haut;
         width: root.sw;
@@ -139,6 +144,7 @@ component Chargement inherits Rectangle {
         opacity: 0.55;
     }
     for k in 2: Image {
+        visible: root.nuit;
         x: root.decalage-etoiles - root.sw + k * root.sw;
         y: root.haut;
         width: root.sw;
@@ -170,7 +176,7 @@ component Chargement inherits Rectangle {
     Rectangle {
         y: root.height - 96px * root.s;
         height: 96px * root.s;
-        background: @linear-gradient(180deg, #070B1600 0%, #070B16 100%);
+        background: @linear-gradient(180deg, root.bas.with-alpha(0) 0%, root.bas 100%);
     }
 
     // ── Nuage, nom et barre, au milieu ──
@@ -196,21 +202,21 @@ component Chargement inherits Rectangle {
         y: root.y0 + 49 * root.pixel - 1px;
         width: self.l + 2px;
         height: self.h + 2px;
-        background: #FFFFFF2E;
+        background: root.nuit ? #FFFFFF2E : #FFFFFFB3;
         Rectangle {
             x: 1px;
             y: 1px;
             width: parent.l;
             height: parent.h;
-            background: #0E1527;
+            background: root.nuit ? #0E1527 : #FFFFFF73;
             Rectangle {
                 x: 0;
                 width: parent.width * root.avance;
-                background: #6F9CFF;
+                background: root.nuit ? #6F9CFF : #2F6FD6;
                 Rectangle {
                     y: 0;
                     height: max(1px, round(parent.height / 2 / 1px) * 1px);
-                    background: #9CC0FF;
+                    background: root.nuit ? #9CC0FF : #5B93EA;
                 }
             }
         }
