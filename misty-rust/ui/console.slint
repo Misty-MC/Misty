@@ -45,6 +45,8 @@ export global ConsoleState {
     callback filter-changed();
     callback open-folder();
     callback copy(int);
+    /// copie les lignes affichées de `debut` à `fin` (incluses) d'une partie
+    callback copy-lines(int, int, int);
     callback send-report(int);
     callback kill(int);
     callback close-pane(int);
@@ -81,6 +83,8 @@ global CC {
     out property <color> misty: d ? #7FB2FF : #2F6FD6;
     out property <color> succes: d ? #9FE8B8 : #13883D;
     out property <color> bleu: d ? #8FB8FF : #2F6FD6;
+    /// lignes sélectionnées
+    out property <color> selection: d ? #3B82F64D : #2563EB2E;
 }
 
 /// Bouton de la console (texte et/ou icône).
@@ -181,6 +185,32 @@ component PanneauLogs inherits Rectangle {
     /// panneau étroit (4 ou 6 parties) : boutons sans texte
     property <bool> compact: root.width < 620px;
 
+    // Sélection de lignes, comme dans un terminal : clic sur une ligne, glisser ou Maj+clic pour
+    // en prendre plusieurs ; Ctrl+C ou clic droit pour copier, Ctrl+A tout, Échap pour annuler.
+    property <int> ancre: -1;
+    property <int> fin: -1;
+    property <int> sel-debut: min(root.ancre, root.fin);
+    property <int> sel-fin: max(root.ancre, root.fin);
+    property <bool> a-selection: root.ancre >= 0 && root.p.lines.length > 0;
+
+    pure function selectionnee(i: int) -> bool {
+        return root.a-selection && i >= root.sel-debut && i <= root.sel-fin;
+    }
+    function copier-selection() {
+        if (root.a-selection) {
+            ConsoleState.copy-lines(root.p.id, root.sel-debut, min(root.sel-fin, root.p.lines.length - 1));
+        }
+    }
+    function effacer-selection() {
+        root.ancre = -1;
+        root.fin = -1;
+    }
+    // un autre filtre ou une autre recherche : les numéros de lignes ne désignent plus les mêmes lignes
+    property <int> filtre-vu: ConsoleState.filter;
+    property <string> recherche-vue: ConsoleState.search;
+    changed filtre-vu => { root.effacer-selection(); }
+    changed recherche-vue => { root.effacer-selection(); }
+
     border-radius: 14px;
     background: CC.zone;
     border-width: 1px;
@@ -265,10 +295,18 @@ component PanneauLogs inherits Rectangle {
                     alignment: end;
                     VerticalLayout {
                         alignment: center;
+                        // avec une sélection : copie les lignes choisies, sinon toute la partie
                         BoutonConsole {
                             taille: 30px;
                             icon: "\u{E8C8}";
-                            clicked => { ConsoleState.copy(root.p.id); }
+                            text: root.a-selection && !root.compact ? Tr.t("Console_Copier") + " (" + (root.sel-fin - root.sel-debut + 1) + ")" : "";
+                            clicked => {
+                                if (root.a-selection) {
+                                    root.copier-selection();
+                                } else {
+                                    ConsoleState.copy(root.p.id);
+                                }
+                            }
                         }
                     }
                     VerticalLayout {
@@ -319,13 +357,36 @@ component PanneauLogs inherits Rectangle {
         // ── lignes ──
         Rectangle {
             vertical-stretch: 1;
+            // raccourcis clavier de la sélection (actifs après un clic sur une ligne)
+            clavier := FocusScope {
+                width: 0px;
+                height: 0px;
+                key-pressed(event) => {
+                    if (event.modifiers.control && (event.text == "c" || event.text == "C")) {
+                        root.copier-selection();
+                        return accept;
+                    }
+                    if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
+                        root.ancre = 0;
+                        root.fin = root.p.lines.length - 1;
+                        return accept;
+                    }
+                    if (event.text == Key.Escape && root.a-selection) {
+                        root.effacer-selection();
+                        return accept;
+                    }
+                    return reject;
+                }
+            }
             liste := ListView {
                 x: 6px;
                 y: 4px;
                 width: parent.width - 10px;
                 height: parent.height - 8px;
-                for l in root.p.lines: Rectangle {
+                for l[i] in root.p.lines: Rectangle {
                     height: root.pas;
+                    border-radius: 3px;
+                    background: root.selectionnee(i) ? CC.selection : transparent;
                     Text {
                         x: 8px;
                         width: parent.width - 16px;
@@ -335,6 +396,33 @@ component PanneauLogs inherits Rectangle {
                         color: l.level == 2 ? CC.erreur : l.level == 1 ? CC.avert : l.level == 3 ? CC.misty : CC.info;
                         vertical-alignment: center;
                         overflow: elide;
+                    }
+                    TouchArea {
+                        mouse-cursor: text;
+                        pointer-event(e) => {
+                            if (e.button == PointerEventButton.left && e.kind == PointerEventKind.down) {
+                                // Maj+clic : étend la sélection jusqu'à cette ligne
+                                if (!(e.modifiers.shift && root.ancre >= 0)) {
+                                    root.ancre = i;
+                                }
+                                root.fin = i;
+                                clavier.focus();
+                            }
+                            // clic droit : copie la sélection (ou la ligne visée si elle n'en fait pas partie)
+                            if (e.button == PointerEventButton.right && e.kind == PointerEventKind.up) {
+                                if (!root.selectionnee(i)) {
+                                    root.ancre = i;
+                                    root.fin = i;
+                                }
+                                root.copier-selection();
+                            }
+                        }
+                        // glisser : la sélection suit la souris, ligne par ligne
+                        moved => {
+                            if (self.pressed) {
+                                root.fin = max(0, min(root.p.lines.length - 1, i + floor(self.mouse-y / root.pas)));
+                            }
+                        }
                     }
                 }
                 scrolled => {
