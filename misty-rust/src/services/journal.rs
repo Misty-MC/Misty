@@ -45,9 +45,19 @@ pub struct Etat {
     pub en_cours: bool,
     /// Code de sortie, une fois la partie finie
     pub code: Option<i32>,
+    /// Le joueur a arrêté le jeu lui-même (bouton Arrêter de la console) : son code de sortie
+    /// n'est pas un plantage
+    pub arrete: bool,
     pub duree: Duration,
     pub avertissements: u64,
     pub erreurs: u64,
+}
+
+impl Etat {
+    /// La partie s'est-elle terminée par un plantage ? Un jeu arrêté par le joueur n'en est pas un.
+    pub fn plante(&self) -> bool {
+        !self.arrete && matches!(self.code, Some(n) if n != 0)
+    }
 }
 
 struct Partie {
@@ -253,11 +263,13 @@ pub fn fin(id: u64, code: Option<i32>) {
         p.etat.titre.clone()
     })
     .unwrap_or_default();
+    let arrete = avec(id, |p| p.etat.arrete).unwrap_or(false);
+    let plante = !arrete && matches!(code, Some(n) if n != 0);
     let texte = match code {
-        Some(0) | None => super::loc::t("Console_Ferme"),
-        Some(n) => super::loc::tf("Console_Plantage", &[&n.to_string()]),
+        Some(n) if plante => super::loc::tf("Console_Plantage", &[&n.to_string()]),
+        _ => super::loc::t("Console_Ferme"),
     };
-    ajouter(id, &format!("[{}] [Misty] {texte}", heure()), if matches!(code, Some(n) if n != 0) { ERREUR } else { MISTY });
+    ajouter(id, &format!("[{}] [Misty] {texte}", heure()), if plante { ERREUR } else { MISTY });
     avec(id, |p| p.fichier = None);
     info(&format!("Fin : {titre} (code {})", code.map(|n| n.to_string()).unwrap_or_else(|| "?".into())));
 }
@@ -311,6 +323,8 @@ pub fn fermer(id: u64) {
 /// Arrête une partie de force (et ses sous-processus).
 pub fn arreter(id: u64) {
     let Some(Some(pid)) = avec(id, |p| p.pid) else { return };
+    // retenu avant de tuer le processus : son code de sortie ne doit pas passer pour un plantage
+    avec(id, |p| p.etat.arrete = true);
     avert(&format!("Arrêt forcé du jeu (PID {pid})"));
     #[cfg(windows)]
     {

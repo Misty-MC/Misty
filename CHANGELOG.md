@@ -2,6 +2,7 @@
 ## 0.3.8-beta.3
 ### Launcher
 - New language: Portuguese (Portugal), with its flag in the language selector
+- Fixed: stopping the game with the Stop button of the console was counted as a crash. The console no longer shows "Crashed (code 1)", no longer opens itself as if the game had failed, and no crash report is sent to the telemetry. Telemetry now only records that the game was stopped
 - Fixed: Misty pinned to the taskbar (or its Start menu and desktop shortcuts) no longer stops working after an update. Shortcuts now point to a launcher whose path never changes (`Misty.exe` next to the version folders), which starts the newest version. Existing shortcuts and pins are redirected to it automatically, and the Misty window and its pin share one taskbar button
 
 ### Misty Client (in game)

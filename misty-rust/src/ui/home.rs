@@ -994,10 +994,10 @@ async fn lancer_jeu(app: &Rc<App>, version: &str, mode: &str, installee: install
         }
         journal::fin(partie, code);
         let etat = journal::etat(partie).unwrap_or_default();
-        let plante = matches!(code, Some(n) if n != 0);
+        let plante = etat.plante();
         telemetry::evenement(
             "game_end",
-            serde_json::json!({ "minecraft": v_tel, "loader": m_tel, "code": code, "seconds": etat.duree.as_secs(), "crashed": plante, "errors": etat.erreurs }),
+            serde_json::json!({ "minecraft": v_tel, "loader": m_tel, "code": code, "seconds": etat.duree.as_secs(), "crashed": plante, "stopped": etat.arrete, "errors": etat.erreurs }),
         );
         if plante {
             telemetry::plantage(partie, &pseudo_tel);
@@ -1322,10 +1322,10 @@ async fn horizon_jouer(app: &Rc<App>) {
         s.set_selectors_enabled(true);
         let fin = app.bloquant(move || horizon::jouer(partie, &b, &ex, session.as_ref(), &p)).await;
         let etat = journal::etat(partie).unwrap_or_default();
-        let plante = matches!(etat.code, Some(n) if n != 0);
+        let plante = etat.plante();
         telemetry::evenement(
             "game_end",
-            serde_json::json!({ "minecraft": exigences.minecraft, "loader": "horizon", "build": tag, "code": etat.code, "seconds": etat.duree.as_secs(), "crashed": plante, "errors": etat.erreurs }),
+            serde_json::json!({ "minecraft": exigences.minecraft, "loader": "horizon", "build": tag, "code": etat.code, "seconds": etat.duree.as_secs(), "crashed": plante, "stopped": etat.arrete, "errors": etat.erreurs }),
         );
         if plante {
             telemetry::plantage(partie, &pseudo);

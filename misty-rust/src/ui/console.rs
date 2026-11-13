@@ -117,7 +117,7 @@ fn etat_texte(e: &journal::Etat) -> String {
     let duree = duree_texte(e.duree);
     if e.en_cours {
         loc::tf("Console_EnCours", &[&duree])
-    } else if matches!(e.code, Some(n) if n != 0) {
+    } else if e.plante() {
         loc::tf("Console_Plante", &[&e.code.unwrap_or(0).to_string(), &duree])
     } else {
         loc::tf("Console_Termine", &[&duree])
@@ -182,7 +182,7 @@ fn rafraichir(app: &App) {
             }
             pan.lues = partie.total;
             // la partie vient de planter : la console s'ouvre pour montrer pourquoi
-            let plante = matches!(partie.code, Some(n) if n != 0);
+            let plante = partie.plante();
             if pan.en_cours && !partie.en_cours && plante {
                 plantage = true;
             }
