@@ -26,6 +26,19 @@ struct Modele {
 static MODELE: Mutex<Modele> = Mutex::new(Modele { skin: None, cape: None, fin: false, elytres: false });
 static OCCUPE: AtomicBool = AtomicBool::new(false);
 static DEMANDES: OnceLock<mpsc::Sender<(f32, f32, i32)>> = OnceLock::new();
+/// Partie du corps visible en chaque pixel de la dernière image (voir skins::rendre_live_parties).
+static PARTIES: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+
+/// Partie du corps sous un point de l'image affichée (u, v entre 0 et 1), s'il y en a une.
+pub fn partie(u: f32, v: f32) -> Option<u8> {
+    if !(0.0..1.0).contains(&u) || !(0.0..1.0).contains(&v) {
+        return None;
+    }
+    let cote = skins::LIVE as f32;
+    let (x, y) = ((u * cote) as usize, (v * cote) as usize);
+    let carte = PARTIES.lock().ok()?;
+    carte.get(y * skins::LIVE as usize + x).copied().filter(|&p| p != skins::partie::AUCUNE)
+}
 
 pub fn installer(app: &Rc<App>) {
     let (tx, rx) = mpsc::channel::<(f32, f32, i32)>();
@@ -44,13 +57,16 @@ pub fn installer(app: &Rc<App>) {
                     (m.skin.clone(), m.cape.clone(), m.fin, m.elytres)
                 };
                 let (yaw, pitch, anim) = demande;
-                let image = skin.and_then(|skin| {
-                    skins::rendre_live(&skin, cape.as_deref(), fin, elytres, Anim::depuis(anim), debut.elapsed().as_secs_f32(), yaw.to_radians(), pitch.to_radians())
+                let rendu = skin.and_then(|skin| {
+                    skins::rendre_live_parties(&skin, cape.as_deref(), fin, elytres, Anim::depuis(anim), debut.elapsed().as_secs_f32(), yaw.to_radians(), pitch.to_radians())
                 });
-                let Some(image) = image else {
+                let Some((image, carte)) = rendu else {
                     OCCUPE.store(false, Ordering::SeqCst);
                     continue;
                 };
+                if let Ok(mut p) = PARTIES.lock() {
+                    *p = carte;
+                }
                 let tampon = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(image.as_raw(), image.width(), image.height());
                 let envoye = fenetre.upgrade_in_event_loop(move |ui| {
                     let st = ui.global::<SkinState>();

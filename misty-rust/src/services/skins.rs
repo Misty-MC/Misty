@@ -892,10 +892,26 @@ fn tourner_inverse(v: [f32; 3], incline: f32, roulis: f32) -> [f32; 3] {
     [x, y * cx + z * sx, -y * sx + z * cx]
 }
 
+/// Partie du corps visible en un pixel du rendu en direct (`rendre_live_parties`).
+#[allow(dead_code)] // les bras et les jambes ne mènent à aucun emplacement (pour l'instant)
+pub mod partie {
+    pub const TETE: u8 = 0;
+    pub const CORPS: u8 = 1;
+    pub const BRAS_D: u8 = 2;
+    pub const BRAS_G: u8 = 3;
+    pub const JAMBE_D: u8 = 4;
+    pub const JAMBE_G: u8 = 5;
+    pub const CAPE: u8 = 6;
+    pub const ELYTRES: u8 = 7;
+    /// rien (le fond)
+    pub const AUCUNE: u8 = 255;
+}
+
 /// Le personnage dans sa pose, vu sous l'angle `yaw` (autour de lui) et `pitch` (de haut ou de bas),
-/// en radians. `t` : temps de l'animation, en secondes.
+/// en radians. `t` : temps de l'animation, en secondes. Avec l'image, la partie du corps visible en
+/// chaque pixel (une valeur de `partie` par pixel, ligne par ligne) : ce qui dit sur quoi on clique.
 #[allow(clippy::too_many_arguments)]
-pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytres: bool, anim: Anim, t: f32, yaw: f32, pitch: f32) -> Option<RgbaImage> {
+pub fn rendre_live_parties(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytres: bool, anim: Anim, t: f32, yaw: f32, pitch: f32) -> Option<(RgbaImage, Vec<u8>)> {
     if skin.width() != 64 || skin.height() < 32 {
         return None;
     }
@@ -987,6 +1003,12 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
         }
     };
     let (o_m, d_m, h_m, r_m) = (vers_modele(origine, true), vers_modele(droite, false), vers_modele(haut, false), vers_modele(regard, false));
+    // partie du corps de chaque boîte : celles du skin, puis la cape ou les élytres
+    let parties: Vec<u8> = boites
+        .iter()
+        .enumerate()
+        .map(|(i, (_, partie))| if i >= nb_skin { if elytres { partie::ELYTRES } else { partie::CAPE } } else { *partie as u8 })
+        .collect();
     let posees: Vec<BoitePosee> = boites
         .iter()
         .enumerate()
@@ -1039,18 +1061,20 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
 
     // Rendu en bandes de lignes, directement dans l'image, sur tous les cœurs
     let mut image = RgbaImage::from_pixel(LIVE, LIVE, Rgba([0, 0, 0, 0]));
+    let mut carte = vec![partie::AUCUNE; (LIVE * LIVE) as usize];
     let fils = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).clamp(1, 8) as u32;
     let (premiere, derniere) = lignes_utiles;
     if premiere < derniere {
         let bande = (derniere - premiere).div_ceil(fils);
         let largeur = LIVE as usize * 4;
         let utiles = &mut image.as_mut()[premiere as usize * largeur..derniere as usize * largeur];
+        let carte_utile = &mut carte[(premiere * LIVE) as usize..(derniere * LIVE) as usize];
         std::thread::scope(|sc| {
-            let (posees, rectangles) = (&posees, &rectangles);
-            for (f, morceau) in utiles.chunks_mut(bande as usize * largeur).enumerate() {
+            let (posees, rectangles, parties) = (&posees, &rectangles, &parties);
+            for (f, (morceau, morceau_carte)) in utiles.chunks_mut(bande as usize * largeur).zip(carte_utile.chunks_mut((bande * LIVE) as usize)).enumerate() {
                 sc.spawn(move || {
                     let mut candidates: Vec<usize> = Vec::with_capacity(posees.len());
-                    for (l, ligne) in morceau.chunks_mut(largeur).enumerate() {
+                    for (l, (ligne, ligne_carte)) in morceau.chunks_mut(largeur).zip(morceau_carte.chunks_mut(LIVE as usize)).enumerate() {
                         let py = premiere + f as u32 * bande + l as u32;
                         candidates.clear();
                         candidates.extend((0..posees.len()).filter(|&i| (rectangles[i][2]..rectangles[i][3]).contains(&py)));
@@ -1062,7 +1086,7 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
                         let sy = (demi - (py as f32 + 0.5)) / ECHELLE;
                         for px in x0..x1 {
                             let sx = (px as f32 + 0.5 - demi) / ECHELLE;
-                            let mut meilleur: Option<(f32, Rgba<u8>)> = None;
+                            let mut meilleur: Option<(f32, Rgba<u8>, u8)> = None;
                             for &i in candidates.iter() {
                                 if !(rectangles[i][0]..rectangles[i][1]).contains(&px) {
                                     continue;
@@ -1074,18 +1098,19 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
                                     bp.origine[2] + bp.droite[2] * sx + bp.haut[2] * sy,
                                 ];
                                 let Some((t, axe, positif)) = entrer(o, bp.regard, bp.boite) else { continue };
-                                if meilleur.map(|(m, _)| t >= m).unwrap_or(false) {
+                                if meilleur.map(|(m, _, _)| t >= m).unwrap_or(false) {
                                     continue;
                                 }
                                 let point = [o[0] + bp.regard[0] * t, o[1] + bp.regard[1] * t, o[2] + bp.regard[2] * t];
                                 let couleur = echantillon(bp.boite, bp.texture, point, axe, positif);
                                 if couleur[3] >= 128 {
-                                    meilleur = Some((t, Rgba([couleur[0], couleur[1], couleur[2], 255])));
+                                    meilleur = Some((t, Rgba([couleur[0], couleur[1], couleur[2], 255]), parties[i]));
                                 }
                             }
-                            if let Some((_, c)) = meilleur {
+                            if let Some((_, c, partie)) = meilleur {
                                 let k = px as usize * 4;
                                 ligne[k..k + 4].copy_from_slice(&c.0);
+                                ligne_carte[px as usize] = partie;
                             }
                         }
                     }
@@ -1093,7 +1118,7 @@ pub fn rendre_live(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytre
             }
         });
     }
-    Some(image)
+    Some((image, carte))
 }
 
 #[cfg(test)]
@@ -1124,10 +1149,26 @@ mod tests_live {
     use super::*;
 
     #[test]
+    fn carte_des_parties() {
+        let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
+        let cape = image::load_from_memory(texture_misty()).unwrap().to_rgba8();
+        // de face : la tête est en haut, au milieu
+        let (_, face) = rendre_live_parties(&steve, Some(&cape), false, false, Anim::Repos, 0.0, 0.0, 0.0).unwrap();
+        let tete = (0..LIVE as usize).find_map(|y| (face[y * LIVE as usize + LIVE as usize / 2] != partie::AUCUNE).then_some(y)).unwrap();
+        assert_eq!(face[tete * LIVE as usize + LIVE as usize / 2], partie::TETE);
+        // de dos : la cape couvre le milieu du corps
+        let (_, dos) = rendre_live_parties(&steve, Some(&cape), false, false, Anim::Repos, 0.0, std::f32::consts::PI, 0.0).unwrap();
+        assert_eq!(dos[(LIVE as usize / 2) * LIVE as usize + LIVE as usize / 2], partie::CAPE);
+        // avec des élytres
+        let (_, ailes) = rendre_live_parties(&steve, Some(&cape), false, true, Anim::Repos, 0.0, std::f32::consts::PI, 0.0).unwrap();
+        assert!(ailes.contains(&partie::ELYTRES));
+    }
+
+    #[test]
     fn toutes_les_animations_se_dessinent() {
         let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
         for a in 0..5 {
-            let img = rendre_live(&steve, None, false, a == 3, Anim::depuis(a), 0.4, 0.5, 0.3).unwrap();
+            let img = rendre_live_parties(&steve, None, false, a == 3, Anim::depuis(a), 0.4, 0.5, 0.3).unwrap().0;
             assert_eq!(img.dimensions(), (LIVE, LIVE));
             assert!(img.pixels().any(|p| p[3] == 255), "animation {a} vide");
         }
@@ -1146,7 +1187,7 @@ mod tests_live {
         for a in 0..5 {
             for i in 0..24 {
                 let yaw = i as f32 * 0.27;
-                let img = rendre_live(&steve, Some(&cape), i % 2 == 0, a == 3, Anim::depuis(a), i as f32 * 0.13, yaw, 0.2 + (i % 5) as f32 * 0.1).unwrap();
+                let img = rendre_live_parties(&steve, Some(&cape), i % 2 == 0, a == 3, Anim::depuis(a), i as f32 * 0.13, yaw, 0.2 + (i % 5) as f32 * 0.1).unwrap().0;
                 n += 1;
                 if let Some(d) = &dossier {
                     img.save(format!("{d}/{a}-{i}.png")).unwrap();
@@ -1172,7 +1213,7 @@ mod tests_planche {
         for a in 0..5 {
             for (ligne, yaw) in [(0u32, 0.35f32), (1, std::f32::consts::FRAC_PI_2), (2, 2.6)] {
                 let elytres = a == 3 || a == 4;
-                let img = rendre_live(&steve, Some(&cape), false, elytres, Anim::depuis(a), 0.3, yaw, 0.15).unwrap();
+                let img = rendre_live_parties(&steve, Some(&cape), false, elytres, Anim::depuis(a), 0.3, yaw, 0.15).unwrap().0;
                 imageops::overlay(&mut planche, &img, (a as u32 * LIVE) as i64, (ligne * LIVE) as i64);
             }
         }

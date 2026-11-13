@@ -120,6 +120,24 @@ pub fn installer(app: &Rc<App>) {
         let id = id.to_string();
         lancer(async move { changer_cape(&a, id).await });
     });
+    // un clic sur le personnage : la liste de ce qu'on peut porter à cet endroit s'affiche sur le
+    // côté (tête : chapeaux ; dos, corps, cape : capes ; élytres : ailes) et la caméra s'y tourne
+    let a = app.clone();
+    st.on_pick(move |u, v| {
+        use crate::services::skins::partie;
+        let Some(touchee) = super::studio::partie(u, v) else { return };
+        let emplacement = match touchee {
+            partie::TETE => 2,
+            partie::ELYTRES => 1,
+            partie::CAPE | partie::CORPS => 0,
+            _ => return,
+        };
+        let st = s(&a);
+        st.set_popup(emplacement);
+        st.set_category(emplacement);
+        st.set_focus(true);
+        st.set_focus_count(st.get_focus_count() + 1);
+    });
 }
 
 /// Cape et élytres affichées : l'article Misty essayé, sinon la cape Mojang portée (si elle est montrée).
