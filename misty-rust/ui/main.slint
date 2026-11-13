@@ -28,7 +28,7 @@ component OngletHaut inherits Rectangle {
     in property <bool> actif;
     callback clicked;
     width: lib.preferred-width + 24px;
-    border-radius: 10px;
+    border-radius: 6px;
     background: !root.actif && zone.has-hover ? Theme.glass-hover : transparent;
     animate background { duration: Theme.fast; }
     lib := Text {
@@ -73,7 +73,7 @@ component ColonneProfils inherits Rectangle {
             y: i * root.pas;
             width: root.case;
             height: root.case;
-            border-radius: 14px;
+            border-radius: 8px;
             background: Theme.panel;
             border-width: tuile.choisi ? 2px : 1px;
             border-color: tuile.choisi ? Theme.accent : zone.has-hover ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
@@ -85,7 +85,7 @@ component ColonneProfils inherits Rectangle {
                 y: 6px;
                 width: parent.width - 12px;
                 height: parent.height - 12px;
-                border-radius: 9px;
+                border-radius: 5px;
                 clip: true;
                 background: Theme.dark ? #162140 : #1C2335;
                 if i > 0: Image {
@@ -319,7 +319,10 @@ export component MainWindow inherits Window {
 
     // Widgets standard (barres de défilement, champs…) aux couleurs du thème de Misty, pas de Windows
     property <bool> sombre: Theme.dark;
-    init => { Palette.color-scheme = self.sombre ? ColorScheme.dark : ColorScheme.light; }
+    init => {
+        Palette.color-scheme = self.sombre ? ColorScheme.dark : ColorScheme.light;
+        self.etroit = self.width < 1160px;
+    }
     changed sombre => { Palette.color-scheme = self.sombre ? ColorScheme.dark : ColorScheme.light; }
 
     // Changement de page : le bouton survolé a pu disparaître, on cache sa bulle
@@ -336,6 +339,10 @@ export component MainWindow inherits Window {
     property <length> gouttiere: 12px;
     /// tuile des boutons de la fenêtre (en haut à droite)
     property <length> largeur-boutons: 132px;
+    /// fenêtre étroite : certaines tuiles n'affichent que leur icône
+    property <bool> etroit;
+    // (posé quand la largeur change, pas lié : la largeur minimale de la fenêtre dépend des tuiles)
+    changed width => { self.etroit = self.width < 1160px; }
 
     clavier := FocusScope {
         key-pressed(e) => {
@@ -440,7 +447,7 @@ export component MainWindow inherits Window {
                         padding-left: 20px;
                         padding-right: 12px;
                         spacing: 18px;
-                        VerticalLayout {
+                        if !root.etroit: VerticalLayout {
                             alignment: center;
                             OutlinedText {
                                 text: "MISTY";
@@ -449,7 +456,7 @@ export component MainWindow inherits Window {
                                 depth: 3px;
                             }
                         }
-                        Rectangle {
+                        if !root.etroit: Rectangle {
                             width: 1px;
                             height: 28px;
                             y: (parent.height - self.height) / 2;
@@ -492,17 +499,48 @@ export component MainWindow inherits Window {
                             }
                         }
                         Rectangle { horizontal-stretch: 1; }
-                        if AppState.nav-dossier: VerticalLayout {
-                            alignment: center;
-                            IconButton {
-                                width: 40px;
-                                height: 40px;
-                                icon: "\u{E8B7}";
-                                tooltip: Tr.t("Nav_Dossier");
-                                clicked => { AppState.open-data-folder(); }
-                            }
+                    }
+                }
+                // console du jeu : une tuile avec son nom, comme « Help Center » sur la maquette
+                Tuile {
+                    // fenêtre étroite : l'icône seule, pour que la rangée tienne
+                    width: root.etroit ? root.case : mesure-console.preferred-width + 64px;
+                    background: zone-console.has-hover ? Theme.panel-strong : Theme.panel;
+                    mesure-console := Text {
+                        visible: false;
+                        text: Tr.t("Home_Bouton_Logs");
+                        font-size: 14px;
+                        font-weight: 600;
+                    }
+                    HorizontalLayout {
+                        alignment: center;
+                        spacing: 10px;
+                        Icon {
+                            text: "\u{E756}";
+                            font-size: 15px;
+                            color: zone-console.has-hover ? Theme.navy : Theme.text-muted;
+                        }
+                        if !root.etroit: Text {
+                            text: Tr.t("Home_Bouton_Logs");
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: zone-console.has-hover ? Theme.navy : Theme.text-muted;
+                            vertical-alignment: center;
                         }
                     }
+                    zone-console := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            ConsoleState.focused = -1;
+                            ConsoleState.open = true;
+                        }
+                    }
+                }
+                if AppState.nav-dossier: TuileIcone {
+                    width: root.case;
+                    icon: "\u{E8B7}";
+                    tooltip: Tr.t("Nav_Dossier");
+                    clicked => { AppState.open-data-folder(); }
                 }
                 // les boutons réduire, agrandir, fermer sont dessinés par-dessus (fin du fichier),
                 // au-dessus des fenêtres de choix et des dialogues

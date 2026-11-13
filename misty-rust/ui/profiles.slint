@@ -303,8 +303,10 @@ export component ProfilesPage inherits Rectangle {
         spacing: 18px;
 
         HorizontalLayout {
+            // barre d'outils de la page : hauteur fixe, boutons à droite à leur taille
+            height: 44px;
+            alignment: end;
             spacing: 10px;
-            Rectangle { horizontal-stretch: 1; }
             VerticalLayout {
                 alignment: center;
                 MButton {
