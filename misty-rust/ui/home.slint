@@ -1,6 +1,6 @@
 // Page d'accueil : à gauche le titre MISTY, la news à la une (grande image, flèches, points) et
 // les news suivantes en petites cartes ; à droite une colonne de lancement (compte, carte de la
-// version, console, JOUER), puis les onglets « Jouer » et « Skin » écrits à la verticale.
+// version, console, JOUER). Le sélecteur « Jouer | Skin » est sur la ligne du titre.
 // Le statut et la progression n'apparaissent dans la colonne que pendant un lancement.
 
 import { Theme, Tr, Assets } from "theme.slint";
@@ -9,54 +9,62 @@ import { Icon, PixelLabel, OutlinedText, Thumb, IconButton, PlayButton, GlassCom
 import { ConsoleState } from "console.slint";
 import { SkinState, SkinPanel } from "skin.slint";
 
-/// Onglet vertical (« JOUER », « SKIN ») : le texte est écrit de haut en bas.
-component VTab inherits Rectangle {
-    in property <string> text;
-    in property <bool> active;
-    callback clicked;
+/// Sélecteur « Jouer | Skin » : deux segments, une pastille qui glisse sous le choisi.
+component Bascule inherits Rectangle {
+    property <length> segment: max(jouer.preferred-width, skin.preferred-width) + 36px;
+    width: 2 * root.segment + 8px;
+    height: 40px;
+    border-radius: 20px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.glass-border;
 
-    width: 64px;
-    height: lab.preferred-width + 20px;
-    opacity: root.active ? 1 : touch.has-hover ? 0.85 : 0.5;
-    animate opacity { duration: 150ms; }
-
-    // La rotation s'applique à un rectangle qui contient le texte
-    // (elle est ignorée sur l'élément racine d'un composant)
     Rectangle {
-        width: lab.preferred-width;
-        height: lab.preferred-height;
-        x: 36px - self.width / 2;
-        y: (parent.height - self.height) / 2;
-        transform-rotation: 90deg;
-        lab := OutlinedText {
-            text: root.text;
-            font-size: 30px;
-            thickness: 3px;
-            depth: 4px;
-        }
+        x: 4px + (SkinState.tab == 1 ? root.segment : 0px);
+        y: 4px;
+        width: root.segment;
+        height: parent.height - 8px;
+        border-radius: self.height / 2;
+        background: Theme.fill;
+        animate x { duration: 320ms; easing: cubic-bezier(0.34, 1.3, 0.64, 1); }
     }
-    // la zone cliquable ne tourne pas
-    touch := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { root.clicked(); }
-    }
-}
-
-/// Onglets « Jouer » et « Skin », écrits à la verticale, tout à droite.
-component Onglets inherits VerticalLayout {
-    alignment: center;
-    spacing: 16px;
-    VTab {
+    jouer := Text {
+        x: 4px;
+        width: root.segment;
+        height: parent.height;
         text: Tr.t("Home_Bouton_Jouer");
-        active: SkinState.tab == 0;
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: SkinState.tab == 0 ? Theme.on-fill : Theme.navy;
+        animate color { duration: Theme.normal; }
+    }
+    skin := Text {
+        x: 4px + root.segment;
+        width: root.segment;
+        height: parent.height;
+        text: Tr.t("Skin_Onglet");
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: SkinState.tab == 1 ? Theme.on-fill : Theme.navy;
+        animate color { duration: Theme.normal; }
+    }
+    TouchArea {
+        x: 0;
+        width: parent.width / 2;
+        mouse-cursor: pointer;
         clicked => {
             SkinState.tab = 0;
             AppState.nav = 0;
         }
     }
-    VTab {
-        text: Tr.t("Skin_Onglet");
-        active: SkinState.tab == 1;
+    TouchArea {
+        x: parent.width / 2;
+        width: parent.width / 2;
+        mouse-cursor: pointer;
         clicked => {
             SkinState.tab = 1;
             AppState.nav = 7;
@@ -139,7 +147,7 @@ component Diapo inherits Rectangle {
                 }
                 PixelLabel {
                     text: Tr.t("Home_News");
-                    font-size: 10px;
+                    font-size: 11px;
                     color: Theme.accent;
                 }
                 Text {
@@ -177,7 +185,7 @@ component Diapo inherits Rectangle {
                     spacing: 8px;
                     PixelLabel {
                         text: Tr.t("Home_LireNews");
-                        font-size: 10.5px;
+                        font-size: 11px;
                         color: Theme.on-fill;
                     }
                     Icon {
@@ -332,7 +340,8 @@ component CarteVersion inherits Rectangle {
     property <float> onde: sin((animation-tick() / 2600ms) * 180deg);
     border-radius: 12px;
     clip: true;
-    background: @linear-gradient(165deg, #8FA6C4 0%, #3A4760 40%, #161C2B 100%);
+    // jour : ciel bleu-gris qui fonce ; nuit : bleu nuit, comme les panneaux sombres
+    background: Theme.dark ? @linear-gradient(165deg, #2C3F6E 0%, #182447 45%, #0C1224 100%) : @linear-gradient(165deg, #8FA6C4 0%, #3A4760 40%, #161C2B 100%);
     border-width: 1px;
     border-color: zone.has-hover && root.actif ? #FFFFFF80 : #FFFFFF2E;
     animate border-color { duration: Theme.normal; }
@@ -378,7 +387,7 @@ component CarteVersion inherits Rectangle {
             spacing: 6px;
             PixelLabel {
                 text: Tr.t("Home_Changer");
-                font-size: 9.5px;
+                font-size: 11px;
                 color: #FFFFFFD9;
             }
             Icon {
@@ -417,7 +426,7 @@ component CarteVersion inherits Rectangle {
                 PixelLabel {
                     horizontal-stretch: 1;
                     text: HomeState.card-label;
-                    font-size: 10px;
+                    font-size: 11px;
                     color: #FFFFFFA6;
                     overflow: elide;
                 }
@@ -444,7 +453,7 @@ component CarteVersion inherits Rectangle {
                         border-color: #9CC0FF59;
                         chargeur := PixelLabel {
                             text: HomeState.card-loader;
-                            font-size: 10px;
+                            font-size: 11px;
                             color: #CFE0FF;
                             horizontal-alignment: center;
                         }
@@ -558,20 +567,28 @@ component Lancement inherits Rectangle {
             border-width: 1px;
             border-color: zone-gerer.has-hover ? Theme.accent : Theme.glass-border;
             animate background, border-color { duration: Theme.fast; }
+            // centré quand il tient, coupé proprement sinon (« Управление модами, наборами… »)
             HorizontalLayout {
-                alignment: center;
+                padding-left: 12px;
+                padding-right: 12px;
                 spacing: 8px;
+                Rectangle { horizontal-stretch: 1; }
                 Icon {
                     text: "\u{E70F}";
                     font-size: 13px;
                 }
                 Text {
+                    horizontal-stretch: 0;
+                    min-width: 0px;
+                    max-width: parent.width - 54px;
                     text: Tr.t("Home_Gerer");
                     font-size: 13px;
                     font-weight: 600;
                     color: Theme.navy;
                     vertical-alignment: center;
+                    overflow: elide;
                 }
+                Rectangle { horizontal-stretch: 1; }
             }
             zone-gerer := TouchArea {
                 mouse-cursor: pointer;
@@ -595,7 +612,7 @@ component Lancement inherits Rectangle {
                 }
                 PixelLabel {
                     text: HomeState.percent-text;
-                    font-size: 10px;
+                    font-size: 11px;
                 }
             }
             if HomeState.progress > 0: Rectangle {
@@ -668,50 +685,48 @@ component Lancement inherits Rectangle {
 export component HomePage inherits Rectangle {
     HorizontalLayout {
         padding-left: 30px;
-        padding-right: 14px;
-        padding-top: 16px;
+        padding-right: 26px;
+        padding-top: 14px;
         padding-bottom: 22px;
         spacing: 22px;
 
-        // ═══════════ À gauche : le titre et les news, ou la skin ═══════════
-        if SkinState.tab == 0: VerticalLayout {
+        // ═══════════ À gauche : le titre et le sélecteur, puis les news ou la skin ═══════════
+        VerticalLayout {
             horizontal-stretch: 1;
             spacing: 14px;
             HorizontalLayout {
-                alignment: start;
-                padding-left: 2px;
+                spacing: 16px;
                 OutlinedText {
                     text: "MISTY";
-                    font-size: 76px;
+                    font-size: 64px;
                     thickness: 4px;
-                    depth: 6px;
+                    depth: 5px;
+                }
+                Rectangle { horizontal-stretch: 1; }
+                VerticalLayout {
+                    alignment: center;
+                    Bascule { }
                 }
             }
-            if HomeState.news-items.length > 0: NewsUne {
+            if SkinState.tab == 0 && HomeState.news-items.length > 0: NewsUne {
                 vertical-stretch: 1;
                 min-height: 200px;
             }
             // les news suivantes, en petit
-            if HomeState.news-items.length > 1: HorizontalLayout {
+            if SkinState.tab == 0 && HomeState.news-items.length > 1: HorizontalLayout {
                 spacing: 10px;
                 for k in min(3, HomeState.news-items.length - 1): NewsMini {
                     horizontal-stretch: 1;
                     numero: Math.mod(clamp(HomeState.news-index, 0, HomeState.news-items.length - 1) + 1 + k, HomeState.news-items.length);
                 }
             }
-            if HomeState.news-items.length == 0: Rectangle { vertical-stretch: 1; }
-        }
-        if SkinState.tab == 1: VerticalLayout {
-            horizontal-stretch: 1;
-            SkinPanel {
+            if SkinState.tab == 0 && HomeState.news-items.length == 0: Rectangle { vertical-stretch: 1; }
+            if SkinState.tab == 1: SkinPanel {
                 vertical-stretch: 1;
             }
         }
 
-        // ═══════════ À droite : la colonne de lancement, puis les onglets verticaux ═══════════
+        // ═══════════ À droite : la colonne de lancement ═══════════
         Lancement { }
-        Onglets {
-            width: 56px;
-        }
     }
 }

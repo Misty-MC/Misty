@@ -93,7 +93,7 @@ component Affiche inherits Rectangle {
             spacing: 8px;
             Text {
                 text: root.g.title;
-                font-family: Theme.pixel-font;
+                font-family: Theme.ui-font;
                 font-size: 15px;
                 color: white;
             }
@@ -158,7 +158,7 @@ component PuceVersion inherits Rectangle {
         }
         Text {
             text: root.v.id;
-            font-family: Theme.pixel-font;
+            font-family: Theme.ui-font;
             font-size: 12.5px;
             color: root.checked ? Theme.on-fill : Theme.navy;
             vertical-alignment: center;
@@ -357,7 +357,7 @@ component PuceMisty inherits Rectangle {
         }
         Text {
             text: "MISTY " + root.version;
-            font-family: Theme.pixel-font;
+            font-family: Theme.ui-font;
             font-size: 12px;
             color: root.checked ? white : Theme.navy;
             vertical-alignment: center;
@@ -406,7 +406,7 @@ component PanneauMisty inherits VerticalLayout {
             alignment: end;
             PixelLabel {
                 text: Tr.t("Misty_Etiquette");
-                font-size: 10.5px;
+                font-size: 11px;
                 color: #CFE0FF;
             }
             HorizontalLayout {
@@ -437,7 +437,7 @@ component PanneauMisty inherits VerticalLayout {
     // ce que Misty apporte
     PixelLabel {
         text: Tr.t("Misty_Inclus");
-        font-size: 10.5px;
+        font-size: 11px;
     }
     HorizontalLayout {
         spacing: 10px;
@@ -450,7 +450,7 @@ component PanneauMisty inherits VerticalLayout {
     // versions Misty
     PixelLabel {
         text: Tr.t("Ver_Onglet_Versions");
-        font-size: 10.5px;
+        font-size: 11px;
     }
     // en grille : autant de puces par ligne que la place le permet, puis on passe à la ligne
     Rectangle {
@@ -540,7 +540,7 @@ component PuceBuild inherits Rectangle {
         }
         Text {
             text: root.b.nightly && root.b.date != "" ? root.b.date : root.b.tag;
-            font-family: Theme.pixel-font;
+            font-family: Theme.ui-font;
             font-size: 12px;
             color: root.checked ? white : Theme.navy;
             vertical-alignment: center;
@@ -594,7 +594,7 @@ component PanneauHorizon inherits VerticalLayout {
             alignment: end;
             PixelLabel {
                 text: Tr.t("Hz_Etiquette");
-                font-size: 10.5px;
+                font-size: 11px;
                 color: #FFC2A8;
             }
             HorizontalLayout {
@@ -627,7 +627,7 @@ component PanneauHorizon inherits VerticalLayout {
         spacing: 8px;
         PixelLabel {
             text: Tr.t("Hz_Builds");
-            font-size: 10.5px;
+            font-size: 11px;
         }
         if HomeState.horizon-loading: Icon {
             text: "\u{E895}";
@@ -728,9 +728,10 @@ export component VersionPicker inherits Rectangle {
 
     carte := Rectangle {
         width: min(1180px, parent.width - 60px);
-        height: min(720px, parent.height - 40px);
+        // en haut, la place des boutons de la fenêtre (réduire, agrandir, fermer : 44 px)
+        height: min(720px, parent.height - 88px);
         x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2 + (root.ouvert ? 0px : 16px);
+        y: 44px + (parent.height - 44px - self.height) / 2 + (root.ouvert ? 0px : 16px);
         border-radius: 26px;
         background: Theme.surface;
         border-width: 1px;
@@ -979,7 +980,7 @@ export component VersionPicker inherits Rectangle {
                         }
                         PixelLabel {
                             text: Tr.t("Ver_Onglet_Versions");
-                            font-size: 10px;
+                            font-size: 11px;
                         }
                         grille := ScrollView {
                             vertical-stretch: 1;
@@ -999,7 +1000,7 @@ export component VersionPicker inherits Rectangle {
                         }
                         PixelLabel {
                             text: Tr.t("Commun_ModLoader");
-                            font-size: 10px;
+                            font-size: 11px;
                         }
                         // loaders : 3 par ligne
                         Rectangle {

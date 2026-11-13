@@ -76,7 +76,7 @@ component SideChip inherits Rectangle {
     label := Text {
         text: root.side == 1 ? Tr.t("Env_Client") : root.side == 2 ? Tr.t("Env_Serveur") : Tr.t("Env_LesDeux");
         font-family: Theme.ui-font;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 700;
         color: root.teinte.brighter(0.25);
         horizontal-alignment: center;
@@ -123,13 +123,12 @@ export component InstancePage inherits Rectangle {
                 horizontal-stretch: 1;
                 alignment: center;
                 spacing: 8px;
+                // nom du profil : police d'interface (un nom long reste lisible et se coupe proprement)
                 if !InstanceState.renaming: Text {
                     text: InstanceState.name;
-                    font-family: Theme.pixel-font;
                     font-size: 28px;
-                    color: white;
-                    stroke: Theme.slate-dark;
-                    stroke-width: 1px;
+                    font-weight: 800;
+                    color: Theme.navy;
                     overflow: elide;
                 }
                 // Renommage : remplace le nom le temps de la saisie

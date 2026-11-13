@@ -61,6 +61,21 @@ pub fn ouvrir(cible: &str) {
     let _ = open::that_detached(cible);
 }
 
+/// Windows est en mode sombre pour les applications (Paramètres → Personnalisation → Couleurs).
+#[cfg(windows)]
+pub fn windows_sombre() -> bool {
+    use winreg::enums::HKEY_CURRENT_USER;
+    winreg::RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        .and_then(|c| c.get_value::<u32, _>("AppsUseLightTheme"))
+        .is_ok_and(|clair| clair == 0)
+}
+
+#[cfg(not(windows))]
+pub fn windows_sombre() -> bool {
+    false
+}
+
 /// Version de Windows, comme « Windows 10.0.19045 » (lue dans le registre).
 #[cfg(windows)]
 pub fn version_windows() -> String {

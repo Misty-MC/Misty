@@ -560,7 +560,7 @@ component CaseBientot inherits Rectangle {
         y: parent.height - 20px;
         width: parent.width;
         text: Tr.t("Skin_Bientot");
-        font-size: 9px;
+        font-size: 11px;
         color: Theme.text-dim;
         horizontal-alignment: center;
     }
@@ -738,7 +738,7 @@ component TeteSkin inherits Rectangle {
         background: Theme.accent;
         Text {
             text: Tr.t("Skin_Porte");
-            font-size: 8.5px;
+            font-size: 11px;
             font-weight: 700;
             color: Theme.on-fill;
         }
@@ -820,24 +820,48 @@ export component SkinPanel inherits Rectangle {
                                 }
                             }
                         }
-                        // modèle de bras : cliquable pour changer
-                        HorizontalLayout {
+                        // modèle de bras : l'un sous l'autre, en pleine largeur (« Классический (Стив) »
+                        // ne tient pas à côté de l'autre), avec un bouton radio
+                        VerticalLayout {
                             spacing: 6px;
-                            for m[i] in [Tr.t("Skin_Classique"), Tr.t("Skin_Fin")]: Rectangle {
+                            for m[i] in [Tr.t("Skin_Classique"), Tr.t("Skin_Fin")]: modele := Rectangle {
                                 property <bool> actif: (i == 1) == SkinState.slim;
-                                horizontal-stretch: 1;
-                                height: 26px;
-                                border-radius: 6px;
+                                height: 30px;
+                                border-radius: 8px;
                                 background: self.actif ? Theme.accent-soft : mz.has-hover ? Theme.glass-hover : Theme.glass;
                                 border-width: 1px;
                                 border-color: self.actif ? Theme.accent : Theme.glass-border;
                                 animate background, border-color { duration: Theme.fast; }
-                                Text {
-                                    text: m;
-                                    font-size: 11.5px;
-                                    font-weight: 600;
-                                    color: parent.actif ? Theme.accent : Theme.text-muted;
-                                    overflow: elide;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 8px;
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Rectangle {
+                                            width: 14px;
+                                            height: 14px;
+                                            border-radius: 7px;
+                                            border-width: 1.5px;
+                                            border-color: modele.actif ? Theme.accent : Theme.text-dim;
+                                            Rectangle {
+                                                width: modele.actif ? 6px : 0px;
+                                                height: self.width;
+                                                border-radius: self.width / 2;
+                                                background: Theme.accent;
+                                                animate width { duration: 200ms; easing: ease-out; }
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        horizontal-stretch: 1;
+                                        text: m;
+                                        font-size: 12.5px;
+                                        font-weight: 600;
+                                        color: modele.actif ? Theme.accent : Theme.text-muted;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                    }
                                 }
                                 mz := TouchArea {
                                     mouse-cursor: pointer;
@@ -890,7 +914,7 @@ export component SkinPanel inherits Rectangle {
                         // ── Mes skins ──
                         PixelLabel {
                             text: Tr.t("Skin_MesSkins");
-                            font-size: 10px;
+                            font-size: 11px;
                             color: Theme.text-dim;
                         }
                         mes-skins := Rectangle {
@@ -958,10 +982,11 @@ export component SkinPanel inherits Rectangle {
                 padding: 12px;
                 padding-left: 14px;
                 spacing: 10px;
-                // catégories (défilent si la place manque) et badge « bientôt »
-                HorizontalLayout {
-                    spacing: 10px;
-                    ScrollView {
+                // catégories (défilent si la place manque : un fondu au bord droit le signale)
+                Rectangle {
+                    height: 30px;
+                    defile-cat := ScrollView {
+                        horizontal-scrollbar-policy: always-off;
                         horizontal-stretch: 1;
                         height: 30px;
                         content-height: 30px;
@@ -994,30 +1019,16 @@ export component SkinPanel inherits Rectangle {
                             }
                         }
                     }
-                    // badge « Bientôt disponible », point qui pulse
-                    VerticalLayout {
-                        alignment: center;
-                        Rectangle {
-                            width: badge.preferred-width + 30px;
-                            height: 24px;
-                            border-radius: 6px;
-                            background: Theme.accent-soft;
-                            border-width: 1px;
-                            border-color: Theme.accent.with-alpha(0.45);
-                            Rectangle {
-                                x: 9px;
-                                width: 6px;
-                                height: 6px;
-                                border-radius: 2px;
-                                background: Theme.toggle-on;
-                                opacity: 0.65 + 0.35 * sin((animation-tick() / 1600ms) * 360deg);
-                            }
-                            badge := PixelLabel {
-                                x: 21px;
-                                text: Tr.t("Skin_BientotDispo");
-                                font-size: 9.5px;
-                                color: Theme.accent;
-                            }
+                    // fondu : il reste des catégories à droite
+                    if onglets.preferred-width > defile-cat.visible-width + 2px - defile-cat.content-x: Rectangle {
+                        x: parent.width - self.width;
+                        width: 48px;
+                        background: @linear-gradient(90deg, Theme.panel.with-alpha(0) 0%, Theme.panel 100%);
+                        Icon {
+                            x: parent.width - self.width - 2px;
+                            text: "\u{E76C}";
+                            font-size: 10px;
+                            color: Theme.text-muted;
                         }
                     }
                 }
@@ -1025,8 +1036,9 @@ export component SkinPanel inherits Rectangle {
                     vertical-stretch: 1;
                     spacing: 12px;
                     // cases : capes Mojang (capes) puis l'article Misty, puis « bientôt »
+                    Rectangle {
+                    horizontal-stretch: 1;
                     cases := ScrollView {
-                        horizontal-stretch: 1;
                         property <length> taille: self.visible-height - 4px;
                         property <int> nb-capes: root.cat == 0 ? SkinState.capes.length : 0;
                         property <int> nb-misty: root.cat == 0 ? 2 : root.cat <= 2 ? 1 : 0;
@@ -1073,18 +1085,52 @@ export component SkinPanel inherits Rectangle {
                             icon: root.categories[root.cat].icon;
                         }
                     }
+                    // fondu : il reste des cartes à droite
+                    if cases.content-width > cases.visible-width + 2px - cases.content-x: Rectangle {
+                        x: parent.width - self.width;
+                        width: 56px;
+                        background: @linear-gradient(90deg, Theme.panel.with-alpha(0) 0%, Theme.panel 100%);
+                    }
+                    }
 
                     // la catégorie, et l'article Misty équipé : où il se voit en jeu
                     VerticalLayout {
                         width: 180px;
                         spacing: 6px;
+                        // badge « Bientôt disponible », point qui pulse
+                        HorizontalLayout {
+                            alignment: start;
+                            Rectangle {
+                                width: badge.preferred-width + 30px;
+                                height: 24px;
+                                border-radius: 6px;
+                                background: Theme.accent-soft;
+                                border-width: 1px;
+                                border-color: Theme.accent.with-alpha(0.45);
+                                Rectangle {
+                                    x: 10px;
+                                    width: 6px;
+                                    height: 6px;
+                                    border-radius: 3px;
+                                    background: Theme.toggle-on;
+                                    opacity: 0.65 + 0.35 * sin((animation-tick() / 1600ms) * 360deg);
+                                }
+                                badge := PixelLabel {
+                                    x: 22px;
+                                    text: Tr.t("Skin_BientotDispo");
+                                    font-size: 11px;
+                                    color: Theme.accent;
+                                }
+                            }
+                        }
                         Text {
                             text: root.categories[root.cat].nom;
                             font-size: 15px;
                             font-weight: 700;
                             color: Theme.navy;
                         }
-                        Text {
+                        // la description laisse sa place à l'avertissement de l'article équipé
+                        if SkinState.misty-equip == 0 && !SkinState.misty-hat: Text {
                             text: root.categories[root.cat].texte;
                             font-size: 12px;
                             color: Theme.text-muted;
@@ -1112,9 +1158,10 @@ export component SkinPanel inherits Rectangle {
                                 Text {
                                     horizontal-stretch: 1;
                                     text: SkinState.misty-in-game ? Tr.t("Cos_EnJeu") + "\n" + Tr.t("Cos_EnJeu_Profil") + " Fabric " + SkinState.misty-mc : Tr.t("Cos_PasEnJeu");
-                                    font-size: 13px;
+                                    font-size: 12px;
                                     color: SkinState.misty-in-game ? Theme.text : Theme.dark ? #FFD99A : #6B4210;
                                     wrap: word-wrap;
+                                    overflow: elide;
                                 }
                             }
                         }

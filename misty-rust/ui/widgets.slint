@@ -13,16 +13,22 @@ export component Icon inherits Text {
     vertical-alignment: center;
 }
 
+/// Libellé court en capitales (« COMPTE », « VERSIONS », étiquettes) : police d'interface en gras,
+/// un peu espacée. (Le pixel reste pour les grands titres : il est illisible en petit.)
 export component PixelLabel inherits Text {
-    font-family: Theme.pixel-font;
-    font-size: 13px;
+    font-family: Theme.ui-font;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
     color: Theme.label-strong;
     vertical-alignment: center;
 }
 
+/// Titre de section (dans une page ou une fenêtre).
 export component SectionTitle inherits Text {
-    font-family: Theme.pixel-font;
-    font-size: 18px;
+    font-family: Theme.ui-font;
+    font-size: 20px;
+    font-weight: 700;
     color: Theme.navy;
 }
 
@@ -128,15 +134,17 @@ export component Thumb inherits Rectangle {
 export component Badge inherits Rectangle {
     in property <string> text;
     in property <color> couleur: Theme.fill;
-    in property <length> font-size: 11px;
+    in property <length> font-size: 11.5px;
     background: root.couleur;
-    border-radius: 8px;
+    border-radius: 7px;
     height: label.preferred-height + 8px;
-    width: label.preferred-width + 20px;
+    width: label.preferred-width + 18px;
     label := Text {
         text: root.text;
-        font-family: Theme.pixel-font;
+        font-family: Theme.ui-font;
         font-size: root.font-size;
+        font-weight: 700;
+        letter-spacing: 0.4px;
         color: white;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -858,8 +866,8 @@ export component Puces inherits HorizontalLayout {
         animate background { duration: Theme.fast; }
         lab := Text {
             text: t;
-            font-family: Theme.pixel-font;
-            font-size: 10.5px;
+            font-family: Theme.ui-font;
+            font-size: 11px;
             color: parent.actif ? Theme.on-fill : Theme.navy;
             horizontal-alignment: center;
             vertical-alignment: center;
@@ -881,8 +889,8 @@ export component Etiquette inherits Rectangle {
     background: root.couleur.with-alpha(0.16);
     t := Text {
         text: root.text;
-        font-family: Theme.pixel-font;
-        font-size: 9.5px;
+        font-family: Theme.ui-font;
+        font-size: 11px;
         color: root.couleur;
         horizontal-alignment: center;
         vertical-alignment: center;

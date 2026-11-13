@@ -115,7 +115,7 @@ fn depuis_releases(v: &serde_json::Value) -> Vec<Section> {
                 .map(|d| super::news::date_courte(d.with_timezone(&chrono::Local).date_naive()))
                 .unwrap_or_default();
             Some(Section {
-                titre: tag.trim_start_matches('v').to_uppercase(),
+                titre: tag.trim_start_matches('v').to_string(),
                 date,
                 prerelease: r["prerelease"].as_bool().unwrap_or(false),
                 url: r["html_url"].as_str().unwrap_or("").to_string(),
@@ -169,7 +169,7 @@ fn integre() -> Vec<Section> {
         if let Some((titre, texte)) = c {
             if !update::est_plus_recente(PREMIERE_RELEASE, &titre) {
                 let (lignes, genres) = lignes(&texte);
-                sections.push(Section { prerelease: titre.contains('-'), titre: titre.to_uppercase(), lignes, genres, ..Default::default() });
+                sections.push(Section { prerelease: titre.contains('-'), titre, lignes, genres, ..Default::default() });
             }
         }
     };
@@ -193,8 +193,8 @@ mod tests {
     #[test]
     fn changelog_integre_depuis_la_premiere_release() {
         let s = integre();
-        // titres en majuscules à l'affichage ("0.3.8-BETA.1")
-        assert_eq!(s.first().map(|x| x.titre.clone()), Some(app_info::VERSION.to_uppercase()));
+        // titres tels que publiés ("0.3.8-beta.1")
+        assert_eq!(s.first().map(|x| x.titre.clone()), Some(app_info::VERSION.to_string()));
         assert_eq!(s.last().map(|x| x.titre.as_str()), Some("0.3.0"));
         assert!(s[0].genres.contains(&INTERTITRE), "intertitres de la version actuelle");
     }

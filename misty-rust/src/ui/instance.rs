@@ -413,7 +413,7 @@ pub fn langue_changee(app: &Rc<App>) {
 fn maj_en_tete(app: &Rc<App>) {
     let Some(i) = instance(app) else { return };
     let st = s(app);
-    st.set_name(i.nom.to_uppercase().into());
+    st.set_name(i.nom.clone().into());
 
     let mut badges = vec![
         BadgeItem { text: i.version_mc.to_uppercase().into(), color: Color::from_rgb_u8(0x1C, 0x23, 0x35) },

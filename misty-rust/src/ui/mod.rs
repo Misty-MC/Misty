@@ -144,7 +144,8 @@ pub fn installer(app: &Rc<App>) {
     // Traductions
     ui.global::<Tr>().on_lookup(|cle| loc::t(&cle).into());
     ui.global::<Assets>().set_logo(images::logo_nuage());
-    ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).into());
+    // version sous la barre latérale : « v0.3.8 » puis « beta.3 » sur sa propre ligne (la barre est étroite)
+    ui.global::<AppState>().set_version_text(format!("v{}", crate::services::app_info::VERSION).replacen('-', "\n", 1).into());
 
     // Paysage du site en fond (net tout de suite, puis flouté si l'option est réglée)
     afficher_paysage(app, scene::generer(0));
@@ -182,12 +183,19 @@ pub fn installer(app: &Rc<App>) {
         if let Some(a) = a.upgrade() {
             suivre_agrandissement(&a);
             maj_discord(&a, false);
+            // thème « Comme Windows » : suit Windows quand on le change pendant que Misty est ouvert
+            let sombre = system_info::windows_sombre();
+            let theme = a.ui.global::<crate::Theme>();
+            if theme.get_system_dark() != sombre {
+                theme.set_system_dark(sombre);
+            }
         }
     });
     std::mem::forget(minuterie);
 
     // Apparence enregistrée
     let theme = ui.global::<crate::Theme>();
+    theme.set_system_dark(system_info::windows_sombre());
     theme.set_mode(crate::services::settings::theme());
     theme.set_blur(crate::services::settings::get_bool(crate::services::settings::FLOU, true));
     appliquer_saison(app);

@@ -111,8 +111,8 @@ component GroupeNav inherits Rectangle {
         x: 14px;
         y: parent.height - self.height - 6px;
         text: root.text;
-        font-family: Theme.pixel-font;
-        font-size: 10.5px;
+        font-family: Theme.ui-font;
+        font-size: 11px;
         color: Theme.text-dim;
     }
 }
@@ -821,9 +821,10 @@ export component SettingsModal inherits Rectangle {
 
     carte := Rectangle {
         width: min(1040px, parent.width - 80px);
-        height: min(740px, parent.height - 60px);
+        // en haut, la place des boutons de la fenêtre (réduire, agrandir, fermer : 44 px)
+        height: min(740px, parent.height - 80px);
         x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2 + (root.ouvert ? 0px : 18px);
+        y: 44px + (parent.height - 44px - self.height) / 2 + (root.ouvert ? 0px : 18px);
         border-radius: 24px;
         background: Theme.surface;
         border-width: 1px;
@@ -1047,7 +1048,7 @@ export component SettingsModal inherits Rectangle {
                                     spacing: 10px;
                                     PixelLabel {
                                         text: Tr.t("Param_Apercu");
-                                        font-size: 10px;
+                                        font-size: 11px;
                                         color: Theme.accent;
                                     }
                                     Text {
@@ -1720,7 +1721,7 @@ export component StorageOverlay inherits Rectangle {
                 vertical-stretch: 1;
                 Text {
                     text: Tr.t("Options_Calcul");
-                    font-family: Theme.pixel-font;
+                    font-family: Theme.ui-font;
                     font-size: 13px;
                     color: Theme.text-muted;
                     horizontal-alignment: center;

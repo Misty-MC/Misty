@@ -3,7 +3,7 @@
 
 import "../assets/fonts/Silkscreen-Regular.ttf";
 import "../assets/fonts/Silkscreen-Bold.ttf";
-import { Palette } from "std-widgets.slint";
+
 
 export global Theme {
     // ── Réglages d'apparence (pilotés par Rust, enregistrés dans data.txt) ──
@@ -20,7 +20,11 @@ export global Theme {
     out property <bool> halloween: event == 1;
     out property <bool> noel: event == 2;
     /// Les thèmes de saison sont des thèmes de nuit
-    out property <bool> dark: event != 0 || mode == 1 || (mode == 2 && Palette.color-scheme == ColorScheme.dark);
+    /// Windows en mode sombre (lu dans le registre par Rust) : le thème « Comme Windows » le suit.
+    /// (Pas Palette.color-scheme : c'est Misty qui le règle, pour que les barres de défilement
+    /// et les autres widgets standard suivent le thème de Misty.)
+    in property <bool> system-dark;
+    out property <bool> dark: event != 0 || mode == 1 || (mode == 2 && system-dark);
 
     // ── Palette de base ──
     out property <color> sky-light: #C4DFF8;
@@ -59,13 +63,13 @@ export global Theme {
     out property <color> text-dim: dark ? #6F7C99 : #8394AB;
 
     // ── Verre dépoli ──
-    out property <color> glass: halloween ? #1E1230B8 : noel ? #0F1E30B8 : dark ? #111A30B8 : #FFFFFF59;
-    out property <color> glass-strong: halloween ? #2A1A40F0 : noel ? #142A42F0 : dark ? #162140F0 : #FFFFFFA6;
-    out property <color> glass-hover: halloween ? #36214FF0 : noel ? #1B3654F0 : dark ? #1C2A50F0 : #FFFFFF8C;
-    out property <color> glass-border: dark ? #FFFFFF1F : #FFFFFFB3;
+    out property <color> glass: halloween ? #1E1230B8 : noel ? #0F1E30B8 : dark ? #111A30C7 : #FFFFFF85;
+    out property <color> glass-strong: halloween ? #2A1A40F0 : noel ? #142A42F0 : dark ? #162140F0 : #FFFFFFC4;
+    out property <color> glass-hover: halloween ? #36214FF0 : noel ? #1B3654F0 : dark ? #1C2A50F0 : #FFFFFFE0;
+    out property <color> glass-border: dark ? #FFFFFF1F : #FFFFFFD9;
     /// Grands panneaux de page (barre de lancement, carte du skin…)
-    out property <color> panel: halloween ? #1E1230D9 : noel ? #0F1E30D9 : dark ? #111A30D9 : #FFFFFF73;
-    out property <color> panel-strong: halloween ? #36214FF0 : noel ? #1B3654F0 : dark ? #1C2A50F0 : #FFFFFFB3;
+    out property <color> panel: halloween ? #1E1230D9 : noel ? #0F1E30D9 : dark ? #111A30E0 : #FFFFFF9E;
+    out property <color> panel-strong: halloween ? #36214FF0 : noel ? #1B3654F0 : dark ? #1C2A50F0 : #FFFFFFD1;
     out property <color> line: dark ? #FFFFFF14 : #1C23351A;
 
     // ── Surfaces ──
@@ -88,6 +92,24 @@ export global Theme {
     out property <duration> fast: 120ms;
     out property <duration> normal: 200ms;
     out property <duration> slow: 320ms;
+
+    // ── Mise en page (grille de 4 px, comme Fluent) ──
+    /// Espacements : entre deux boutons, entre deux blocs, marge d'une surface, entre sections
+    out property <length> gap-s: 8px;
+    out property <length> gap-m: 12px;
+    out property <length> pad: 16px;
+    out property <length> gap-l: 24px;
+    /// Rayons : petit (étiquette), contrôle (bouton, champ), carte, panneau
+    out property <length> radius-s: 8px;
+    out property <length> radius-m: 12px;
+    out property <length> radius-l: 16px;
+    out property <length> radius-xl: 22px;
+    /// Échelle de texte : légende, corps, corps large, sous-titre, titre
+    out property <length> text-caption: 12px;
+    out property <length> text-body: 13.5px;
+    out property <length> text-large: 16px;
+    out property <length> text-subtitle: 20px;
+    out property <length> text-title: 28px;
 
     // ── Polices ──
     out property <string> pixel-font: "Silkscreen";
