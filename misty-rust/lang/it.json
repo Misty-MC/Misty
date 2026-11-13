@@ -753,5 +753,9 @@
   "Pack_Commencer": "INIZIA",
   "Pack_Commencer_Titre": "Crea il tuo pacchetto di texture",
   "Pack_Commencer_Texte": "Scegli una versione di Minecraft, modifica le sue texture pixel per pixel, poi esporta il pacchetto in .zip.",
-  "Pack_SansApercu": "Nessuna texture modificata"
+  "Pack_SansApercu": "Nessuna texture modificata",
+  "Amis_Annonce_Titre": "I tuoi amici e a cosa giocano",
+  "Amis_Annonce_Texte": "Presto vedrai quali amici stanno giocando, su quale versione o server, e potrai unirti alla loro partita con un clic. Arriva anche la chat.",
+  "Amis_Rejoindre": "Unisciti",
+  "Amis_HorsLigne": "Offline"
 }
