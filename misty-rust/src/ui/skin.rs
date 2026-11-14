@@ -68,6 +68,8 @@ pub fn installer(app: &Rc<App>) {
         _ => 0,
     });
     st.set_misty_hat(client::chapeau() == client::CLOUDLY);
+    st.set_tag(client::tag().into());
+    st.on_tag_changed(|tag| client::equiper_tag(&tag));
     verifier_early(app);
     st.set_misty_in_game(client::disponible());
     st.set_misty_mc(client::versions_texte().into());

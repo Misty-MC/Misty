@@ -254,6 +254,15 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             photo(&app, nom, &dossier);
         }
         app.ui.global::<SkinState>().invoke_hover(-1.0, -1.0);
+        // le pseudo survolé, puis la liste des tags à côté
+        app.ui.global::<SkinState>().set_hover_slot(3);
+        attendre(500).await;
+        photo(&app, "0c4-survol-tag", &dossier);
+        app.ui.global::<SkinState>().set_hover_slot(-1);
+        app.ui.global::<SkinState>().set_popup(3);
+        attendre(900).await;
+        photo(&app, "0c5-tags", &dossier);
+        app.ui.global::<SkinState>().set_popup(-1);
         // Studio en direct : vol (élytres) et accroupi
         for (anim, nom) in [(3, "0d-skin-vol"), (4, "0f-skin-accroupi")] {
             app.ui.global::<SkinState>().set_anim(anim);

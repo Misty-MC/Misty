@@ -31,6 +31,9 @@ pub const CAPE_EARLY: &str = "early_cape";
 /// Sur la tête : un petit nuage.
 pub const CLOUDLY: &str = "cloudly";
 
+/// Styles du pseudo au-dessus de la tête (le tag) ; "" : le style classique.
+pub const TAGS: &[&str] = &["brume", "nuage", "or", "aurore"];
+
 const DOS: &[&str] = &[CAPE, ELYTRES, CAPE_EARLY];
 const CHAPEAUX: &[&str] = &[CLOUDLY];
 
@@ -174,6 +177,10 @@ pub fn reprendre_du_jeu() {
             journal::info(&format!("Cosmétique choisi en jeu : {}", if choix.is_empty() { "aucun" } else { choix }));
         }
     }
+    let tag = json["tag"].as_str().unwrap_or("");
+    if (tag.is_empty() || TAGS.contains(&tag)) && tag != settings::get(settings::TAG) {
+        settings::set(settings::TAG, tag);
+    }
     let chapeau = json["hat"].as_str().unwrap_or("");
     if (chapeau.is_empty() || CHAPEAUX.contains(&chapeau)) && chapeau != settings::get(settings::CHAPEAU) {
         settings::set(settings::CHAPEAU, chapeau);
@@ -203,6 +210,26 @@ pub fn chapeau() -> String {
     }
 }
 
+/// Style du pseudo au-dessus de la tête ("" : classique).
+pub fn tag() -> String {
+    reprendre_du_jeu();
+    let t = settings::get(settings::TAG);
+    if TAGS.contains(&t.as_str()) {
+        t
+    } else {
+        String::new()
+    }
+}
+
+/// Change le style du pseudo (le mod le voit tout de suite, même en pleine partie).
+pub fn equiper_tag(tag: &str) {
+    let tag = if TAGS.contains(&tag) { tag } else { "" };
+    if tag != settings::get(settings::TAG) {
+        settings::set(settings::TAG, tag);
+    }
+    ecrire_lien();
+}
+
 /// Met (ou enlève : "") le chapeau Misty.
 pub fn equiper_chapeau(chapeau: &str) {
     if chapeau != settings::get(settings::CHAPEAU) {
@@ -228,7 +255,7 @@ pub fn equiper(cosmetique: &str) {
 
 /// Écrit `client.json` (lu par le mod) dans le dossier de Misty.
 pub fn ecrire_lien() {
-    let contenu = serde_json::json!({ "cosmetic": cosmetique(), "hat": chapeau() });
+    let contenu = serde_json::json!({ "cosmetic": cosmetique(), "hat": chapeau(), "tag": tag() });
     let chemin = paths::data_dir().join("client.json");
     if fs::read_to_string(&chemin).is_ok_and(|actuel| actuel == contenu.to_string()) {
         return;

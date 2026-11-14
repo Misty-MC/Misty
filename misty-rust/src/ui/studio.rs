@@ -38,7 +38,7 @@ pub fn emplacement(partie: u8) -> Option<i32> {
     match partie {
         TETE => Some(2),
         ELYTRES => Some(1),
-        CAPE | CORPS => Some(0),
+        CAPE => Some(0),
         _ => None,
     }
 }

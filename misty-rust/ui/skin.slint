@@ -65,12 +65,15 @@ export global SkinState {
     /// La cape Mojang portée (nom et image), "" sans cape : l'emplacement « Cape » du studio
     /// Emplacement dont la liste est ouverte dans le studio : -1 aucun · 0 cape · 1 ailes · 2 chapeau
     in-out property <int> popup: -1;
+    /// Style du pseudo au-dessus de la tête : "" classique, "brume", "nuage", "or", "aurore"
+    in-out property <string> tag;
+    callback tag-changed(string);
     /// Clic sur le personnage, en (u, v) entre 0 et 1 dans l'image du rendu : Rust trouve la partie touchée
     callback pick(float, float);
     /// La souris survole le personnage (u, v, comme pick ; -1 quand elle en sort)
     callback hover(float, float);
-    /// Emplacement sous la souris (-1 aucun · 0 cape · 1 ailes · 2 chapeau) : sa partie s'illumine
-    in property <int> hover-slot: -1;
+    /// Emplacement sous la souris (-1 aucun · 0 cape · 1 ailes · 2 chapeau · 3 tag) : sa partie s'illumine
+    in-out property <int> hover-slot: -1;
     in property <string> worn-cape;
     in property <image> worn-cape-image;
     in property <int> cape-rows: 1;
@@ -191,6 +194,34 @@ component Bascule inherits Rectangle {
 }
 
 // ───────────────────────── La scène (à gauche) ─────────────────────────
+
+/// Le pseudo au-dessus de la tête, dans un style de tag ("" classique, "brume", "nuage", "or",
+/// "aurore"), en pixel sur son fond, comme dans le jeu. `surligne` : survolé (cadre bleu).
+component NomTag inherits Rectangle {
+    in property <string> text;
+    in property <string> style;
+    in property <float> echelle: 1;
+    in property <bool> surligne;
+    width: lib-tag.preferred-width + 22px * root.echelle;
+    height: 30px * root.echelle;
+    border-radius: 3px * root.echelle;
+    background: root.style == "brume" ? #1C2F5ACC : root.style == "nuage" ? #FFFFFFE6 : root.style == "or" ? #2A1F08D9 : root.style == "aurore" ? #1A0F2ED9 : #0A0F1D8C;
+    border-width: root.surligne ? 2px : 0px;
+    border-color: #6F9CFF;
+    drop-shadow-blur: root.surligne ? 12px : 0px;
+    drop-shadow-color: #6F9CFFB3;
+    animate drop-shadow-blur { duration: Theme.fast; }
+    lib-tag := Text {
+        text: root.text;
+        font-family: Theme.pixel-font;
+        font-size: 16px * root.echelle;
+        color: root.style == "brume" ? #9CC0FF : root.style == "nuage" ? #1C2335 : root.style == "or" ? #FFD66B : root.style == "aurore" ? #F2A6FF : #EAF1FF;
+        stroke: root.style == "aurore" ? #7CF5D0 : transparent;
+        stroke-width: root.style == "aurore" ? 1px : 0px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
 
 /// Le personnage sur un socle lumineux : halo de lune derrière, rien ne bouge tout seul.
 component Scene3D inherits Rectangle {
@@ -369,29 +400,29 @@ component Scene3D inherits Rectangle {
         image-rendering: pixelated;
     }
 
-    // pseudo au-dessus de la tête (en pixel, sur un fond sombre, comme dans le jeu)
-    if SkinState.live-ready || SkinState.has-figure: Rectangle {
-        property <string> nom: HomeState.premium ? HomeState.premium-name : HomeState.account-index >= 0 && HomeState.account-index < HomeState.accounts.length ? HomeState.accounts[HomeState.account-index] : "Steve";
+    // pseudo au-dessus de la tête (en pixel, sur son fond, comme dans le jeu), dans le style du tag
+    // choisi : on peut cliquer dessus pour changer de style
+    property <string> nom-joueur: HomeState.premium ? HomeState.premium-name : HomeState.account-index >= 0 && HomeState.account-index < HomeState.accounts.length ? HomeState.accounts[HomeState.account-index] : "Steve";
+    property <bool> tag-visible: SkinState.live-ready || SkinState.has-figure;
+    nom-tag := NomTag {
+        visible: root.tag-visible;
+        text: root.nom-joueur.to-uppercase();
+        style: SkinState.tag;
+        surligne: SkinState.hover-slot == 3;
         // le pseudo grandit avec le zoom, un peu moins vite que le personnage
-        property <float> echelle: max(0.85, 1 + (root.zoom - 1) * 0.7);
-        width: etiquette.preferred-width + 22px * self.echelle;
-        height: 30px * self.echelle;
+        echelle: max(0.85, 1 + (root.zoom - 1) * 0.7);
         x: root.centre-x - self.width / 2;
         // posé au-dessus de la tête (sommet du modèle : 32)
         y: max(58px * (1 - root.attire), root.centre-y - 16 * root.unite - self.height - 6px * self.echelle);
         // coupé par le haut de la scène (zoom sur le corps) : on le cache plutôt que de le tronquer
         opacity: clamp((self.y - 50px) / 16px, 0, 1);
         animate opacity { duration: 200ms; }
-        border-radius: 3px * self.echelle;
-        background: #0A0F1D8C;
-        etiquette := Text {
-            text: parent.nom.to-uppercase();
-            font-family: Theme.pixel-font;
-            font-size: 16px * parent.echelle;
-            color: #EAF1FF;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
+    }
+    // la souris est-elle sur le pseudo ?
+    function sur-tag() -> bool {
+        return root.tag-visible && nom-tag.opacity > 0.5
+            && root.souris-x >= nom-tag.x && root.souris-x <= nom-tag.x + nom-tag.width
+            && root.souris-y >= nom-tag.y && root.souris-y <= nom-tag.y + nom-tag.height;
     }
 
     // prendre le personnage : de gauche à droite pour tourner, de haut en bas pour l'incliner
@@ -402,6 +433,11 @@ component Scene3D inherits Rectangle {
     function survoler() {
         if (root.glisse || !root.souris-dessus || !SkinState.live-ready) {
             SkinState.hover(-1, -1);
+            return;
+        }
+        if (root.sur-tag()) {
+            SkinState.hover(-1, -1);
+            SkinState.hover-slot = 3;
             return;
         }
         let cote = root.cote * root.zoom;
@@ -457,7 +493,12 @@ component Scene3D inherits Rectangle {
         // un clic (sans glisser) sur le personnage : Rust trouve la partie touchée et ouvre la liste
         // de ce qu'on peut y porter
         clicked => {
-            if (root.deplace < 5px && SkinState.live-ready) {
+            if (root.deplace < 5px && root.sur-tag()) {
+                SkinState.popup = 3;
+                SkinState.category = 7;
+                SkinState.focus = true;
+                SkinState.focus-count += 1;
+            } else if (root.deplace < 5px && SkinState.live-ready) {
                 let cote = root.cote * root.zoom;
                 SkinState.pick((self.mouse-x - (root.centre-x - cote / 2)) / cote, (self.mouse-y - (root.centre-y - cote / 2)) / cote);
             }
@@ -488,12 +529,12 @@ component Scene3D inherits Rectangle {
             x: 12px;
             spacing: 7px;
             Icon {
-                text: SkinState.hover-slot == 0 ? "\u{E7C1}" : SkinState.hover-slot == 1 ? "\u{E709}" : "\u{E734}";
+                text: SkinState.hover-slot == 0 ? "\u{E7C1}" : SkinState.hover-slot == 1 ? "\u{E709}" : SkinState.hover-slot == 3 ? "\u{E8EC}" : "\u{E734}";
                 font-size: 11px;
                 color: Theme.on-fill;
             }
             Text {
-                text: SkinState.hover-slot == 0 ? Tr.t("Cos_Capes") : SkinState.hover-slot == 1 ? Tr.t("Cos_Ailes") : Tr.t("Cos_Chapeaux");
+                text: SkinState.hover-slot == 0 ? Tr.t("Cos_Capes") : SkinState.hover-slot == 1 ? Tr.t("Cos_Ailes") : SkinState.hover-slot == 3 ? Tr.t("Cos_Tags") : Tr.t("Cos_Chapeaux");
                 font-size: 12.5px;
                 font-weight: 700;
                 color: Theme.on-fill;
@@ -890,6 +931,10 @@ component CaseAucun inherits Rectangle {
 
 export component SkinPanel inherits Rectangle {
     property <string> cape-mojang: SkinState.worn-cape;
+    property <string> pseudo-tag: (HomeState.premium ? HomeState.premium-name : HomeState.account-index >= 0 && HomeState.account-index < HomeState.accounts.length ? HomeState.accounts[HomeState.account-index] : "Steve").to-uppercase();
+    pure function nom-style(t: string) -> string {
+        return t == "brume" ? Tr.t("Tag_Brume") : t == "nuage" ? Tr.t("Tag_Nuage") : t == "or" ? Tr.t("Tag_Or") : t == "aurore" ? Tr.t("Tag_Aurore") : Tr.t("Tag_Classique");
+    }
     property <image> cape-mojang-image: SkinState.worn-cape-image;
     // ouvre la liste d'un emplacement, et tourne la caméra vers cette partie du personnage
     function ouvrir(n: int) {
@@ -1050,58 +1095,6 @@ export component SkinPanel inherits Rectangle {
                                 }
                             }
 
-                            Rectangle {
-                                height: 1px;
-                                background: Theme.line;
-                            }
-
-                            // ── Mes skins ──
-                            PixelLabel {
-                                text: Tr.t("Skin_MesSkins");
-                                font-size: 11px;
-                                color: Theme.text-dim;
-                            }
-                            mes-skins := Rectangle {
-                                property <length> taille: (self.width - 24px) / 5;
-                                property <int> nombre: SkinState.history.length + 1;
-                                height: ceil(self.nombre / 5) * (self.taille + 6px) - 6px;
-                                for h[i] in SkinState.history: TeteSkin {
-                                    x: Math.mod(i, 5) * (mes-skins.taille + 6px);
-                                    y: floor(i / 5) * (mes-skins.taille + 6px);
-                                    width: mes-skins.taille;
-                                    height: mes-skins.taille;
-                                    item: h;
-                                    clicked => { SkinState.history-picked(h.id); }
-                                }
-                                // ajouter un skin (.png)
-                                Rectangle {
-                                    x: Math.mod(SkinState.history.length, 5) * (mes-skins.taille + 6px);
-                                    y: floor(SkinState.history.length / 5) * (mes-skins.taille + 6px);
-                                    width: mes-skins.taille;
-                                    height: mes-skins.taille;
-                                    border-radius: 8px;
-                                    background: ajout.has-hover ? Theme.glass : transparent;
-                                    border-width: 2px;
-                                    border-color: ajout.has-hover ? Theme.accent : Theme.glass-border;
-                                    opacity: SkinState.busy ? 0.5 : 1;
-                                    animate background, border-color { duration: Theme.fast; }
-                                    Icon {
-                                        text: "\u{E710}";
-                                        font-size: 16px;
-                                        color: Theme.text-muted;
-                                    }
-                                    ajout := TouchArea {
-                                        enabled: !SkinState.busy;
-                                        mouse-cursor: pointer;
-                                        clicked => { SkinState.pick-file(); }
-                                    }
-                                }
-                            }
-                            Text {
-                                text: Tr.t("Skin_Ajouter");
-                                font-size: 11px;
-                                color: Theme.text-dim;
-                            }
                         }
                     }
                 }
@@ -1149,6 +1142,18 @@ export component SkinPanel inherits Rectangle {
                                 apercu: SkinState.misty-elytra;
                                 a-apercu: SkinState.misty-equip == 2;
                                 clicked => { root.ouvrir(1); }
+                            }
+                            Emplacement {
+                                icon: "\u{E8EC}";
+                                titre: Tr.t("Cos_Tags");
+                                nom: root.nom-style(SkinState.tag);
+                                a-apercu: false;
+                                clicked => {
+                                    SkinState.popup = 3;
+                                    SkinState.category = 7;
+                                    SkinState.focus = true;
+                                    SkinState.focus-count += 1;
+                                }
                             }
                             Emplacement {
                                 icon: "\u{E734}";
@@ -1209,7 +1214,7 @@ export component SkinPanel inherits Rectangle {
                             }
                             Text {
                                 horizontal-stretch: 1;
-                                text: SkinState.popup == 0 ? Tr.t("Cos_Capes") : SkinState.popup == 1 ? Tr.t("Cos_Ailes") : Tr.t("Cos_Chapeaux");
+                                text: SkinState.popup == 0 ? Tr.t("Cos_Capes") : SkinState.popup == 1 ? Tr.t("Cos_Ailes") : SkinState.popup == 3 ? Tr.t("Cos_Tags") : Tr.t("Cos_Chapeaux");
                                 font-size: 16px;
                                 font-weight: 800;
                                 color: Theme.navy;
@@ -1222,7 +1227,7 @@ export component SkinPanel inherits Rectangle {
                             property <length> taille: (self.visible-width - 2 * 8px) / 3;
                             // hors ligne, pas de capes Mojang (ni leur « aucune ») : une case « Aucun » les remplace
                             property <int> debut-misty: SkinState.capes.length == 0 ? 1 : SkinState.capes.length;
-                            property <int> nombre: SkinState.popup == 0 ? self.debut-misty + 2 : 2;
+                            property <int> nombre: SkinState.popup == 0 ? self.debut-misty + 2 : SkinState.popup == 3 ? 5 : 2;
                             vertical-stretch: 1;
                             min-height: 110px;
                             content-width: self.visible-width;
@@ -1298,7 +1303,49 @@ export component SkinPanel inherits Rectangle {
                                     text: Tr.t("Cos_ElytresMisty");
                                 }
                             }
-                            // chapeau : aucun, ou Cloudly
+                            // tags : chaque style, en aperçu sur le pseudo
+                    if SkinState.popup == 3: VerticalLayout {
+                        spacing: 8px;
+                        for t[i] in ["", "brume", "nuage", "or", "aurore"]: Rectangle {
+                            height: 54px;
+                            border-radius: 8px;
+                            background: SkinState.tag == t ? Theme.accent-soft : zt.has-hover ? Theme.glass-hover : Theme.glass-strong;
+                            border-width: SkinState.tag == t ? 2px : 1px;
+                            border-color: SkinState.tag == t ? Theme.accent : Theme.glass-border;
+                            animate background, border-color { duration: Theme.fast; }
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                padding-right: 12px;
+                                spacing: 12px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    NomTag {
+                                        text: root.pseudo-tag;
+                                        style: t;
+                                        echelle: 0.8;
+                                    }
+                                }
+                                Text {
+                                    horizontal-stretch: 1;
+                                    text: root.nom-style(t);
+                                    font-size: 13.5px;
+                                    font-weight: 700;
+                                    color: SkinState.tag == t ? Theme.accent : Theme.navy;
+                                    vertical-alignment: center;
+                                    horizontal-alignment: right;
+                                    overflow: elide;
+                                }
+                            }
+                            zt := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    SkinState.tag = t;
+                                    SkinState.tag-changed(t);
+                                }
+                            }
+                        }
+                    }
+                    // chapeau : aucun, ou Cloudly
                             if SkinState.popup == 2: Rectangle {
                                 CaseAucun {
                                     x: 0;
@@ -1329,4 +1376,40 @@ export component SkinPanel inherits Rectangle {
             }
     }
 
+
+    // ═══ Mes skins : une colonne de têtes dans la scène, sous Face / Côté / Dos ═══
+    colonne-skins := VerticalLayout {
+        x: 14px;
+        y: 64px;
+        width: 46px;
+        spacing: 6px;
+        for h[i] in SkinState.history: TeteSkin {
+            visible: 64px + (i + 2) * 52px < root.height - 64px;
+            width: 46px;
+            height: 46px;
+            item: h;
+            clicked => { SkinState.history-picked(h.id); }
+        }
+        // ajouter un skin (.png)
+        Rectangle {
+            width: 46px;
+            height: 46px;
+            border-radius: 8px;
+            background: ajout-skin.has-hover ? Theme.glass-hover : Theme.glass;
+            border-width: 2px;
+            border-color: ajout-skin.has-hover ? Theme.accent : Theme.glass-border;
+            opacity: SkinState.busy ? 0.5 : 1;
+            animate background, border-color { duration: Theme.fast; }
+            Icon {
+                text: "\u{E710}";
+                font-size: 16px;
+                color: Theme.text-muted;
+            }
+            ajout-skin := TouchArea {
+                enabled: !SkinState.busy;
+                mouse-cursor: pointer;
+                clicked => { SkinState.pick-file(); }
+            }
+        }
+    }
 }

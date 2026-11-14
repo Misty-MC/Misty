@@ -792,5 +792,10 @@
   "Choix_Pseudo": "Il tuo nome utente",
   "Choix_HorsLigne_Bouton": "Gioca offline",
   "Param_Comptes": "Account",
-  "Cos_Aucun": "Nessuno"
+  "Cos_Aucun": "Nessuno",
+  "Tag_Classique": "Classico",
+  "Tag_Brume": "Nebbia",
+  "Tag_Nuage": "Nuvola",
+  "Tag_Or": "Oro",
+  "Tag_Aurore": "Aurora"
 }

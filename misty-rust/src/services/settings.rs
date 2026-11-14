@@ -51,12 +51,14 @@ pub const BARRE_MASQUEE: &str = "barremasquee";
 /// Façon de jouer choisie au premier lancement : "" pas encore choisie, "premium" (compte
 /// Microsoft) ou "horsligne" (un pseudo)
 pub const MODE_COMPTE: &str = "modecompte";
+/// Style du pseudo au-dessus de la tête (Misty Client) : "" classique, ou voir services::client::TAGS
+pub const TAG: &str = "tag";
 
 /// Ordre des clés dans le fichier.
 const CLES: &[&str] = &[
     VERSION_DATA, LAST_PSEUDO, LAST_VERSION, RAM, PREMIUM, RACCOURCI, SUPPR,
     DERNIER_PROFIL, RICH_PRESENCE, LANGUE, THEME, FLOU, SAISON, FOND_FLOU, HORIZON_BUILD, TELECHARGEMENTS,
-    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, CHAPEAU, MISTY_CHOISI, MISTY_VERSION, PARTAGE, BARRE_MASQUEE, MODE_COMPTE,
+    CONSOLE, TELEMETRIE, TELEMETRIE_ID, MAJ_PRERELEASE, MISTY_CLIENT, COSMETIQUE, CHAPEAU, MISTY_CHOISI, MISTY_VERSION, PARTAGE, BARRE_MASQUEE, MODE_COMPTE, TAG,
 ];
 
 fn lire_lignes() -> Option<Vec<String>> {

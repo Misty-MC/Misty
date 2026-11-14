@@ -792,5 +792,10 @@
   "Choix_Pseudo": "Your username",
   "Choix_HorsLigne_Bouton": "Play offline",
   "Param_Comptes": "Accounts",
-  "Cos_Aucun": "None"
+  "Cos_Aucun": "None",
+  "Tag_Classique": "Classic",
+  "Tag_Brume": "Mist",
+  "Tag_Nuage": "Cloud",
+  "Tag_Or": "Gold",
+  "Tag_Aurore": "Aurora"
 }

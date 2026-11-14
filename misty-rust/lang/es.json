@@ -792,5 +792,10 @@
   "Choix_Pseudo": "Tu nombre de usuario",
   "Choix_HorsLigne_Bouton": "Jugar sin conexión",
   "Param_Comptes": "Cuentas",
-  "Cos_Aucun": "Ninguno"
+  "Cos_Aucun": "Ninguno",
+  "Tag_Classique": "Clásico",
+  "Tag_Brume": "Bruma",
+  "Tag_Nuage": "Nube",
+  "Tag_Or": "Oro",
+  "Tag_Aurore": "Aurora"
 }
