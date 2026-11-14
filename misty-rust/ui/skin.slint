@@ -65,8 +65,10 @@ export global SkinState {
     /// La cape Mojang portée (nom et image), "" sans cape : l'emplacement « Cape » du studio
     /// Emplacement dont la liste est ouverte dans le studio : -1 aucun · 0 cape · 1 ailes · 2 chapeau
     in-out property <int> popup: -1;
-    /// Style du pseudo au-dessus de la tête : "" classique, "brume", "nuage", "or", "aurore"
+    /// Style du pseudo au-dessus de la tête : "" classique ou "nuage"
     in-out property <string> tag;
+    /// Augmenté pour remettre la vue du studio de face, sans zoom (bouton, retour d'une liste)
+    in-out property <int> view-reset;
     callback tag-changed(string);
     /// Clic sur le personnage, en (u, v) entre 0 et 1 dans l'image du rendu : Rust trouve la partie touchée
     callback pick(float, float);
@@ -503,16 +505,8 @@ component Scene3D inherits Rectangle {
                 SkinState.pick((self.mouse-x - (root.centre-x - cote / 2)) / cote, (self.mouse-y - (root.centre-y - cote / 2)) / cote);
             }
         }
-        double-clicked => {
-            // double-clic : retour à la vue de face, à hauteur normale
-            SkinState.focus = false;
-            root.zoom-main = 1;
-            root.vise-pitch = false;
-            root.tourne = false;
-            root.cible = round(root.yaw / 360) * 360;
-            root.vise = true;
-            root.pitch = 8;
-        }
+        // double-clic : retour à la vue de face, à hauteur normale
+        double-clicked => { root.reinitialiser(); }
     }
 
     // étiquette de la partie survolée, près du curseur : ce qu'un clic ouvre
@@ -543,6 +537,19 @@ component Scene3D inherits Rectangle {
         }
     }
 
+    // retour à la vue de face, à hauteur normale, sans zoom (double-clic, bouton, retour d'une liste)
+    function reinitialiser() {
+        SkinState.focus = false;
+        root.zoom-main = 1;
+        root.vise-pitch = false;
+        root.tourne = false;
+        root.cible = round(root.yaw / 360) * 360;
+        root.vise = true;
+        root.pitch = 8;
+    }
+    property <int> demande-reset: SkinState.view-reset;
+    changed demande-reset => { root.reinitialiser(); }
+
     // ── en haut : vues et rotation ──
     property <float> angle-vu: Math.mod(Math.mod(root.yaw, 360) + 360, 360);
     if SkinState.has-figure || SkinState.live-ready: Seg {
@@ -562,6 +569,15 @@ component Scene3D inherits Rectangle {
         }
     }
     if SkinState.has-figure || SkinState.live-ready: Bascule {
+        x: parent.width - self.width - rotation.width - 22px;
+        y: 14px;
+        icon: "\u{E72C}";
+        text: Tr.t("Skin_Reinit");
+        active: false;
+        clicked => { root.reinitialiser(); }
+    }
+    rotation := Bascule {
+        visible: SkinState.has-figure || SkinState.live-ready;
         x: parent.width - self.width - 14px;
         y: 14px;
         icon: "\u{E895}";
@@ -933,7 +949,7 @@ export component SkinPanel inherits Rectangle {
     property <string> cape-mojang: SkinState.worn-cape;
     property <string> pseudo-tag: (HomeState.premium ? HomeState.premium-name : HomeState.account-index >= 0 && HomeState.account-index < HomeState.accounts.length ? HomeState.accounts[HomeState.account-index] : "Steve").to-uppercase();
     pure function nom-style(t: string) -> string {
-        return t == "brume" ? Tr.t("Tag_Brume") : t == "nuage" ? Tr.t("Tag_Nuage") : t == "or" ? Tr.t("Tag_Or") : t == "aurore" ? Tr.t("Tag_Aurore") : Tr.t("Tag_Classique");
+        return t == "nuage" ? Tr.t("Tag_Nuage") : Tr.t("Tag_Classique");
     }
     property <image> cape-mojang-image: SkinState.worn-cape-image;
     // ouvre la liste d'un emplacement, et tourne la caméra vers cette partie du personnage
@@ -1209,7 +1225,10 @@ export component SkinPanel inherits Rectangle {
                                 }
                                 zr := TouchArea {
                                     mouse-cursor: pointer;
-                                    clicked => { SkinState.popup = -1; }
+                                    clicked => {
+                                        SkinState.popup = -1;
+                                        SkinState.view-reset += 1;
+                                    }
                                 }
                             }
                             Text {
@@ -1227,7 +1246,7 @@ export component SkinPanel inherits Rectangle {
                             property <length> taille: (self.visible-width - 2 * 8px) / 3;
                             // hors ligne, pas de capes Mojang (ni leur « aucune ») : une case « Aucun » les remplace
                             property <int> debut-misty: SkinState.capes.length == 0 ? 1 : SkinState.capes.length;
-                            property <int> nombre: SkinState.popup == 0 ? self.debut-misty + 2 : SkinState.popup == 3 ? 5 : 2;
+                            property <int> nombre: SkinState.popup == 0 ? self.debut-misty + 2 : SkinState.popup == 3 ? 2 : 2;
                             vertical-stretch: 1;
                             min-height: 110px;
                             content-width: self.visible-width;
@@ -1306,7 +1325,7 @@ export component SkinPanel inherits Rectangle {
                             // tags : chaque style, en aperçu sur le pseudo
                     if SkinState.popup == 3: VerticalLayout {
                         spacing: 8px;
-                        for t[i] in ["", "brume", "nuage", "or", "aurore"]: Rectangle {
+                        for t[i] in ["", "nuage"]: Rectangle {
                             height: 54px;
                             border-radius: 8px;
                             background: SkinState.tag == t ? Theme.accent-soft : zt.has-hover ? Theme.glass-hover : Theme.glass-strong;

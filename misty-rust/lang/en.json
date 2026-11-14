@@ -794,8 +794,6 @@
   "Param_Comptes": "Accounts",
   "Cos_Aucun": "None",
   "Tag_Classique": "Classic",
-  "Tag_Brume": "Mist",
   "Tag_Nuage": "Cloud",
-  "Tag_Or": "Gold",
-  "Tag_Aurore": "Aurora"
+  "Skin_Reinit": "Reset"
 }

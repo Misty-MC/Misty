@@ -32,7 +32,7 @@ pub const CAPE_EARLY: &str = "early_cape";
 pub const CLOUDLY: &str = "cloudly";
 
 /// Styles du pseudo au-dessus de la tête (le tag) ; "" : le style classique.
-pub const TAGS: &[&str] = &["brume", "nuage", "or", "aurore"];
+pub const TAGS: &[&str] = &["nuage"];
 
 const DOS: &[&str] = &[CAPE, ELYTRES, CAPE_EARLY];
 const CHAPEAUX: &[&str] = &[CLOUDLY];
