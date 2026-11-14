@@ -1,8 +1,10 @@
-//! Packs de textures : liste, création, export, suppression. L'édition se fait dans editor.rs.
+//! Packs de textures : liste, création, export, suppression, et import depuis Modrinth ou
+//! CurseForge (l'explorateur de browser.rs). L'édition se fait dans editor.rs.
 
 use super::{dialogs, images, lancer, maj_ligne, modele, modele_textes, App};
 use crate::minecraft::install;
 use crate::services::packs::{self, PackInfo};
+use crate::services::catalogue::ProjetDistant;
 use crate::services::{loc, system_info};
 use crate::{PackCard, PacksState};
 use slint::ComponentHandle;
@@ -12,6 +14,8 @@ use std::rc::Rc;
 pub struct Etat {
     liste: Vec<PackInfo>,
     versions: Vec<String>,
+    /// projets déjà importés depuis l'explorateur (source:id), pendant ce lancement
+    importes: std::collections::HashSet<String>,
 }
 
 fn s(app: &App) -> PacksState<'_> {
@@ -38,6 +42,16 @@ pub fn installer(app: &Rc<App>) {
     st.on_import(move || {
         let a = a.clone();
         lancer(async move { importer(&a).await });
+    });
+    let a = app.clone();
+    st.on_browse(move || {
+        super::browser::configurer_packs(&a);
+        s(&a).set_view(1);
+    });
+    let a = app.clone();
+    st.on_back(move || {
+        s(&a).set_view(0);
+        rafraichir(&a);
     });
     let a = app.clone();
     st.on_cancel_create(move || s(&a).set_creating(false));
@@ -80,7 +94,7 @@ pub fn rafraichir(app: &Rc<App>) {
         .iter()
         .map(|p| PackCard {
             name: p.nom.clone().into(),
-            description: p.description.clone().into(),
+            description: sans_codes(&p.description).into(),
             version: p.version_mc.clone().into(),
             count: format!("{} {}", p.nb_textures, loc::t("Pack_Modifiees")).to_uppercase().into(),
             icon: images::vide(),
@@ -117,6 +131,44 @@ async fn importer(app: &Rc<App>) {
     match app.bloquant(move || packs::importer(&fichier)).await {
         Ok(_) => rafraichir(app),
         Err(e) => dialogs::erreur(app, &loc::t("Pack_ImportImpossible"), &e.to_string()).await,
+    }
+}
+
+/// Description sans les codes de couleur de Minecraft (« §a », « §l »…), sur une ligne.
+fn sans_codes(texte: &str) -> String {
+    let mut sortie = String::new();
+    let mut lettres = texte.chars();
+    while let Some(c) = lettres.next() {
+        match c {
+            '§' => {
+                lettres.next();
+            }
+            '\n' => sortie.push(' '),
+            _ => sortie.push(c),
+        }
+    }
+    sortie.trim().to_string()
+}
+
+// ───────────────────────── Import depuis Modrinth / CurseForge ─────────────────────────
+
+fn cle(p: &ProjetDistant) -> String {
+    format!("{}:{}", p.source, p.id)
+}
+
+pub fn deja_importe(app: &App, p: &ProjetDistant) -> bool {
+    app.packs.borrow().importes.contains(&cle(p))
+}
+
+/// Télécharge le pack choisi dans l'explorateur et l'ajoute aux packs, prêt à être modifié.
+pub async fn importer_distant(app: &Rc<App>, projet: ProjetDistant) {
+    let (source, id, titre) = (projet.source.clone(), projet.id.clone(), projet.titre.clone());
+    match app.bg(async move { packs::importer_distant(&source, &id, &titre).await }).await {
+        Ok(_) => {
+            app.packs.borrow_mut().importes.insert(cle(&projet));
+            rafraichir(app);
+        }
+        Err(e) => dialogs::erreur(app, &loc::t("Pack_ImportImpossible"), &format!("{e:#}")).await,
     }
 }
 

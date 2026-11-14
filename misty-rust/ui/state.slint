@@ -593,8 +593,13 @@ export global PacksState {
     in-out property <int> version-index: -1;
     in property <string> create-info;
     in property <bool> create-enabled: true;
+    /// 0 la galerie, 1 l'explorateur Modrinth / CurseForge
+    in-out property <int> view: 0;
 
     callback new-pack();
+    /// Ouvrir l'explorateur des packs à importer
+    callback browse();
+    callback back();
     /// Importer un pack de ressources (.zip)
     callback import();
     callback validate();
@@ -703,7 +708,7 @@ export global FriendsState {
     in property <bool> adding;
     in-out property <string> name;
     /// Retour du dernier ajout (vide : rien à dire)
-    in property <string> message;
+    in-out property <string> message;
     in property <bool> message-error;
 
     callback add();

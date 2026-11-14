@@ -468,10 +468,11 @@ fn nav_clicked(app: &Rc<App>, i: i32) {
         settings::ouvrir(app);
         return;
     }
-    // un onglet (ou l'avatar) pendant que les options ou le choix de version sont ouverts : ils se
-    // ferment, et la page demandée s'affiche
+    // un onglet (ou l'avatar) pendant que les options, le choix de version ou la console sont
+    // ouverts : ils se ferment, et la page demandée s'affiche
     settings::fermer(app);
     app.ui.global::<crate::HomeState>().set_picker_open(false);
+    app.ui.global::<crate::ConsoleState>().set_open(false);
     // Skin (barre latérale) : l'accueil, sur le studio ; Jouer : l'accueil, sur la carte de version
     if i == page::SKIN || i == page::ACCUEIL {
         let skin = app.ui.global::<SkinState>();
@@ -504,6 +505,9 @@ fn nav_clicked(app: &Rc<App>, i: i32) {
         } else if i == page::PACKS && page == page::EDITEUR {
             naviguer(app, page::PACKS);
             packs::rafraichir(app);
+        } else if i == page::PACKS && app.ui.global::<crate::PacksState>().get_view() != 0 {
+            // depuis l'explorateur : retour à la galerie
+            app.ui.global::<crate::PacksState>().invoke_back();
         }
         return;
     }

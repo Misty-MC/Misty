@@ -236,7 +236,7 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             let _ = slint::quit_event_loop();
             return;
         }
-        // MISTY_CAPTURE_AMIS : packs de textures et amis, en clair, en sombre et en fenêtre minimale
+        // MISTY_CAPTURE_AMIS : profils, packs de textures et amis, en clair, en sombre et en fenêtre minimale
         if std::env::var("MISTY_CAPTURE_AMIS").is_ok() {
             if app.ui.global::<DialogState>().get_visible() {
                 app.ui.global::<DialogState>().invoke_cancel();
@@ -246,9 +246,26 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                 if let Some((l, h)) = taille {
                     app.ui.window().set_size(slint::LogicalSize::new(l, h));
                 }
+                app.ui.global::<AppState>().invoke_nav_clicked(1);
+                attendre(1500).await;
+                photo(&app, &format!("profils-{suffixe}"), &dossier);
                 app.ui.global::<AppState>().invoke_nav_clicked(4);
                 attendre(1500).await;
                 photo(&app, &format!("packs-{suffixe}"), &dossier);
+                app.ui.global::<PacksState>().invoke_browse();
+                attendre(4000).await;
+                photo(&app, &format!("packs-parcourir-{suffixe}"), &dossier);
+                // une fois : le premier pack est vraiment importé (dans le dossier de test)
+                if mode == 0 && taille.is_none() {
+                    app.ui.global::<BrowserState>().invoke_install(0);
+                    attendre(15000).await;
+                    photo(&app, "packs-parcourir-importe", &dossier);
+                }
+                app.ui.global::<PacksState>().invoke_back();
+                attendre(1200).await;
+                if mode == 0 && taille.is_none() {
+                    photo(&app, "packs-apres-import", &dossier);
+                }
                 app.ui.global::<AppState>().invoke_nav_clicked(8);
                 attendre(6000).await;
                 photo(&app, &format!("amis-{suffixe}"), &dossier);

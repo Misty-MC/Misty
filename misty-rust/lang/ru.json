@@ -808,5 +808,11 @@
   "Amis_PersonneEnLigne_Texte": "Сейчас никто из друзей не играет с Misty Client.",
   "Amis_Retirer": "Удалить из друзей",
   "Amis_Actualiser": "Обновить",
-  "Amis_Vide_Texte": "Добавьте друзей по нику Minecraft, чтобы видеть, когда они играют с Misty Client."
+  "Amis_Vide_Texte": "Добавьте друзей по нику Minecraft, чтобы видеть, когда они играют с Misty Client.",
+  "Pack_Parcourir": "Обзор",
+  "Pack_Parcourir_Titre": "Обзор паков",
+  "Pack_Parcourir_Texte": "Выберите пак на Modrinth или CurseForge: он будет импортирован сюда, чтобы вы могли его изменить.",
+  "Pack_ImporterBouton": "Импорт",
+  "Pack_Importe": "Импортирован",
+  "Pack_DistantAucunFichier": "У этого пака нет файла для загрузки."
 }

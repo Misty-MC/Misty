@@ -4,6 +4,7 @@
 import { Theme, Tr, Assets } from "theme.slint";
 import { PacksState, PackCard } from "state.slint";
 import { Icon, PixelLabel, BodyText, TuilePage, EnTetePage, SectionTitle, OutlinedText, GlassCard, Thumb, Badge, IconButton, MButton, GlassInput, GlassCombo, Etiquette } from "widgets.slint";
+import { ContentBrowser } from "browser.slint";
 import { ScrollView } from "std-widgets.slint";
 
 /// Carte d'un pack : un bandeau sombre avec ses textures modifiées en pixel art, puis le nom, la
@@ -170,29 +171,16 @@ component PackCardView inherits Rectangle {
     }
 }
 
-/// Bandeau « Commencer » en haut de la galerie : ce que fait l'éditeur, et le bouton pour créer.
+/// Bandeau « Commencer » en haut de la galerie : ce que fait l'éditeur, et les boutons pour créer
+/// un pack ou en chercher un sur Modrinth / CurseForge.
 component Commencer inherits Rectangle {
     height: 150px;
     border-radius: 8px;
     clip: true;
     background: Theme.dark ? @linear-gradient(120deg, #162140 0%, #0E1527 100%) : @linear-gradient(120deg, #2A3347 0%, #1C2335 100%);
-    // une mosaïque de blocs, à droite (couleurs de terre, d'herbe, de pierre, d'eau…)
-    property <[color]> blocs: [#5EA35A, #4E8A4B, #7A5A3A, #6B4A3A, #8B8B8B, #9A9A9A, #D9874E, #2F6FD6, #E58FB4, #F7C98B, #25B0B5, #FFF1A8];
-    for c[i] in root.blocs: Rectangle {
-        visible: root.width > 560px;
-        x: root.width - 250px + mod(i, 6) * 38px + (floor(i / 6) == 1 ? 19px : 0px);
-        y: 28px + floor(i / 6) * 50px;
-        width: 34px;
-        height: 34px;
-        border-radius: 3px;
-        background: c;
-        opacity: 0.9;
-        // les blocs ondulent doucement
-        transform-rotation: 6deg * sin((animation-tick() / 3000ms + i * 0.15) * 360deg);
-    }
     VerticalLayout {
         x: 0;
-        width: root.width > 560px ? root.width - 280px : root.width;
+        width: root.width;
         padding: 22px;
         padding-left: 26px;
         spacing: 6px;
@@ -242,6 +230,36 @@ component Commencer inherits Rectangle {
                 zone := TouchArea {
                     mouse-cursor: pointer;
                     clicked => { PacksState.new-pack(); }
+                }
+            }
+            Rectangle { width: 8px; }
+            Rectangle {
+                height: 34px;
+                width: parcourir.preferred-width + 28px;
+                border-radius: 6px;
+                background: zone-parcourir.has-hover ? #FFFFFF33 : #FFFFFF1F;
+                border-width: 1px;
+                border-color: #FFFFFF40;
+                animate background { duration: Theme.fast; }
+                parcourir := HorizontalLayout {
+                    alignment: center;
+                    spacing: 8px;
+                    Icon {
+                        text: "";
+                        font-size: 11px;
+                        color: white;
+                    }
+                    Text {
+                        text: Tr.t("Pack_Parcourir");
+                        font-size: 13px;
+                        font-weight: 700;
+                        color: white;
+                        vertical-alignment: center;
+                    }
+                }
+                zone-parcourir := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { PacksState.browse(); }
                 }
             }
         }
@@ -383,11 +401,20 @@ export component PackCreateOverlay inherits Rectangle {
 
 export component PacksPage inherits Rectangle {
     // une seule tuile, comme Profils : en-tête (titre, nombre, actions), puis la galerie
-    TuilePage {
+    if PacksState.view == 0: TuilePage {
         VerticalLayout {
             EnTetePage {
                 titre: Tr.t("Onglet_Packs");
                 info: PacksState.list.length;
+                VerticalLayout {
+                    horizontal-stretch: 0;
+                    alignment: center;
+                    MButton {
+                        icon: "";
+                        text: Tr.t("Pack_Parcourir");
+                        clicked => { PacksState.browse(); }
+                    }
+                }
                 VerticalLayout {
                     horizontal-stretch: 0;
                     alignment: center;
@@ -449,6 +476,53 @@ export component PacksPage inherits Rectangle {
                         width: zone.case;
                     }
                 }
+            }
+        }
+    }
+    // ═══ Parcourir : les packs de Modrinth / CurseForge, importés ici pour les modifier ═══
+    if PacksState.view == 1: TuilePage {
+        VerticalLayout {
+            HorizontalLayout {
+                height: 62px;
+                padding-left: 14px;
+                padding-right: 14px;
+                spacing: 12px;
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        icon: "";
+                        tooltip: Tr.t("Profil_Retour");
+                        clicked => { PacksState.back(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: Tr.t("Pack_Parcourir_Titre");
+                        font-size: 20px;
+                        font-weight: 800;
+                        color: Theme.navy;
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Text {
+                        text: Tr.t("Pack_Parcourir_Texte");
+                        font-size: 12.5px;
+                        color: Theme.text-muted;
+                        overflow: elide;
+                    }
+                }
+            }
+            Rectangle {
+                height: 1px;
+                background: Theme.line;
+            }
+            HorizontalLayout {
+                vertical-stretch: 1;
+                padding: 16px;
+                ContentBrowser { }
             }
         }
     }

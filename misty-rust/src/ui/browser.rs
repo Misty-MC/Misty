@@ -1,5 +1,6 @@
 //! Explorateur de contenu Modrinth / CurseForge : recherche, tri, défilement infini, bouton d'installation.
-//! Le même explorateur sert au détail d'un profil (mods, packs…) et à l'installation de modpacks.
+//! Le même explorateur sert au détail d'un profil (mods, packs…), à l'installation de modpacks et
+//! aux packs de textures à importer pour les modifier.
 
 use super::{images, lancer, maj_ligne, modele, modele_textes, App};
 use crate::services::catalogue::{self, ProjetDistant, CURSEFORGE, MODRINTH};
@@ -18,6 +19,8 @@ pub enum Contexte {
     Aucun,
     Instance(Instance),
     Modpacks,
+    /// Packs de textures : le pack choisi est importé dans les packs de Misty, pour l'éditeur
+    Packs,
 }
 
 pub struct Etat {
@@ -134,6 +137,15 @@ pub fn configurer_modpacks(app: &Rc<App>) {
     configurer(app, Contexte::Modpacks, "modpacks".into(), content::MODPACK.into());
 }
 
+/// Explorateur des packs de ressources à importer dans l'éditeur de packs.
+pub fn configurer_packs(app: &Rc<App>) {
+    if app.browser.borrow().cle == "packs" {
+        rafraichir_etats(app);
+        return;
+    }
+    configurer(app, Contexte::Packs, "packs".into(), content::PACK_RESSOURCES.into());
+}
+
 /// Un autre profil a été ouvert : l'explorateur devra être reconfiguré.
 pub fn oublier_instance(app: &Rc<App>) {
     let mut e = app.browser.borrow_mut();
@@ -161,6 +173,7 @@ fn configurer(app: &Rc<App>, contexte: Contexte, cle: String, type_: String) {
 fn types_du_contexte(contexte: &Contexte) -> Vec<(String, String)> {
     match contexte {
         Contexte::Modpacks => vec![(content::MODPACK.into(), loc::t("Type_Modpacks"))],
+        Contexte::Packs => vec![(content::PACK_RESSOURCES.into(), loc::t("Type_Packs"))],
         _ => content::types(),
     }
 }
@@ -384,6 +397,7 @@ fn est_installe(app: &App, p: &ProjetDistant) -> bool {
     match &app.browser.borrow().contexte {
         Contexte::Instance(_) => super::instance::est_installe(app, p),
         Contexte::Modpacks => super::profiles::modpack_installe(p),
+        Contexte::Packs => super::packs::deja_importe(app, p),
         Contexte::Aucun => false,
     }
 }
@@ -395,9 +409,15 @@ pub fn rafraichir_etats(app: &Rc<App>) {
     let (occupes, m, libelle) = {
         let mut e = app.browser.borrow_mut();
         e.installes = installes.clone();
-        let libelle = if matches!(e.contexte, Contexte::Modpacks) { "Profil_Creer" } else { "Explorateur_Installer" };
-        (e.occupes.clone(), e.modele.clone(), libelle)
+        let packs = matches!(e.contexte, Contexte::Packs);
+        let libelle = match e.contexte {
+            Contexte::Modpacks => "Profil_Creer",
+            Contexte::Packs => "Pack_ImporterBouton",
+            _ => "Explorateur_Installer",
+        };
+        (e.occupes.clone(), e.modele.clone(), (libelle, packs))
     };
+    let (libelle, packs) = libelle;
     let Some(m) = m else { return };
     for i in 0..m.row_count().min(projets.len()) {
         let (installe, occupe) = (installes[i], occupes.get(i).copied().unwrap_or(false));
@@ -409,7 +429,7 @@ pub fn rafraichir_etats(app: &Rc<App>) {
             r.button_text = loc::t(if occupe {
                 "Explorateur_EnCours"
             } else if installe {
-                "Explorateur_Installe"
+                if packs { "Pack_Importe" } else { "Explorateur_Installe" }
             } else {
                 libelle
             })
@@ -441,6 +461,9 @@ async fn installer_projet(app: &Rc<App>, i: usize) {
         }
         Contexte::Modpacks => {
             super::profiles::installer_modpack(app, projet).await;
+        }
+        Contexte::Packs => {
+            super::packs::importer_distant(app, projet).await;
         }
         Contexte::Aucun => {}
     }

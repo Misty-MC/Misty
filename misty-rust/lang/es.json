@@ -808,5 +808,11 @@
   "Amis_PersonneEnLigne_Texte": "Ninguno de tus amigos juega con Misty Client ahora mismo.",
   "Amis_Retirer": "Quitar de amigos",
   "Amis_Actualiser": "Actualizar",
-  "Amis_Vide_Texte": "Añade a tus amigos con su nombre de Minecraft para ver cuándo juegan con Misty Client."
+  "Amis_Vide_Texte": "Añade a tus amigos con su nombre de Minecraft para ver cuándo juegan con Misty Client.",
+  "Pack_Parcourir": "Explorar",
+  "Pack_Parcourir_Titre": "Explorar packs",
+  "Pack_Parcourir_Texte": "Elige un pack en Modrinth o CurseForge: se importa aquí para que lo modifiques.",
+  "Pack_ImporterBouton": "Importar",
+  "Pack_Importe": "Importado",
+  "Pack_DistantAucunFichier": "Este pack no tiene ningún archivo para descargar."
 }

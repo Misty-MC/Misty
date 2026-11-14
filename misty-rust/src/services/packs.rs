@@ -177,6 +177,15 @@ pub fn creer_pack(nom: &str, description: &str, format: i64, version_mc: &str) -
     Ok(dossier)
 }
 
+/// Format d'un pack.mcmeta : `pack_format`, ou depuis 1.21.9 `min_format` (un nombre, ou
+/// [majeur, mineur]) quand `pack_format` n'y est plus.
+fn format_du_pack(pack: &serde_json::Value) -> Option<i64> {
+    pack["pack_format"].as_i64().or_else(|| match &pack["min_format"] {
+        serde_json::Value::Array(v) => v.first().and_then(|x| x.as_i64()),
+        v => v.as_i64(),
+    })
+}
+
 /// Version de Minecraft qui correspond au pack_format d'un pack importé (la plus récente de ce format).
 fn version_du_format(format: i64) -> &'static str {
     const TABLE: [(i64, &str); 22] = [
@@ -227,13 +236,49 @@ pub fn importer(zip_fichier: &Path) -> anyhow::Result<String> {
     let format = fs::read_to_string(dossier.join("pack.mcmeta"))
         .ok()
         .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-        .and_then(|d| d["pack"]["pack_format"].as_i64());
+        .and_then(|d| format_du_pack(&d["pack"]));
     let Some(format) = format else {
         let _ = fs::remove_dir_all(&dossier);
         anyhow::bail!(loc::t("Pack_ImportPasUnPack"));
     };
     fs::write(dossier.join("misty.json"), serde_json::json!({ "versionMc": version_du_format(format) }).to_string())?;
     Ok(nom)
+}
+
+/// Télécharge la dernière version d'un pack de ressources de Modrinth ou de CurseForge, puis
+/// l'importe comme `importer` (le pack prend le nom du projet). Renvoie le nom du pack créé.
+pub async fn importer_distant(source: &str, id: &str, titre: &str) -> anyhow::Result<String> {
+    use super::catalogue::CURSEFORGE;
+    use super::{curseforge, modrinth};
+    let (url, sha1) = if source == CURSEFORGE {
+        let mod_id: i64 = id.parse()?;
+        let fichiers = curseforge::fichiers(mod_id, None).await?;
+        let disponibles: Vec<_> = fichiers.into_iter().filter(|f| f.is_available).collect();
+        // les fichiers arrivent du plus récent au plus ancien : la dernière version stable d'abord
+        let fichier = disponibles.iter().find(|f| f.release_type == 1).or(disponibles.first()).cloned();
+        let fichier = fichier.ok_or_else(|| anyhow::anyhow!(loc::t("Pack_DistantAucunFichier")))?;
+        let Some(url) = fichier.download_url.clone().filter(|u| !u.is_empty()) else {
+            anyhow::bail!(loc::tf("Erreur_CFInterdit", &[&titre, &curseforge::page_fichier(None, mod_id, fichier.id)]));
+        };
+        (url, fichier.sha1().map(str::to_string))
+    } else {
+        let versions = modrinth::versions(id, None, None).await?;
+        let version = versions.iter().find(|v| v.version_type == "release").or(versions.first());
+        let fichier = version.and_then(|v| v.fichier_principal()).ok_or_else(|| anyhow::anyhow!(loc::t("Pack_DistantAucunFichier")))?;
+        (fichier.url.clone(), fichier.hashes.get("sha1").cloned())
+    };
+    // le nom du fichier devient celui du pack
+    let nom = download::nom_fichier_sur(titre);
+    let dossier = std::env::temp_dir().join(format!("misty-pack-{}", uuid::Uuid::new_v4().simple()));
+    let zip = dossier.join(format!("{}.zip", if nom.trim().is_empty() { "pack" } else { nom.trim() }));
+    download::fichier(&url, &zip, sha1.as_deref()).await?;
+    let resultat = tokio::task::spawn_blocking({
+        let zip = zip.clone();
+        move || importer(&zip)
+    })
+    .await?;
+    let _ = fs::remove_dir_all(&dossier);
+    resultat
 }
 
 /// Remplace l'icône du pack (pack.png), redimensionnée en 128 px.
@@ -418,6 +463,15 @@ pub fn lister_textures(dossier_template: &Path) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn format_ancien_et_nouveau() {
+        use serde_json::json;
+        assert_eq!(super::format_du_pack(&json!({ "pack_format": 46 })), Some(46));
+        assert_eq!(super::format_du_pack(&json!({ "min_format": 84, "max_format": 999 })), Some(84));
+        assert_eq!(super::format_du_pack(&json!({ "min_format": [69, 0] })), Some(69));
+        assert_eq!(super::format_du_pack(&json!({ "description": "" })), None);
+    }
+
     #[test]
     fn version_du_format_importe() {
         assert_eq!(super::version_du_format(1), "1.8.9");
