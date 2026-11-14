@@ -25,6 +25,11 @@
 - Redesigned release notes in two tiles: on the left every version with its picture, date and Latest or Beta label; on the right the chosen version with a banner (picture, number, date, number of new features and fixes, View on GitHub), filters (new features, fixes, launcher, Misty Client) and its notes
 - Redesigned texture packs: a Get started banner, cards that show the textures you changed, and New: import a resource pack you already have (.zip) to edit it in Misty
 - The Texture packs page is one tile like Profiles: its title with the number of packs, Import and Create at the top, and cards that fill the width of the window
+- New: Browse in Texture packs searches Modrinth and CurseForge for resource packs and imports the one you pick into your packs, ready to edit. Packs in the new pack.mcmeta format (Minecraft 1.21.9 and later) can now be imported, and pack descriptions no longer show Minecraft color codes
+- The Get started banner of Texture packs no longer has floating blocks
+- Profile cards: Play, Manage and Delete are now always shown at the bottom of the card, next to the last game, instead of appearing over the picture on hover (they disappeared as soon as the mouse moved onto them)
+- Redesigned console: it opens as a large tile under the top row, which stays usable. The Logs tile opens and closes it, and a tab closes it too. Fixed: two sets of window buttons showed at the same place while the console was open
+- Friends: the message after adding a friend goes away after a few seconds, or as soon as you type another username
 - Settings: New search field that finds any setting, and a live preview of the launcher at the top of Appearance that changes with the theme, season and blur
 - New: the Friends page works. Add friends by their Minecraft username (their head shows on their card) and see who is playing with Misty Client right now; the list refreshes every minute while the page is open. The online status uses the Misty network sign-in that Misty Client keeps after you play once with a Microsoft account
 - Fixed: heads of old 64 × 32 skins no longer show as a black square

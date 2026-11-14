@@ -38,7 +38,11 @@ fn main() {
 /// Génère `misty_client.rs` : `JARS: &[(&str, &[u8])]`, (version de Minecraft, jar), dans l'ordre
 /// des versions.
 fn misty_client() {
-    let racine = std::path::Path::new("../misty-client");
+    // MISTY_CLIENT_DIR : un autre dossier du mod, comme le clone de travail Misty-Client à côté du
+    // launcher (utilisé par « Lancer Misty.cmd ») ; sinon le sous-module
+    println!("cargo:rerun-if-env-changed=MISTY_CLIENT_DIR");
+    let dossier_mod = std::env::var("MISTY_CLIENT_DIR").ok().filter(|d| !d.trim().is_empty()).unwrap_or_else(|| "../misty-client".into());
+    let racine = std::path::Path::new(&dossier_mod);
     let mut dossiers = Vec::new();
     if let Ok(versions) = std::fs::read_dir(racine.join("versions")) {
         dossiers.extend(versions.flatten().map(|v| v.path().join("build/libs")));
