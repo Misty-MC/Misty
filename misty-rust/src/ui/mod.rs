@@ -15,6 +15,7 @@ pub mod home;
 pub mod images;
 pub mod instance;
 pub mod news;
+pub mod amis;
 pub mod packs;
 pub mod picker;
 pub mod profiles;
@@ -42,7 +43,7 @@ pub mod page {
     pub const EDITEUR: i32 = 6;
     /// Onglet de la barre latérale (pas une page) : l'accueil, sur le studio du skin
     pub const SKIN: i32 = 7;
-    /// Amis et chat (interface seulement pour l'instant)
+    /// Amis : la liste et qui joue avec Misty Client
     pub const AMIS: i32 = 8;
 }
 
@@ -58,6 +59,7 @@ pub struct App {
     pub browser: RefCell<browser::Etat>,
     pub settings: RefCell<settings::Etat>,
     pub packs: RefCell<packs::Etat>,
+    pub amis: RefCell<amis::Etat>,
     pub editor: RefCell<editor::Etat>,
     pub skin: RefCell<skin::Etat>,
     /// Liens des news du carrousel de l'accueil (vide = notes de version du launcher)
@@ -77,6 +79,7 @@ impl App {
             browser: RefCell::default(),
             settings: RefCell::default(),
             packs: RefCell::default(),
+            amis: RefCell::default(),
             editor: RefCell::default(),
             news_urls: RefCell::default(),
             skin: RefCell::default(),
@@ -214,6 +217,7 @@ pub fn installer(app: &Rc<App>) {
     settings::installer(app);
     changelog::installer(app);
     packs::installer(app);
+    amis::installer(app);
     editor::installer(app);
     skin::installer(app);
     studio::installer(app);
@@ -514,6 +518,9 @@ fn nav_clicked(app: &Rc<App>, i: i32) {
         _ => {}
     }
     naviguer(app, i);
+    if i == page::AMIS {
+        amis::ouvrir(app);
+    }
 
     if i == page::PACKS {
         packs::rafraichir(app); // après naviguer : l'éditeur a pu enregistrer une texture

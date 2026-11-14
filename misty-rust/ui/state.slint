@@ -682,3 +682,31 @@ export global EditorState {
     /// Raccourcis clavier ; renvoie true si la touche est utilisée
     callback key(string, bool) -> bool;
 }
+
+// ───────────────────────── Amis ─────────────────────────
+
+export struct FriendCard {
+    uuid: string,
+    name: string,
+    head: image,
+    has-head: bool,
+    online: bool,
+}
+
+export global FriendsState {
+    /// En ligne d'abord, puis par nom
+    in property <[FriendCard]> list;
+    in property <int> online-count;
+    /// false : pas de jeton Misty, on ne sait pas qui est en ligne
+    in property <bool> status-known: true;
+    in property <bool> refreshing;
+    in property <bool> adding;
+    in-out property <string> name;
+    /// Retour du dernier ajout (vide : rien à dire)
+    in property <string> message;
+    in property <bool> message-error;
+
+    callback add();
+    callback remove(string);
+    callback refresh();
+}

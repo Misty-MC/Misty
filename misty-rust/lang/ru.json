@@ -795,5 +795,18 @@
   "Cos_Aucun": "Нет",
   "Tag_Classique": "Классика",
   "Tag_Nuage": "Облако",
-  "Skin_Reinit": "Сбросить"
+  "Skin_Reinit": "Сбросить",
+  "Amis_PseudoInvalide": "Недопустимый ник (от 1 до 16 букв, цифр или _).",
+  "Amis_Ajoute": "{0} теперь в друзьях.",
+  "Amis_DejaLa": "{0} уже в друзьях.",
+  "Amis_Introuvable": "Нет аккаунта Minecraft с ником {0}.",
+  "Amis_Erreur": "Не удалось связаться с Mojang",
+  "Amis_JoueMisty": "Играет с Misty Client",
+  "Amis_Inconnu": "Статус неизвестен",
+  "Amis_SansStatut": "Чтобы видеть, кто в сети, сыграйте один раз с Misty Client и аккаунтом Microsoft: Misty запомнит вход в сеть Misty.",
+  "Amis_PersonneEnLigne": "Никого в сети",
+  "Amis_PersonneEnLigne_Texte": "Сейчас никто из друзей не играет с Misty Client.",
+  "Amis_Retirer": "Удалить из друзей",
+  "Amis_Actualiser": "Обновить",
+  "Amis_Vide_Texte": "Добавьте друзей по нику Minecraft, чтобы видеть, когда они играют с Misty Client."
 }

@@ -236,6 +236,26 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
             let _ = slint::quit_event_loop();
             return;
         }
+        // MISTY_CAPTURE_AMIS : packs de textures et amis, en clair, en sombre et en fenêtre minimale
+        if std::env::var("MISTY_CAPTURE_AMIS").is_ok() {
+            if app.ui.global::<DialogState>().get_visible() {
+                app.ui.global::<DialogState>().invoke_cancel();
+            }
+            for (mode, taille, suffixe) in [(0, None, "clair"), (1, None, "sombre"), (0, Some((1040.0, 680.0)), "etroit")] {
+                app.ui.global::<Theme>().set_mode(mode);
+                if let Some((l, h)) = taille {
+                    app.ui.window().set_size(slint::LogicalSize::new(l, h));
+                }
+                app.ui.global::<AppState>().invoke_nav_clicked(4);
+                attendre(1500).await;
+                photo(&app, &format!("packs-{suffixe}"), &dossier);
+                app.ui.global::<AppState>().invoke_nav_clicked(8);
+                attendre(6000).await;
+                photo(&app, &format!("amis-{suffixe}"), &dossier);
+            }
+            let _ = slint::quit_event_loop();
+            return;
+        }
         if std::env::var("MISTY_CAPTURE_SOMBRE").is_ok() {
             app.ui.global::<Theme>().set_mode(1);
         }

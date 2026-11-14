@@ -26,7 +26,8 @@
 - Redesigned texture packs: a Get started banner, cards that show the textures you changed, and New: import a resource pack you already have (.zip) to edit it in Misty
 - The Texture packs page is one tile like Profiles: its title with the number of packs, Import and Create at the top, and cards that fill the width of the window
 - Settings: New search field that finds any setting, and a live preview of the launcher at the top of Appearance that changes with the theme, season and blur
-- The Friends page shows what it will look like (online friends in large cards with what they play and Join, offline friends on one line), still marked Coming soon
+- New: the Friends page works. Add friends by their Minecraft username (their head shows on their card) and see who is playing with Misty Client right now; the list refreshes every minute while the page is open. The online status uses the Misty network sign-in that Misty Client keeps after you play once with a Microsoft account
+- Fixed: heads of old 64 × 32 skins no longer show as a black square
 - New loading screen when the launcher starts, the same as Misty Client's in game: the night landscape scrolling by, the Misty cloud and name in pixel art, and a blue progress bar. With the Mist (light) theme it shows the same landscape by day
 - New Sidebar settings (Settings → Sidebar): choose which tabs show in the sidebar (Skin, Profiles, Release notes, Texture packs, Friends, game folder). Hidden tabs leave their place to the others
 - Redesigned release notes: the versions are listed on the left with their date and a Latest or Beta badge, and the notes of the chosen version show on the right, grouped by Launcher and Misty Client, with NEW and FIX labels and a link to the release on GitHub

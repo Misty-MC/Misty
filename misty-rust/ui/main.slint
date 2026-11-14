@@ -1,7 +1,7 @@
 // Fenêtre principale : cadre, barre latérale, pages, fenêtre des options, boîte de dialogue.
 
 import { Theme, Tr, Assets, Bulle } from "theme.slint";
-import { AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState } from "state.slint";
+import { AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, FriendsState } from "state.slint";
 import { Icon, PixelLabel, BodyText, SectionTitle, IconButton, ChromeButton, MButton, SlimProgress, Spinner, OutlinedText } from "widgets.slint";
 import { Tuile, TuileIcone, Dock } from "dock.slint";
 import { ChoixCompte } from "bienvenue.slint";
@@ -20,7 +20,7 @@ import { VersionPicker } from "versions.slint";
 import { ConsoleOverlay, ConsoleState, LogLine, LogPane } from "console.slint";
 
 export { ConsoleState, LogLine, LogPane }
-export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState }
+export { Theme, Tr, Assets, Bulle, AppState, DialogState, HomeState, ProfilesState, InstanceState, BrowserState, SettingsState, ChangelogState, PacksState, EditorState, SkinState, FriendsState }
 
 /// Onglet de la tuile du haut (Jouer, Skin, Profils…) : le texte, et un trait sous l'onglet actif.
 component OngletHaut inherits Rectangle {

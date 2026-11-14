@@ -2,6 +2,7 @@
 //! Chaque fichier correspond à un service de l'ancienne version C#.
 
 pub mod account;
+pub mod amis;
 pub mod app_info;
 pub mod catalogue;
 pub mod client;

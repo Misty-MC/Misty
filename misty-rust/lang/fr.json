@@ -795,5 +795,18 @@
   "Cos_Aucun": "Aucun",
   "Tag_Classique": "Classique",
   "Tag_Nuage": "Nuage",
-  "Skin_Reinit": "Réinitialiser"
+  "Skin_Reinit": "Réinitialiser",
+  "Amis_PseudoInvalide": "Ce pseudo n'est pas valide (1 à 16 lettres, chiffres ou _).",
+  "Amis_Ajoute": "{0} est dans tes amis.",
+  "Amis_DejaLa": "{0} est déjà dans tes amis.",
+  "Amis_Introuvable": "Aucun compte Minecraft ne s'appelle {0}.",
+  "Amis_Erreur": "Impossible de joindre Mojang",
+  "Amis_JoueMisty": "Joue avec Misty Client",
+  "Amis_Inconnu": "Statut inconnu",
+  "Amis_SansStatut": "Pour voir qui est en ligne, lance une partie avec Misty Client et un compte Microsoft : Misty retient ta connexion au réseau Misty.",
+  "Amis_PersonneEnLigne": "Personne en ligne",
+  "Amis_PersonneEnLigne_Texte": "Aucun de tes amis ne joue avec Misty Client en ce moment.",
+  "Amis_Retirer": "Retirer des amis",
+  "Amis_Actualiser": "Actualiser",
+  "Amis_Vide_Texte": "Ajoute tes amis avec leur pseudo Minecraft pour voir quand ils jouent avec Misty Client."
 }

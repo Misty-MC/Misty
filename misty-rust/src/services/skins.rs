@@ -629,7 +629,12 @@ pub fn rendre_tete(png: &[u8]) -> Option<RgbaImage> {
     }
     let mut r = RgbaImage::from_pixel(8, 8, Rgba([0, 0, 0, 0]));
     coller(&mut r, &skin, (8, 8, 8, 8), (0, 0), false);
-    coller(&mut r, &skin, (40, 8, 8, 8), (0, 0), false);
+    // anciens skins 64 × 32 : un calque du chapeau sans aucun pixel transparent est ignoré, comme
+    // le fait Minecraft (sinon, souvent une tête toute noire)
+    let chapeau_opaque = skin.height() == 32 && (0..32).all(|x| (0..16).all(|y| skin.get_pixel(32 + x, y)[3] == 255));
+    if !chapeau_opaque {
+        coller(&mut r, &skin, (40, 8, 8, 8), (0, 0), false);
+    }
     Some(imageops::resize(&r, 64, 64, imageops::FilterType::Nearest))
 }
 

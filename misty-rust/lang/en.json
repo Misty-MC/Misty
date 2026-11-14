@@ -795,5 +795,18 @@
   "Cos_Aucun": "None",
   "Tag_Classique": "Classic",
   "Tag_Nuage": "Cloud",
-  "Skin_Reinit": "Reset"
+  "Skin_Reinit": "Reset",
+  "Amis_PseudoInvalide": "This username isn't valid (1 to 16 letters, digits or _).",
+  "Amis_Ajoute": "{0} is now in your friends.",
+  "Amis_DejaLa": "{0} is already in your friends.",
+  "Amis_Introuvable": "No Minecraft account is named {0}.",
+  "Amis_Erreur": "Couldn't reach Mojang",
+  "Amis_JoueMisty": "Playing with Misty Client",
+  "Amis_Inconnu": "Status unknown",
+  "Amis_SansStatut": "To see who is online, play once with Misty Client and a Microsoft account: Misty remembers your sign-in to the Misty network.",
+  "Amis_PersonneEnLigne": "Nobody online",
+  "Amis_PersonneEnLigne_Texte": "None of your friends is playing with Misty Client right now.",
+  "Amis_Retirer": "Remove from friends",
+  "Amis_Actualiser": "Refresh",
+  "Amis_Vide_Texte": "Add your friends by their Minecraft username to see when they play with Misty Client."
 }
