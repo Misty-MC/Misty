@@ -21,6 +21,8 @@ pub struct Etat {
     /// têtes déjà demandées (une fois par lancement)
     demandees: HashSet<String>,
     minuterie: Option<slint::Timer>,
+    /// efface le message du dernier ajout après quelques secondes
+    effacer: slint::Timer,
 }
 
 fn s(app: &App) -> FriendsState<'_> {
@@ -59,6 +61,7 @@ pub fn installer(app: &Rc<App>) {
 
 /// La page s'ouvre : la liste du disque, puis qui est en ligne.
 pub fn ouvrir(app: &Rc<App>) {
+    message(app, "", false);
     {
         let mut etat = app.amis.borrow_mut();
         etat.amis = amis::lire();
@@ -168,7 +171,21 @@ async fn ajouter(app: &Rc<App>) {
     }
 }
 
-fn message(app: &App, texte: &str, erreur: bool) {
+/// Durée d'affichage du message d'un ajout.
+const MESSAGE: Duration = Duration::from_secs(4);
+
+fn message(app: &Rc<App>, texte: &str, erreur: bool) {
     s(app).set_message(texte.into());
     s(app).set_message_error(erreur);
+    let etat = app.amis.borrow();
+    if texte.is_empty() {
+        etat.effacer.stop();
+        return;
+    }
+    let faible = Rc::downgrade(app);
+    etat.effacer.start(slint::TimerMode::SingleShot, MESSAGE, move || {
+        if let Some(a) = faible.upgrade() {
+            s(&a).set_message(SharedString::new());
+        }
+    });
 }

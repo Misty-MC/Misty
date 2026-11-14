@@ -151,6 +151,8 @@ export component FriendsPage inherits Rectangle {
                         placeholder: Tr.t("Amis_Pseudo");
                         text <=> FriendsState.name;
                         accepted => { FriendsState.add(); }
+                        // on retape : le message du dernier ajout s'en va
+                        edited => { FriendsState.message = ""; }
                     }
                 }
                 VerticalLayout {
