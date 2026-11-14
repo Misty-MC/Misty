@@ -7,7 +7,7 @@ import { ContentBrowser } from "browser.slint";
 import { ScrollView } from "std-widgets.slint";
 
 /// Carte d'un profil : l'illustration de sa version (ou son icône) en haut, puis le nom, la version
-/// et le loader, la dernière partie. Au survol : Jouer, Gérer et Supprimer sur l'image.
+/// et le loader, puis la dernière partie avec Jouer, Gérer et Supprimer.
 component ProfileCardView inherits Rectangle {
     in property <ProfileCard> carte;
     callback open();
@@ -54,56 +54,6 @@ component ProfileCardView inherits Rectangle {
             source: root.carte.icon;
             has-image: true;
         }
-        // actions au survol
-        HorizontalLayout {
-            x: parent.width - self.preferred-width - 10px;
-            y: 10px;
-            height: 36px;
-            spacing: 6px;
-            opacity: root.survol ? 1 : 0;
-            animate opacity { duration: Theme.normal; }
-            IconButton {
-                width: 36px;
-                height: 36px;
-                icon: "\u{E74D}";
-                fond: Theme.danger;
-                encre: white;
-                bord: #FFFFFF66;
-                tooltip: Tr.t("Commun_Supprimer");
-                clicked => { root.delete(); }
-            }
-            IconButton {
-                width: 36px;
-                height: 36px;
-                icon: "\u{E70F}";
-                tooltip: Tr.t("Profil_Gerer");
-                clicked => { root.open(); }
-            }
-        }
-        // jouer : gros bouton rond au centre de l'image
-        Rectangle {
-            x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
-            width: 54px;
-            height: 54px;
-            border-radius: 10px;
-            background: zone-jouer.has-hover ? Theme.green : Theme.green-dark;
-            border-width: 2px;
-            border-color: #FFFFFF80;
-            opacity: root.survol ? 1 : 0;
-            transform-scale: root.survol ? 1 : 0.8;
-            animate opacity, transform-scale { duration: Theme.normal; easing: ease-out; }
-            Icon {
-                text: "\u{E768}";
-                font-size: 20px;
-                color: white;
-            }
-            zone-jouer := TouchArea {
-                enabled: root.survol;
-                mouse-cursor: pointer;
-                clicked => { root.play(); }
-            }
-        }
     }
     VerticalLayout {
         y: root.height * 0.52;
@@ -126,11 +76,45 @@ component ProfileCardView inherits Rectangle {
             if root.carte.modpack: Etiquette { text: "MODPACK"; couleur: #F0795A; }
         }
         Rectangle { vertical-stretch: 1; }
-        Text {
-            text: root.carte.last;
-            font-size: 12px;
-            color: Theme.text-muted;
-            overflow: elide;
+        // la dernière partie, puis Jouer, Gérer et Supprimer, toujours visibles
+        HorizontalLayout {
+            height: 30px;
+            spacing: 5px;
+            Text {
+                horizontal-stretch: 1;
+                text: root.carte.last;
+                font-size: 12px;
+                color: Theme.text-muted;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+            IconButton {
+                width: 30px;
+                height: 30px;
+                icon-size: 12px;
+                icon: "";
+                fond: Theme.green-dark;
+                encre: white;
+                bord: #FFFFFF66;
+                tooltip: Tr.t("Home_Bouton_Jouer");
+                clicked => { root.play(); }
+            }
+            IconButton {
+                width: 30px;
+                height: 30px;
+                icon-size: 12px;
+                icon: "";
+                tooltip: Tr.t("Profil_Gerer");
+                clicked => { root.open(); }
+            }
+            IconButton {
+                width: 30px;
+                height: 30px;
+                icon-size: 12px;
+                icon: "";
+                tooltip: Tr.t("Commun_Supprimer");
+                clicked => { root.delete(); }
+            }
         }
     }
 }
