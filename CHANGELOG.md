@@ -24,6 +24,7 @@
 - Redesigned profiles: one tile with a header (title, number of profiles, Import, Install a modpack, New profile), the loader filters, then a grid of cards that fills the width. Each card shows the picture of its Minecraft version, its version, loader and a Modpack label; Play, Manage and Delete show on hover. Modpacks open in the same tile, with a back button
 - Redesigned release notes in two tiles: on the left every version with its picture, date and Latest or Beta label; on the right the chosen version with a banner (picture, number, date, number of new features and fixes, View on GitHub), filters (new features, fixes, launcher, Misty Client) and its notes
 - Redesigned texture packs: a Get started banner, cards that show the textures you changed, and New: import a resource pack you already have (.zip) to edit it in Misty
+- The Texture packs page is one tile like Profiles: its title with the number of packs, Import and Create at the top, and cards that fill the width of the window
 - Settings: New search field that finds any setting, and a live preview of the launcher at the top of Appearance that changes with the theme, season and blur
 - The Friends page shows what it will look like (online friends in large cards with what they play and Join, offline friends on one line), still marked Coming soon
 - New loading screen when the launcher starts, the same as Misty Client's in game: the night landscape scrolling by, the Misty cloud and name in pixel art, and a blue progress bar. With the Mist (light) theme it shows the same landscape by day

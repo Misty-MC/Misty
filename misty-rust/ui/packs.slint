@@ -3,7 +3,7 @@
 
 import { Theme, Tr, Assets } from "theme.slint";
 import { PacksState, PackCard } from "state.slint";
-import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, Badge, IconButton, MButton, GlassInput, GlassCombo, Etiquette } from "widgets.slint";
+import { Icon, PixelLabel, BodyText, TuilePage, EnTetePage, SectionTitle, OutlinedText, GlassCard, Thumb, Badge, IconButton, MButton, GlassInput, GlassCombo, Etiquette } from "widgets.slint";
 import { ScrollView } from "std-widgets.slint";
 
 /// Carte d'un pack : un bandeau sombre avec ses textures modifiées en pixel art, puis le nom, la
@@ -19,7 +19,7 @@ component PackCardView inherits Rectangle {
 
     width: 316px;
     height: 200px;
-    border-radius: 12px;
+    border-radius: 8px;
     clip: true;
     background: root.survol ? Theme.panel-strong : Theme.panel;
     border-width: 1px;
@@ -173,12 +173,13 @@ component PackCardView inherits Rectangle {
 /// Bandeau « Commencer » en haut de la galerie : ce que fait l'éditeur, et le bouton pour créer.
 component Commencer inherits Rectangle {
     height: 150px;
-    border-radius: 12px;
+    border-radius: 8px;
     clip: true;
     background: Theme.dark ? @linear-gradient(120deg, #162140 0%, #0E1527 100%) : @linear-gradient(120deg, #2A3347 0%, #1C2335 100%);
     // une mosaïque de blocs, à droite (couleurs de terre, d'herbe, de pierre, d'eau…)
     property <[color]> blocs: [#5EA35A, #4E8A4B, #7A5A3A, #6B4A3A, #8B8B8B, #9A9A9A, #D9874E, #2F6FD6, #E58FB4, #F7C98B, #25B0B5, #FFF1A8];
     for c[i] in root.blocs: Rectangle {
+        visible: root.width > 560px;
         x: root.width - 250px + mod(i, 6) * 38px + (floor(i / 6) == 1 ? 19px : 0px);
         y: 28px + floor(i / 6) * 50px;
         width: 34px;
@@ -191,7 +192,7 @@ component Commencer inherits Rectangle {
     }
     VerticalLayout {
         x: 0;
-        width: root.width - 280px;
+        width: root.width > 560px ? root.width - 280px : root.width;
         padding: 22px;
         padding-left: 26px;
         spacing: 6px;
@@ -251,7 +252,7 @@ component Commencer inherits Rectangle {
 component CarteImport inherits Rectangle {
     width: 316px;
     height: 200px;
-    border-radius: 12px;
+    border-radius: 8px;
     background: zone.has-hover ? Theme.glass : transparent;
     border-width: 2px;
     border-color: zone.has-hover ? Theme.accent : Theme.glass-border;
@@ -381,61 +382,73 @@ export component PackCreateOverlay inherits Rectangle {
 }
 
 export component PacksPage inherits Rectangle {
-    VerticalLayout {
-        // la page est dans la grille de la fenêtre : pas de marge autour
-        padding: 0px;
-        spacing: 16px;
-
-        HorizontalLayout {
-            // barre d'outils de la page : hauteur fixe, boutons à droite à leur taille
-            height: 44px;
-            alignment: end;
-            spacing: 10px;
-            VerticalLayout {
-                alignment: center;
-                MButton {
-                    icon: "\u{E8E5}";
-                    text: Tr.t("Pack_Importer");
-                    clicked => { PacksState.import(); }
+    // une seule tuile, comme Profils : en-tête (titre, nombre, actions), puis la galerie
+    TuilePage {
+        VerticalLayout {
+            EnTetePage {
+                titre: Tr.t("Onglet_Packs");
+                info: PacksState.list.length;
+                VerticalLayout {
+                    horizontal-stretch: 0;
+                    alignment: center;
+                    MButton {
+                        icon: "";
+                        text: Tr.t("Pack_Importer");
+                        clicked => { PacksState.import(); }
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 0;
+                    alignment: center;
+                    MButton {
+                        kind: 1;
+                        icon: "";
+                        text: Tr.t("Soon_CreerPack");
+                        clicked => { PacksState.new-pack(); }
+                    }
                 }
             }
-            VerticalLayout {
-                alignment: center;
-                MButton {
-                    kind: 1;
-                    icon: "\u{E710}";
-                    text: Tr.t("Soon_CreerPack");
-                    clicked => { PacksState.new-pack(); }
+            Rectangle {
+                height: 1px;
+                background: Theme.line;
+            }
+            Rectangle {
+                vertical-stretch: 1;
+                zone := ScrollView {
+                    x: 20px;
+                    y: 16px;
+                    width: parent.width - 28px;
+                    height: parent.height - 16px;
+                    // autant de colonnes que la largeur le permet (cartes de 260 px au moins)
+                    property <int> colonnes: max(1, floor((self.visible-width - 12px + 12px) / (260px + 12px)));
+                    property <length> case: (self.visible-width - 12px - (self.colonnes - 1) * 12px) / self.colonnes;
+                    property <length> haut: 150px + 12px;
+                    // les packs, puis la carte « Importer »
+                    property <int> nombre: PacksState.list.length + 1;
+                    content-width: self.visible-width;
+                    content-height: self.haut + ceil(self.nombre / self.colonnes) * (200px + 12px) + 8px;
+
+                    Commencer {
+                        x: 0;
+                        y: 0;
+                        width: zone.visible-width - 12px;
+                    }
+                    for p[i] in PacksState.list: PackCardView {
+                        x: mod(i, zone.colonnes) * (zone.case + 12px);
+                        y: zone.haut + floor(i / zone.colonnes) * (200px + 12px);
+                        width: zone.case;
+                        pack: p;
+                        edit => { PacksState.edit(i); }
+                        folder => { PacksState.folder(i); }
+                        export => { PacksState.export(i); }
+                        delete => { PacksState.delete(i); }
+                    }
+                    CarteImport {
+                        x: mod(PacksState.list.length, zone.colonnes) * (zone.case + 12px);
+                        y: zone.haut + floor(PacksState.list.length / zone.colonnes) * (200px + 12px);
+                        width: zone.case;
+                    }
                 }
-            }
-        }
-
-        zone := ScrollView {
-            vertical-stretch: 1;
-            property <int> colonnes: max(1, floor((self.visible-width + 16px) / 332px));
-            property <length> haut: 166px;
-            // les packs, puis la carte « Importer »
-            property <int> nombre: PacksState.list.length + 1;
-            content-width: self.visible-width;
-            content-height: self.haut + ceil(self.nombre / self.colonnes) * 216px;
-
-            Commencer {
-                x: 0;
-                y: 0;
-                width: zone.colonnes * 332px - 16px;
-            }
-            for p[i] in PacksState.list: PackCardView {
-                x: mod(i, zone.colonnes) * 332px;
-                y: zone.haut + floor(i / zone.colonnes) * 216px;
-                pack: p;
-                edit => { PacksState.edit(i); }
-                folder => { PacksState.folder(i); }
-                export => { PacksState.export(i); }
-                delete => { PacksState.delete(i); }
-            }
-            CarteImport {
-                x: mod(PacksState.list.length, zone.colonnes) * 332px;
-                y: zone.haut + floor(PacksState.list.length / zone.colonnes) * 216px;
             }
         }
     }
