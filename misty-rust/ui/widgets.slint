@@ -908,3 +908,54 @@ export component Etiquette inherits Rectangle {
         vertical-alignment: center;
     }
 }
+
+/// Tuile d'une page (profils, notes…) : le même verre et les mêmes coins que les tuiles de la grille.
+export component TuilePage inherits Rectangle {
+    border-radius: 8px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.glass-border;
+    clip: true;
+}
+
+/// En-tête d'une page en tuile : le titre (et une info, comme un nombre), puis ses actions à droite.
+/// Chaque action se centre elle-même (VerticalLayout { alignment: center; … }).
+export component EnTetePage inherits HorizontalLayout {
+    in property <string> titre;
+    in property <string> info;
+    height: 62px;
+    padding-left: 22px;
+    padding-right: 14px;
+    spacing: 10px;
+    VerticalLayout {
+        alignment: center;
+        Text {
+            text: root.titre;
+            font-size: 20px;
+            font-weight: 800;
+            color: Theme.navy;
+            overflow: elide;
+        }
+    }
+    if root.info != "": VerticalLayout {
+        alignment: center;
+        Rectangle {
+            height: 24px;
+            width: info.preferred-width + 16px;
+            border-radius: 12px;
+            background: Theme.glass-strong;
+            border-width: 1px;
+            border-color: Theme.glass-border;
+            info := Text {
+                text: root.info;
+                font-size: 12px;
+                font-weight: 700;
+                color: Theme.text-muted;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+    Rectangle { horizontal-stretch: 1; }
+    @children
+}

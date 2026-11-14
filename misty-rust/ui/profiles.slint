@@ -2,7 +2,7 @@
 
 import { Theme, Tr, Assets } from "theme.slint";
 import { ProfilesState, ProfileCard } from "state.slint";
-import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, IconButton, MButton, GlassInput, GlassCombo, Spinner, Puces, Etiquette } from "widgets.slint";
+import { Icon, PixelLabel, BodyText, SectionTitle, OutlinedText, GlassCard, Thumb, IconButton, MButton, GlassInput, GlassCombo, Spinner, Puces, Etiquette, TuilePage, EnTetePage } from "widgets.slint";
 import { ContentBrowser } from "browser.slint";
 import { ScrollView } from "std-widgets.slint";
 
@@ -17,7 +17,7 @@ component ProfileCardView inherits Rectangle {
 
     width: 236px;
     height: 236px;
-    border-radius: 12px;
+    border-radius: 8px;
     clip: true;
     background: root.survol ? Theme.panel-strong : Theme.panel;
     border-width: 1px;
@@ -31,7 +31,7 @@ component ProfileCardView inherits Rectangle {
     // en-tête : l'illustration, et l'icône du profil par-dessus s'il en a une
     Rectangle {
         y: 0;
-        height: 118px;
+        height: root.height * 0.52;
         clip: true;
         background: #1C2335;
         Image {
@@ -106,8 +106,8 @@ component ProfileCardView inherits Rectangle {
         }
     }
     VerticalLayout {
-        y: 118px;
-        height: parent.height - 118px;
+        y: root.height * 0.52;
+        height: parent.height - root.height * 0.52;
         padding: 12px;
         padding-top: 10px;
         spacing: 7px;
@@ -140,7 +140,7 @@ component NouvelleCarte inherits Rectangle {
     callback clicked;
     width: 236px;
     height: 236px;
-    border-radius: 12px;
+    border-radius: 8px;
     background: zone.has-hover ? Theme.glass : transparent;
     border-width: 2px;
     border-color: zone.has-hover ? Theme.accent : Theme.glass-border;
@@ -296,107 +296,127 @@ export component ProfileWaitOverlay inherits Rectangle {
 }
 
 export component ProfilesPage inherits Rectangle {
-    // ═══════════ Liste des profils ═══════════
-    if ProfilesState.view == 0: VerticalLayout {
-        // la page est dans la grille de la fenêtre : pas de marge autour
-        padding: 0px;
-        spacing: 18px;
-
-        HorizontalLayout {
-            // barre d'outils de la page : hauteur fixe, boutons à droite à leur taille
-            height: 44px;
-            alignment: end;
-            spacing: 10px;
-            VerticalLayout {
-                alignment: center;
-                MButton {
-                    text: Tr.t("Profil_ImporterModpack");
-                    icon: "\u{E8E5}";
-                    clicked => { ProfilesState.import-modpack(); }
+    // ═══════════ Liste des profils : une tuile, en-tête puis grille de cartes ═══════════
+    if ProfilesState.view == 0: TuilePage {
+        VerticalLayout {
+            EnTetePage {
+                titre: Tr.t("Onglet_Profils");
+                info: ProfilesState.list.length;
+                VerticalLayout {
+                    alignment: center;
+                    MButton {
+                        text: Tr.t("Profil_ImporterModpack");
+                        icon: "\u{E8E5}";
+                        clicked => { ProfilesState.import-modpack(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    MButton {
+                        text: Tr.t("Profil_InstallerModpack");
+                        icon: "\u{E896}";
+                        clicked => { ProfilesState.modpacks(); }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    MButton {
+                        kind: 1;
+                        text: Tr.t("Profil_Nouveau");
+                        icon: "\u{E710}";
+                        clicked => { ProfilesState.new-profile(); }
+                    }
                 }
             }
-            VerticalLayout {
-                alignment: center;
-                MButton {
-                    text: Tr.t("Profil_InstallerModpack");
-                    icon: "\u{E896}";
-                    clicked => { ProfilesState.modpacks(); }
+            Rectangle {
+                height: 1px;
+                background: Theme.line;
+            }
+            // filtres par loader, quand il y en a plusieurs
+            if ProfilesState.filters.length > 2: HorizontalLayout {
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-top: 14px;
+                Puces {
+                    model: ProfilesState.filters;
+                    current: ProfilesState.filter-index;
+                    selected(i) => {
+                        ProfilesState.filter-index = i;
+                        ProfilesState.filter-changed();
+                    }
                 }
+                Rectangle { horizontal-stretch: 1; }
             }
-            VerticalLayout {
-                alignment: center;
-                MButton {
-                    kind: 1;
-                    text: Tr.t("Profil_Nouveau");
-                    icon: "\u{E710}";
-                    clicked => { ProfilesState.new-profile(); }
+            // la grille : autant de colonnes que la largeur le permet (cartes de 220 px au moins)
+            Rectangle {
+                vertical-stretch: 1;
+                zone := ScrollView {
+                    x: 20px;
+                    y: 16px;
+                    width: parent.width - 28px;
+                    height: parent.height - 16px;
+                    property <int> colonnes: max(1, floor((self.visible-width - 12px + 12px) / (220px + 12px)));
+                    property <length> case: (self.visible-width - 12px - (self.colonnes - 1) * 12px) / self.colonnes;
+                    // les profils, puis la carte « Nouveau profil »
+                    property <int> nombre: ProfilesState.list.length + 1;
+                    content-width: self.visible-width;
+                    content-height: ceil(self.nombre / self.colonnes) * (self.case + 12px) + 8px;
+
+                    for p[i] in ProfilesState.list: ProfileCardView {
+                        x: mod(i, zone.colonnes) * (zone.case + 12px);
+                        y: floor(i / zone.colonnes) * (zone.case + 12px);
+                        width: zone.case;
+                        height: zone.case;
+                        carte: p;
+                        open => { ProfilesState.open(p.id); }
+                        play => { ProfilesState.play(p.id); }
+                        delete => { ProfilesState.delete(p.id); }
+                    }
+                    NouvelleCarte {
+                        x: mod(ProfilesState.list.length, zone.colonnes) * (zone.case + 12px);
+                        y: floor(ProfilesState.list.length / zone.colonnes) * (zone.case + 12px);
+                        width: zone.case;
+                        height: zone.case;
+                        clicked => { ProfilesState.new-profile(); }
+                    }
                 }
-            }
-        }
-
-        if ProfilesState.filters.length > 2: HorizontalLayout {
-            padding-left: 6px;
-            Puces {
-                model: ProfilesState.filters;
-                current: ProfilesState.filter-index;
-                selected(i) => {
-                    ProfilesState.filter-index = i;
-                    ProfilesState.filter-changed();
-                }
-            }
-        }
-
-        zone := ScrollView {
-            vertical-stretch: 1;
-            property <int> colonnes: max(1, floor((self.visible-width + 16px) / 252px));
-            // les profils, puis la carte « Nouveau profil »
-            property <int> nombre: ProfilesState.list.length + 1;
-            content-width: self.visible-width;
-            content-height: ceil(self.nombre / self.colonnes) * 252px;
-
-            for p[i] in ProfilesState.list: ProfileCardView {
-                x: mod(i, zone.colonnes) * 252px;
-                y: floor(i / zone.colonnes) * 252px;
-                carte: p;
-                open => { ProfilesState.open(p.id); }
-                play => { ProfilesState.play(p.id); }
-                delete => { ProfilesState.delete(p.id); }
-            }
-            NouvelleCarte {
-                x: mod(ProfilesState.list.length, zone.colonnes) * 252px;
-                y: floor(ProfilesState.list.length / zone.colonnes) * 252px;
-                clicked => { ProfilesState.new-profile(); }
             }
         }
     }
-    // ═══════════ Modpacks ═══════════
-    if ProfilesState.view == 1: VerticalLayout {
-        // la page est dans la grille de la fenêtre : pas de marge autour
-        padding: 0px;
-        spacing: 18px;
-        HorizontalLayout {
-            spacing: 16px;
-            alignment: start;
-            VerticalLayout {
-                alignment: center;
-                IconButton {
-                    icon: "\u{E72B}";
-                    tooltip: Tr.t("Profil_Retour");
-                    clicked => { ProfilesState.back(); }
+    // ═══════════ Modpacks : la même tuile, avec un retour ═══════════
+    if ProfilesState.view == 1: TuilePage {
+        VerticalLayout {
+            HorizontalLayout {
+                height: 62px;
+                padding-left: 14px;
+                padding-right: 14px;
+                spacing: 12px;
+                VerticalLayout {
+                    alignment: center;
+                    IconButton {
+                        icon: "\u{E72B}";
+                        tooltip: Tr.t("Profil_Retour");
+                        clicked => { ProfilesState.back(); }
+                    }
                 }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: "Modpacks";
+                        font-size: 20px;
+                        font-weight: 800;
+                        color: Theme.navy;
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
             }
-            OutlinedText {
-                text: "MODPACKS";
-                font-size: 48px;
-                depth: 5px;
+            Rectangle {
+                height: 1px;
+                background: Theme.line;
+            }
+            ContentBrowser {
+                vertical-stretch: 1;
             }
         }
-        ContentBrowser { vertical-stretch: 1; }
     }
-
-    // ═══════════ Création d'un profil ═══════════
-    
-
-    // ═══════════ Installation d'un modpack en cours ═══════════
-    
 }
