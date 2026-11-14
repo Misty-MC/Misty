@@ -29,6 +29,31 @@ static DEMANDES: OnceLock<mpsc::Sender<(f32, f32, i32)>> = OnceLock::new();
 /// Partie du corps visible en chaque pixel de la dernière image (voir skins::rendre_live_parties).
 static PARTIES: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
+/// Parties teintées au prochain rendu : celles de l'emplacement que la souris survole.
+static SURVOL: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+
+/// Emplacement de cosmétique d'une partie du corps : 0 cape (dos, corps, cape), 1 ailes, 2 chapeau.
+pub fn emplacement(partie: u8) -> Option<i32> {
+    use skins::partie::*;
+    match partie {
+        TETE => Some(2),
+        ELYTRES => Some(1),
+        CAPE | CORPS => Some(0),
+        _ => None,
+    }
+}
+
+/// La souris survole le point (u, v) du personnage : les parties de cet emplacement seront
+/// teintées au prochain rendu. Renvoie l'emplacement (-1 : aucun).
+pub fn survoler(u: f32, v: f32) -> i32 {
+    let place = partie(u, v).and_then(emplacement).unwrap_or(-1);
+    let parties: Vec<u8> = (0..=skins::partie::ELYTRES).filter(|&p| emplacement(p) == Some(place)).collect();
+    if let Ok(mut s) = SURVOL.lock() {
+        *s = parties;
+    }
+    place
+}
+
 /// Partie du corps sous un point de l'image affichée (u, v entre 0 et 1), s'il y en a une.
 pub fn partie(u: f32, v: f32) -> Option<u8> {
     if !(0.0..1.0).contains(&u) || !(0.0..1.0).contains(&v) {
@@ -57,8 +82,9 @@ pub fn installer(app: &Rc<App>) {
                     (m.skin.clone(), m.cape.clone(), m.fin, m.elytres)
                 };
                 let (yaw, pitch, anim) = demande;
+                let surbrillance = SURVOL.lock().map(|s| s.clone()).unwrap_or_default();
                 let rendu = skin.and_then(|skin| {
-                    skins::rendre_live_parties(&skin, cape.as_deref(), fin, elytres, Anim::depuis(anim), debut.elapsed().as_secs_f32(), yaw.to_radians(), pitch.to_radians())
+                    skins::rendre_live_parties(&skin, cape.as_deref(), fin, elytres, Anim::depuis(anim), debut.elapsed().as_secs_f32(), yaw.to_radians(), pitch.to_radians(), &surbrillance)
                 });
                 let Some((image, carte)) = rendu else {
                     OCCUPE.store(false, Ordering::SeqCst);

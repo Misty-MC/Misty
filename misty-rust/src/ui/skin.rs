@@ -124,19 +124,21 @@ pub fn installer(app: &Rc<App>) {
     // côté (tête : chapeaux ; dos, corps, cape : capes ; élytres : ailes) et la caméra s'y tourne
     let a = app.clone();
     st.on_pick(move |u, v| {
-        use crate::services::skins::partie;
-        let Some(touchee) = super::studio::partie(u, v) else { return };
-        let emplacement = match touchee {
-            partie::TETE => 2,
-            partie::ELYTRES => 1,
-            partie::CAPE | partie::CORPS => 0,
-            _ => return,
-        };
+        let Some(emplacement) = super::studio::partie(u, v).and_then(super::studio::emplacement) else { return };
         let st = s(&a);
         st.set_popup(emplacement);
         st.set_category(emplacement);
         st.set_focus(true);
         st.set_focus_count(st.get_focus_count() + 1);
+    });
+    // la souris survole le personnage : la partie qu'on peut cliquer s'illumine, et son nom s'affiche
+    let a = app.clone();
+    st.on_hover(move |u, v| {
+        let place = super::studio::survoler(u, v);
+        let st = s(&a);
+        if st.get_hover_slot() != place {
+            st.set_hover_slot(place);
+        }
     });
 }
 

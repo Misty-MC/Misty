@@ -67,6 +67,10 @@ export global SkinState {
     in-out property <int> popup: -1;
     /// Clic sur le personnage, en (u, v) entre 0 et 1 dans l'image du rendu : Rust trouve la partie touchée
     callback pick(float, float);
+    /// La souris survole le personnage (u, v, comme pick ; -1 quand elle en sort)
+    callback hover(float, float);
+    /// Emplacement sous la souris (-1 aucun · 0 cape · 1 ailes · 2 chapeau) : sa partie s'illumine
+    in property <int> hover-slot: -1;
     in property <string> worn-cape;
     in property <image> worn-cape-image;
     in property <int> cape-rows: 1;
@@ -391,10 +395,26 @@ component Scene3D inherits Rectangle {
     }
 
     // prendre le personnage : de gauche à droite pour tourner, de haut en bas pour l'incliner
-    TouchArea {
-        // main ouverte au survol, poing pendant le glisser
+    // survol : la partie du personnage sous la souris s'illumine (Rust la teinte au prochain rendu)
+    property <length> souris-x: zone-scene.mouse-x;
+    property <length> souris-y: zone-scene.mouse-y;
+    property <bool> souris-dessus: zone-scene.has-hover;
+    function survoler() {
+        if (root.glisse || !root.souris-dessus || !SkinState.live-ready) {
+            SkinState.hover(-1, -1);
+            return;
+        }
+        let cote = root.cote * root.zoom;
+        SkinState.hover((root.souris-x - (root.centre-x - cote / 2)) / cote, (root.souris-y - (root.centre-y - cote / 2)) / cote);
+    }
+    changed souris-x => { root.survoler(); }
+    changed souris-y => { root.survoler(); }
+    changed souris-dessus => { root.survoler(); }
+
+    zone-scene := TouchArea {
+        // main ouverte au survol, poing pendant le glisser ; main qui clique sur une partie à changer
         property <image> curseur: root.glisse ? @image-url("../assets/curseur-poing.png") : @image-url("../assets/curseur-main.png");
-        mouse-cursor: custom(self.curseur, 16, 16);
+        mouse-cursor: SkinState.hover-slot >= 0 && !root.glisse ? MouseCursor.pointer : custom(self.curseur, 16, 16);
         pointer-event(e) => {
             if (e.kind == PointerEventKind.down) {
                 root.glisse = true;
@@ -406,6 +426,7 @@ component Scene3D inherits Rectangle {
                 root.dernier-x = self.mouse-x;
                 root.dernier-y = self.mouse-y;
                 root.deplace = 0px;
+                SkinState.hover(-1, -1);
             } else if (e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel) {
                 root.glisse = false;
             }
@@ -450,6 +471,34 @@ component Scene3D inherits Rectangle {
             root.cible = round(root.yaw / 360) * 360;
             root.vise = true;
             root.pitch = 8;
+        }
+    }
+
+    // étiquette de la partie survolée, près du curseur : ce qu'un clic ouvre
+    if SkinState.hover-slot >= 0 && !root.glisse: Rectangle {
+        x: min(root.souris-x + 16px, parent.width - self.width - 8px);
+        y: min(root.souris-y + 14px, parent.height - self.height - 8px);
+        width: etiquette-survol.preferred-width + 24px;
+        height: 28px;
+        border-radius: 8px;
+        background: Theme.fill;
+        drop-shadow-blur: 10px;
+        drop-shadow-color: #00000040;
+        etiquette-survol := HorizontalLayout {
+            x: 12px;
+            spacing: 7px;
+            Icon {
+                text: SkinState.hover-slot == 0 ? "\u{E7C1}" : SkinState.hover-slot == 1 ? "\u{E709}" : "\u{E734}";
+                font-size: 11px;
+                color: Theme.on-fill;
+            }
+            Text {
+                text: SkinState.hover-slot == 0 ? Tr.t("Cos_Capes") : SkinState.hover-slot == 1 ? Tr.t("Cos_Ailes") : Tr.t("Cos_Chapeaux");
+                font-size: 12.5px;
+                font-weight: 700;
+                color: Theme.on-fill;
+                vertical-alignment: center;
+            }
         }
     }
 
@@ -744,7 +793,7 @@ component Emplacement inherits Rectangle {
     in property <image> apercu;
     in property <bool> a-apercu;
     callback clicked;
-    height: 60px;
+    height: 54px;
     border-radius: 8px;
     background: zone.has-hover ? Theme.glass-hover : Theme.glass-strong;
     border-width: 1px;
@@ -867,7 +916,7 @@ export component SkinPanel inherits Rectangle {
 
                 // ── la fiche du joueur et « Mes skins » (défile si elle est trop longue) ──
                 Rectangle {
-                    height: min(fiche.preferred-height, 240px);
+                    height: min(fiche.preferred-height, 220px);
                     border-radius: 8px;
                     background: Theme.panel;
                     border-width: 1px;
@@ -914,11 +963,12 @@ export component SkinPanel inherits Rectangle {
                                     }
                                 }
                             }
-                            // modèle de bras : l'un sous l'autre, en pleine largeur (« Классический (Стив) »
-                            // ne tient pas à côté de l'autre), avec un bouton radio
-                            VerticalLayout {
+                            // modèle de bras : côte à côte, chacun la moitié de la ligne (le nom se coupe s'il est trop long)
+                            HorizontalLayout {
                                 spacing: 6px;
                                 for m[i] in [Tr.t("Skin_Classique"), Tr.t("Skin_Fin")]: modele := Rectangle {
+                                    horizontal-stretch: 1;
+                                    preferred-width: 0px;
                                     property <bool> actif: (i == 1) == SkinState.slim;
                                     height: 30px;
                                     border-radius: 8px;
@@ -1069,7 +1119,12 @@ export component SkinPanel inherits Rectangle {
                         padding: 14px;
                         spacing: 8px;
                         // les emplacements (un clic sur l'un d'eux, ou sur le personnage, ouvre sa liste)
-                        if SkinState.popup < 0: VerticalLayout {
+                        if SkinState.popup < 0: ScrollView {
+                            vertical-stretch: 1;
+                            content-width: self.visible-width;
+                            content-height: emplacements.preferred-height;
+                            emplacements := VerticalLayout {
+                            width: parent.visible-width;
                             spacing: 8px;
                             PixelLabel {
                                 text: Tr.t("Cos_Titre");
@@ -1102,6 +1157,34 @@ export component SkinPanel inherits Rectangle {
                                 apercu: SkinState.misty-cloudly;
                                 a-apercu: SkinState.misty-hat;
                                 clicked => { root.ouvrir(2); }
+                            }
+                                // article Misty porté : où il se voit en jeu (ou l'avertissement, sans Misty Client)
+                                if SkinState.misty-equip != 0 || SkinState.misty-hat: Rectangle {
+                                    min-height: av.preferred-height;
+                                    border-radius: 8px;
+                                    background: SkinState.misty-in-game ? Theme.accent-soft : Theme.dark ? #FFBE5A14 : #FFF1DC;
+                                    border-width: 1px;
+                                    border-color: SkinState.misty-in-game ? Theme.accent.with-alpha(0.35) : Theme.dark ? #FFBE5A59 : #F0B35E;
+                                    av := HorizontalLayout {
+                                        padding: 10px;
+                                        spacing: 10px;
+                                        Icon {
+                                            width: 16px;
+                                            vertical-alignment: top;
+                                            text: SkinState.misty-in-game ? "\u{E73E}" : "\u{E7BA}";
+                                            font-size: 13px;
+                                            color: SkinState.misty-in-game ? Theme.accent : #FFC56B;
+                                        }
+                                        Text {
+                                            horizontal-stretch: 1;
+                                            text: SkinState.misty-in-game ? Tr.t("Cos_EnJeu") + " " + Tr.t("Cos_EnJeu_Profil") + " Fabric " + SkinState.misty-mc : Tr.t("Cos_PasEnJeu");
+                                            font-size: 12px;
+                                            color: SkinState.misty-in-game ? Theme.text : Theme.dark ? #FFD99A : #6B4210;
+                                            wrap: word-wrap;
+                                            overflow: elide;
+                                        }
+                                    }
+                                }
                             }
                         }
                         // la liste de l'emplacement ouvert : retour, titre, puis les choix
@@ -1240,34 +1323,6 @@ export component SkinPanel inherits Rectangle {
                                 }
                             }
                         }
-                        // article Misty porté : où il se voit en jeu (ou l'avertissement, sans Misty Client)
-                        if SkinState.misty-equip != 0 || SkinState.misty-hat: Rectangle {
-                            min-height: av.preferred-height;
-                            border-radius: 8px;
-                            background: SkinState.misty-in-game ? Theme.accent-soft : Theme.dark ? #FFBE5A14 : #FFF1DC;
-                            border-width: 1px;
-                            border-color: SkinState.misty-in-game ? Theme.accent.with-alpha(0.35) : Theme.dark ? #FFBE5A59 : #F0B35E;
-                            av := HorizontalLayout {
-                                padding: 10px;
-                                spacing: 10px;
-                                Icon {
-                                    width: 16px;
-                                    vertical-alignment: top;
-                                    text: SkinState.misty-in-game ? "\u{E73E}" : "\u{E7BA}";
-                                    font-size: 13px;
-                                    color: SkinState.misty-in-game ? Theme.accent : #FFC56B;
-                                }
-                                Text {
-                                    horizontal-stretch: 1;
-                                    text: SkinState.misty-in-game ? Tr.t("Cos_EnJeu") + " " + Tr.t("Cos_EnJeu_Profil") + " Fabric " + SkinState.misty-mc : Tr.t("Cos_PasEnJeu");
-                                    font-size: 12px;
-                                    color: SkinState.misty-in-game ? Theme.text : Theme.dark ? #FFD99A : #6B4210;
-                                    wrap: word-wrap;
-                                    overflow: elide;
-                                }
-                            }
-                        }
-                        Rectangle { vertical-stretch: 1; }
                     }
                 }
 

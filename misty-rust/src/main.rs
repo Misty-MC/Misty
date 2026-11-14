@@ -142,6 +142,13 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
                 app.ui.global::<SkinState>().set_tab(1);
                 attendre(2500).await;
                 photo(&app, &format!("skin-{suffixe}"), &dossier);
+                // survol : la tête puis le corps du personnage s'illuminent
+                for (v, nom) in [(0.22f32, "tete"), (0.45, "corps")] {
+                    app.ui.global::<SkinState>().invoke_hover(0.5, v);
+                    attendre(700).await;
+                    photo(&app, &format!("skin-survol-{nom}-{suffixe}"), &dossier);
+                }
+                app.ui.global::<SkinState>().invoke_hover(-1.0, -1.0);
                 // la liste des capes, ouverte depuis son emplacement
                 app.ui.global::<SkinState>().set_popup(0);
                 attendre(900).await;
@@ -240,6 +247,13 @@ fn capture(app: &Rc<ui::App>, dossier: std::path::PathBuf) {
         app.ui.global::<SkinState>().invoke_look_changed();
         attendre(3000).await;
         photo(&app, "0c-skin-misty", &dossier);
+        // survol du personnage en 3D : la partie cliquable s'illumine et son nom s'affiche
+        for (v, nom) in [(0.22f32, "0c2-survol-tete"), (0.45, "0c3-survol-corps")] {
+            app.ui.global::<SkinState>().invoke_hover(0.5, v);
+            attendre(900).await;
+            photo(&app, nom, &dossier);
+        }
+        app.ui.global::<SkinState>().invoke_hover(-1.0, -1.0);
         // Studio en direct : vol (élytres) et accroupi
         for (anim, nom) in [(3, "0d-skin-vol"), (4, "0f-skin-accroupi")] {
             app.ui.global::<SkinState>().set_anim(anim);

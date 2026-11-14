@@ -910,8 +910,9 @@ pub mod partie {
 /// Le personnage dans sa pose, vu sous l'angle `yaw` (autour de lui) et `pitch` (de haut ou de bas),
 /// en radians. `t` : temps de l'animation, en secondes. Avec l'image, la partie du corps visible en
 /// chaque pixel (une valeur de `partie` par pixel, ligne par ligne) : ce qui dit sur quoi on clique.
+/// `surbrillance` : parties teintées de bleu (celles que la souris survole dans le studio).
 #[allow(clippy::too_many_arguments)]
-pub fn rendre_live_parties(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytres: bool, anim: Anim, t: f32, yaw: f32, pitch: f32) -> Option<(RgbaImage, Vec<u8>)> {
+pub fn rendre_live_parties(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool, elytres: bool, anim: Anim, t: f32, yaw: f32, pitch: f32, surbrillance: &[u8]) -> Option<(RgbaImage, Vec<u8>)> {
     if skin.width() != 64 || skin.height() < 32 {
         return None;
     }
@@ -1071,6 +1072,7 @@ pub fn rendre_live_parties(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool
         let carte_utile = &mut carte[(premiere * LIVE) as usize..(derniere * LIVE) as usize];
         std::thread::scope(|sc| {
             let (posees, rectangles, parties) = (&posees, &rectangles, &parties);
+            let surbrillance = surbrillance;
             for (f, (morceau, morceau_carte)) in utiles.chunks_mut(bande as usize * largeur).zip(carte_utile.chunks_mut((bande * LIVE) as usize)).enumerate() {
                 sc.spawn(move || {
                     let mut candidates: Vec<usize> = Vec::with_capacity(posees.len());
@@ -1109,6 +1111,14 @@ pub fn rendre_live_parties(skin: &RgbaImage, cape: Option<&RgbaImage>, fin: bool
                             }
                             if let Some((_, c, partie)) = meilleur {
                                 let k = px as usize * 4;
+                                let mut c = c;
+                                // partie survolée : éclaircie et teintée du bleu de Misty
+                                if surbrillance.contains(&partie) {
+                                    let bleu = [111.0f32, 156.0, 255.0];
+                                    for (canal, b) in c.0.iter_mut().take(3).zip(bleu) {
+                                        *canal = (*canal as f32 * 0.55 + b * 0.45).round() as u8;
+                                    }
+                                }
                                 ligne[k..k + 4].copy_from_slice(&c.0);
                                 ligne_carte[px as usize] = partie;
                             }
@@ -1153,14 +1163,14 @@ mod tests_live {
         let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
         let cape = image::load_from_memory(texture_misty()).unwrap().to_rgba8();
         // de face : la tête est en haut, au milieu
-        let (_, face) = rendre_live_parties(&steve, Some(&cape), false, false, Anim::Repos, 0.0, 0.0, 0.0).unwrap();
+        let (_, face) = rendre_live_parties(&steve, Some(&cape), false, false, Anim::Repos, 0.0, 0.0, 0.0, &[]).unwrap();
         let tete = (0..LIVE as usize).find_map(|y| (face[y * LIVE as usize + LIVE as usize / 2] != partie::AUCUNE).then_some(y)).unwrap();
         assert_eq!(face[tete * LIVE as usize + LIVE as usize / 2], partie::TETE);
         // de dos : la cape couvre le milieu du corps
-        let (_, dos) = rendre_live_parties(&steve, Some(&cape), false, false, Anim::Repos, 0.0, std::f32::consts::PI, 0.0).unwrap();
+        let (_, dos) = rendre_live_parties(&steve, Some(&cape), false, false, Anim::Repos, 0.0, std::f32::consts::PI, 0.0, &[]).unwrap();
         assert_eq!(dos[(LIVE as usize / 2) * LIVE as usize + LIVE as usize / 2], partie::CAPE);
         // avec des élytres
-        let (_, ailes) = rendre_live_parties(&steve, Some(&cape), false, true, Anim::Repos, 0.0, std::f32::consts::PI, 0.0).unwrap();
+        let (_, ailes) = rendre_live_parties(&steve, Some(&cape), false, true, Anim::Repos, 0.0, std::f32::consts::PI, 0.0, &[]).unwrap();
         assert!(ailes.contains(&partie::ELYTRES));
     }
 
@@ -1168,7 +1178,7 @@ mod tests_live {
     fn toutes_les_animations_se_dessinent() {
         let steve = image::load_from_memory(include_bytes!("../../assets/steve.png")).unwrap().to_rgba8();
         for a in 0..5 {
-            let img = rendre_live_parties(&steve, None, false, a == 3, Anim::depuis(a), 0.4, 0.5, 0.3).unwrap().0;
+            let img = rendre_live_parties(&steve, None, false, a == 3, Anim::depuis(a), 0.4, 0.5, 0.3, &[]).unwrap().0;
             assert_eq!(img.dimensions(), (LIVE, LIVE));
             assert!(img.pixels().any(|p| p[3] == 255), "animation {a} vide");
         }
@@ -1187,7 +1197,7 @@ mod tests_live {
         for a in 0..5 {
             for i in 0..24 {
                 let yaw = i as f32 * 0.27;
-                let img = rendre_live_parties(&steve, Some(&cape), i % 2 == 0, a == 3, Anim::depuis(a), i as f32 * 0.13, yaw, 0.2 + (i % 5) as f32 * 0.1).unwrap().0;
+                let img = rendre_live_parties(&steve, Some(&cape), i % 2 == 0, a == 3, Anim::depuis(a), i as f32 * 0.13, yaw, 0.2 + (i % 5) as f32 * 0.1, &[]).unwrap().0;
                 n += 1;
                 if let Some(d) = &dossier {
                     img.save(format!("{d}/{a}-{i}.png")).unwrap();
@@ -1213,7 +1223,7 @@ mod tests_planche {
         for a in 0..5 {
             for (ligne, yaw) in [(0u32, 0.35f32), (1, std::f32::consts::FRAC_PI_2), (2, 2.6)] {
                 let elytres = a == 3 || a == 4;
-                let img = rendre_live_parties(&steve, Some(&cape), false, elytres, Anim::depuis(a), 0.3, yaw, 0.15).unwrap().0;
+                let img = rendre_live_parties(&steve, Some(&cape), false, elytres, Anim::depuis(a), 0.3, yaw, 0.15, &[]).unwrap().0;
                 imageops::overlay(&mut planche, &img, (a as u32 * LIVE) as i64, (ligne * LIVE) as i64);
             }
         }
