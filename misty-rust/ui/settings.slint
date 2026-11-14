@@ -877,28 +877,12 @@ export component SettingsModal inherits Rectangle {
                                 }
                             }
                         }
-                        Rangee {
-                            Carte {
-                                horizontal-stretch: 1;
-                                // moitié de la rangée, quel que soit le texte
-                                preferred-width: 0px;
-                                LigneInterrupteur {
-                                    titre: Tr.t("Param_Saison");
-                                    texte: Tr.t("Param_Saison_Texte");
-                                    checked <=> SettingsState.seasonal;
-                                    toggled(v) => { SettingsState.seasonal-toggled(v); }
-                                }
-                            }
-                            Carte {
-                                horizontal-stretch: 1;
-                                // moitié de la rangée, quel que soit le texte
-                                preferred-width: 0px;
-                                LigneInterrupteur {
-                                    titre: Tr.t("Param_Flou");
-                                    texte: Tr.t("Param_Flou_Texte");
-                                    checked: Theme.blur;
-                                    toggled(v) => { SettingsState.blur-toggled(v); }
-                                }
+                        Carte {
+                            LigneInterrupteur {
+                                titre: Tr.t("Param_Saison");
+                                texte: Tr.t("Param_Saison_Texte");
+                                checked <=> SettingsState.seasonal;
+                                toggled(v) => { SettingsState.seasonal-toggled(v); }
                             }
                         }
                         Carte {

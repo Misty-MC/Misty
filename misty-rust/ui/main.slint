@@ -172,11 +172,12 @@ component Brume inherits Rectangle {
     ]: Rectangle {
         property <float> t: Math.mod(animation-tick() / (n.p * 1ms) + n.o, 1);
         x: -n.s * 1px + (root.width + n.s * 2px) * self.t;
-        y: root.height * n.y - n.s * 0.3px;
+        // carrée, le dégradé s'éteint avant les bords (sinon un bord net se voit), puis aplatie
+        y: root.height * n.y - n.s * 0.5px;
         width: n.s * 1px;
-        height: n.s * 0.6px;
-        border-radius: self.height / 2;
-        background: @radial-gradient(circle, root.c.with-alpha(0.26 * root.force) 0%, root.c.with-alpha(0) 70%);
+        height: n.s * 1px;
+        transform-scale-y: 0.6;
+        background: @radial-gradient(circle, root.c.with-alpha(0.26 * root.force) 0%, root.c.with-alpha(0) 65%);
     }
 }
 
@@ -577,6 +578,7 @@ export component MainWindow inherits Window {
                     width: root.case;
                     icon: "\u{E8B7}";
                     tooltip: Tr.t("Nav_Dossier");
+                    bulle-dessous: true;
                     clicked => { AppState.open-data-folder(); }
                 }
                 // les boutons réduire, agrandir, fermer sont dessinés par-dessus (fin du fichier),

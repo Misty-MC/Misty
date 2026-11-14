@@ -81,67 +81,6 @@ pub fn logo_chargement() -> Image {
     Image::from_rgba8(tampon(&img))
 }
 
-/// Le nuage du bouton JOUER (500 × 116, affiché à moitié pour rester net) : des bosses de tailles
-/// différentes fondues les unes dans les autres (union « douce » de disques), un dessous plat, des
-/// bords lissés, et un dégradé du blanc en haut au bleu brume en bas.
-pub fn nuage_jouer() -> Image {
-    const L: u32 = 500;
-    const H: u32 = 116;
-    // (centre x, centre y, rayon) : grosse bosse au milieu, plus petites sur les côtés
-    const BOSSES: [(f32, f32, f32); 7] = [
-        (70.0, 84.0, 30.0),
-        (128.0, 66.0, 42.0),
-        (205.0, 52.0, 50.0),
-        (285.0, 42.0, 56.0),
-        (360.0, 58.0, 46.0),
-        (420.0, 76.0, 34.0),
-        (462.0, 90.0, 22.0),
-    ];
-    const BAS: f32 = H as f32 - 6.0;
-    // union douce : plus k est grand, plus les creux entre les bosses sont arrondis
-    fn union_douce(a: f32, b: f32, k: f32) -> f32 {
-        let h = (0.5 + 0.5 * (b - a) / k).clamp(0.0, 1.0);
-        b + (a - b) * h - k * h * (1.0 - h)
-    }
-    let distance = |x: f32, y: f32| -> f32 {
-        let mut d = f32::MAX;
-        for (cx, cy, r) in BOSSES {
-            let di = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt() - r;
-            d = if d == f32::MAX { di } else { union_douce(d, di, 22.0) };
-        }
-        // corps : une longue capsule en bas, puis le dessous coupé à plat
-        let (x0, x1, cy, r) = (60.0_f32, 450.0_f32, 86.0_f32, 26.0_f32);
-        let px = x.clamp(x0, x1);
-        let corps = ((x - px).powi(2) + (y - cy).powi(2)).sqrt() - r;
-        d = union_douce(d, corps, 18.0);
-        d.max(y - BAS)
-    };
-    let mut img = image::RgbaImage::new(L, H);
-    for y in 0..H {
-        let v = y as f32 / H as f32;
-        // dégradé : blanc en haut, bleu brume en bas
-        let haut = [255.0, 255.0, 255.0];
-        let bas = [214.0, 228.0, 248.0];
-        let c: Vec<u8> = (0..3).map(|i| (haut[i] + (bas[i] - haut[i]) * v.powf(1.4)).round() as u8).collect();
-        for x in 0..L {
-            // bord lissé : 4 × 4 échantillons par pixel
-            let mut dedans = 0;
-            for sy in 0..4 {
-                for sx in 0..4 {
-                    let d = distance(x as f32 + (sx as f32 + 0.5) / 4.0, y as f32 + (sy as f32 + 0.5) / 4.0);
-                    if d <= 0.0 {
-                        dedans += 1;
-                    }
-                }
-            }
-            if dedans > 0 {
-                img.put_pixel(x, y, image::Rgba([c[0], c[1], c[2], (dedans * 255 / 16) as u8]));
-            }
-        }
-    }
-    Image::from_rgba8(tampon(&img))
-}
-
 pub fn tampon(rgba: &image::RgbaImage) -> SharedPixelBuffer<Rgba8Pixel> {
     SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(rgba.as_raw(), rgba.width(), rgba.height())
 }

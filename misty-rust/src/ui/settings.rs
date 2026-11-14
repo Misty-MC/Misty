@@ -26,8 +26,8 @@ const CATEGORIES: [&str; 9] = [
 ];
 
 /// Réglages trouvables par la recherche : clé du titre (sa description est « clé_Texte ») et catégorie.
-const REGLAGES: [(&str, i32); 20] = [
-    ("Param_Theme", 0), ("Param_Saison", 0), ("Param_FondFlou", 0), ("Param_Flou", 0),
+const REGLAGES: [(&str, i32); 19] = [
+    ("Param_Theme", 0), ("Param_Saison", 0), ("Param_FondFlou", 0),
     ("Param_Microsoft_Titre", 2), ("Param_Memoire_Titre", 4),
     ("Param_Raccourci", 5), ("Param_Partage", 5), ("Param_Discord", 5), ("Param_Console", 5), ("Param_Telemetrie", 5),
     ("Param_Stockage", 6), ("Param_Dossier", 6), ("Param_Telechargements", 6),

@@ -98,11 +98,12 @@ export component HomePage inherits Rectangle {
         ]: Rectangle {
             property <float> t: Math.mod(animation-tick() / (n.p * 1ms) + n.o, 1);
             x: -n.s * 1px + (parent.width + n.s * 2px) * self.t;
-            y: parent.height * n.y - n.s * 0.2px;
+            // carrée, le dégradé s'éteint avant les bords, puis aplatie
+            y: parent.height * n.y - n.s * 0.5px;
             width: n.s * 1px;
-            height: n.s * 0.4px;
-            border-radius: self.height / 2;
-            background: @radial-gradient(circle, #FFFFFF14 0%, #FFFFFF00 70%);
+            height: n.s * 1px;
+            transform-scale-y: 0.4;
+            background: @radial-gradient(circle, #FFFFFF14 0%, #FFFFFF00 65%);
         }
         // le logo, comme celui de Minecraft sur la maquette
         VerticalLayout {
