@@ -1,10 +1,11 @@
-// Console des parties : la sortie de Minecraft ou d'Horizon en direct, par-dessus tout le launcher.
+// Console des parties : la sortie de Minecraft ou d'Horizon en direct, dans une grande tuile sous
+// la rangée du haut de la fenêtre.
 // Une partie = un panneau ; plusieurs parties lancées en même temps partagent l'écran
 // (2 côte à côte, 4 en 2 × 2, jusqu'à 6 en 3 × 2), et un panneau peut être agrandi seul.
 // Couleurs claires ou sombres selon le thème. Rust remplit ConsoleState.
 
 import { Theme, Tr } from "theme.slint";
-import { Icon, ChromeButton } from "widgets.slint";
+import { Icon } from "widgets.slint";
 import { AppState } from "state.slint";
 import { ListView } from "std-widgets.slint";
 
@@ -93,7 +94,7 @@ component BoutonConsole inherits Rectangle {
     callback clicked;
     height: root.taille;
     width: root.text == "" ? root.taille : contenu.preferred-width + 24px;
-    border-radius: root.taille * 0.3;
+    border-radius: 8px;
     background: zone.pressed && root.enabled ? CC.bouton-appui : zone.has-hover && root.enabled ? (root.danger ? #FF5A6E33 : CC.bouton-survol) : CC.bouton;
     border-width: 1px;
     border-color: root.danger ? #FF5A6E66 : CC.bouton-bord;
@@ -406,69 +407,76 @@ component PanneauLogs inherits Rectangle {
     }
 }
 
+/// La console : une grande tuile sous la rangée du haut de la fenêtre (logo, onglets, Console,
+/// boutons de la fenêtre), qui reste visible et utilisable. main.slint la place.
 export component ConsoleOverlay inherits Rectangle {
-    background: CC.voile;
-    // la console prend toute la fenêtre : rien ne passe au launcher derrière
+    // rien ne passe au launcher derrière
     TouchArea { }
 
-    VerticalLayout {
-        padding: 22px;
-        padding-top: 0px;
-        spacing: 14px;
+    Rectangle {
+        border-radius: 8px;
+        background: Theme.surface.with-alpha(1);
+        border-width: 1px;
+        border-color: Theme.glass-border;
+        drop-shadow-blur: 24px;
+        drop-shadow-color: Theme.shadow;
+        clip: true;
 
-        // ── barre de titre de la fenêtre (la console la recouvre) : déplacer la fenêtre ──
-        Rectangle {
-            height: 40px;
-            TouchArea {
-                pointer-event(e) => {
-                    if (e.kind == PointerEventKind.down && e.button == PointerEventButton.left) {
-                        AppState.drag();
+        VerticalLayout {
+            // ── en-tête : comme les autres pages (titre, info, actions) ──
+            HorizontalLayout {
+                height: 62px;
+                padding-left: 16px;
+                padding-right: 14px;
+                spacing: 12px;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        background: Theme.accent-soft;
+                        Icon {
+                            text: "\u{E756}";
+                            font-size: 15px;
+                            color: Theme.accent;
+                        }
                     }
                 }
-                double-clicked => { AppState.toggle-maximize(); }
-            }
-        }
-
-        // ── en-tête : console, parties en cours, actions ──
-        HorizontalLayout {
-            spacing: 14px;
-            Rectangle {
-                width: 42px;
-                height: 42px;
-                border-radius: 12px;
-                background: #3B82F633;
-                Icon {
-                    text: "\u{E756}";
-                    font-size: 18px;
-                    color: CC.bleu;
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: Tr.t("Console_Titre");
+                        font-size: 20px;
+                        font-weight: 800;
+                        color: Theme.navy;
+                    }
                 }
-            }
-            VerticalLayout {
-                horizontal-stretch: 1;
-                alignment: center;
-                spacing: 3px;
-                Text {
-                    text: Tr.t("Console_Titre");
-                    font-family: Theme.ui-font;
-                    font-size: 17px;
-                    font-weight: 800;
-                    color: CC.titre;
+                if ConsoleState.subtitle != "": VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        height: 24px;
+                        width: sous-titre.preferred-width + 16px;
+                        border-radius: 12px;
+                        background: Theme.glass-strong;
+                        border-width: 1px;
+                        border-color: Theme.glass-border;
+                        sous-titre := Text {
+                            text: ConsoleState.subtitle;
+                            font-size: 12px;
+                            font-weight: 700;
+                            color: Theme.text-muted;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
                 }
-                Text {
-                    text: ConsoleState.subtitle;
-                    font-family: Theme.ui-font;
-                    font-size: 12.5px;
-                    color: CC.sous-titre;
-                }
-            }
-            HorizontalLayout {
-                spacing: 8px;
-                alignment: end;
+                Rectangle { horizontal-stretch: 1; }
                 VerticalLayout {
                     alignment: center;
                     BoutonConsole {
                         icon: "\u{E838}";
-                        text: Tr.t("Console_Dossier");
+                        text: root.width < 760px ? "" : Tr.t("Console_Dossier");
                         clicked => { ConsoleState.open-folder(); }
                     }
                 }
@@ -481,142 +489,130 @@ export component ConsoleOverlay inherits Rectangle {
                     }
                 }
             }
-        }
-
-        // ── filtres et recherche (pour tous les panneaux) ──
-        HorizontalLayout {
-            spacing: 8px;
-            FiltreConsole {
-                text: Tr.t("Console_Tout");
-                count: "";
-                pastille: CC.bleu;
-                checked: ConsoleState.filter == 0;
-                clicked => { ConsoleState.filter = 0; ConsoleState.filter-changed(); }
-            }
-            FiltreConsole {
-                text: Tr.t("Console_Avertissements");
-                count: ConsoleState.warnings > 0 ? "" + ConsoleState.warnings : "";
-                pastille: #FFBE5A;
-                checked: ConsoleState.filter == 1;
-                clicked => { ConsoleState.filter = 1; ConsoleState.filter-changed(); }
-            }
-            FiltreConsole {
-                text: Tr.t("Console_Erreurs");
-                count: ConsoleState.errors > 0 ? "" + ConsoleState.errors : "";
-                pastille: #FF5A6E;
-                checked: ConsoleState.filter == 2;
-                clicked => { ConsoleState.filter = 2; ConsoleState.filter-changed(); }
-            }
-            Rectangle { horizontal-stretch: 1; }
             Rectangle {
-                width: 260px;
-                height: 32px;
-                border-radius: 9px;
-                background: CC.bouton;
-                border-width: 1px;
-                border-color: recherche.has-focus ? CC.bleu : CC.bouton-bord;
-                HorizontalLayout {
-                    padding-left: 10px;
-                    padding-right: 10px;
-                    spacing: 8px;
-                    Icon {
-                        text: "\u{E721}";
-                        font-size: 12px;
-                        color: CC.discret;
-                        vertical-alignment: center;
-                    }
-                    Rectangle {
-                        horizontal-stretch: 1;
-                        recherche := TextInput {
-                            width: 100%;
-                            height: 100%;
-                            text <=> ConsoleState.search;
-                            font-family: Theme.ui-font;
-                            font-size: 12.5px;
-                            color: CC.titre;
+                height: 1px;
+                background: Theme.line;
+            }
+
+            // ── filtres et recherche (pour tous les panneaux) ──
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                padding-top: 12px;
+                spacing: 8px;
+                FiltreConsole {
+                    text: Tr.t("Console_Tout");
+                    count: "";
+                    pastille: CC.bleu;
+                    checked: ConsoleState.filter == 0;
+                    clicked => { ConsoleState.filter = 0; ConsoleState.filter-changed(); }
+                }
+                FiltreConsole {
+                    text: Tr.t("Console_Avertissements");
+                    count: ConsoleState.warnings > 0 ? "" + ConsoleState.warnings : "";
+                    pastille: #FFBE5A;
+                    checked: ConsoleState.filter == 1;
+                    clicked => { ConsoleState.filter = 1; ConsoleState.filter-changed(); }
+                }
+                FiltreConsole {
+                    text: Tr.t("Console_Erreurs");
+                    count: ConsoleState.errors > 0 ? "" + ConsoleState.errors : "";
+                    pastille: #FF5A6E;
+                    checked: ConsoleState.filter == 2;
+                    clicked => { ConsoleState.filter = 2; ConsoleState.filter-changed(); }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Rectangle {
+                    width: min(260px, max(150px, root.width - 560px));
+                    height: 32px;
+                    border-radius: 8px;
+                    background: CC.bouton;
+                    border-width: 1px;
+                    border-color: recherche.has-focus ? CC.bleu : CC.bouton-bord;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        spacing: 8px;
+                        Icon {
+                            text: "\u{E721}";
+                            font-size: 12px;
+                            color: CC.discret;
                             vertical-alignment: center;
-                            single-line: true;
-                            edited => { ConsoleState.filter-changed(); }
                         }
-                        if ConsoleState.search == "": Text {
-                            width: 100%;
-                            text: Tr.t("Console_Rechercher");
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            recherche := TextInput {
+                                width: 100%;
+                                height: 100%;
+                                text <=> ConsoleState.search;
+                                font-family: Theme.ui-font;
+                                font-size: 12.5px;
+                                color: CC.titre;
+                                vertical-alignment: center;
+                                single-line: true;
+                                edited => { ConsoleState.filter-changed(); }
+                            }
+                            if ConsoleState.search == "": Text {
+                                width: 100%;
+                                text: Tr.t("Console_Rechercher");
+                                font-family: Theme.ui-font;
+                                font-size: 12.5px;
+                                color: CC.vide;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                vertical-stretch: 1;
+                padding: 16px;
+                padding-top: 12px;
+                // ── les parties, en écran partagé ──
+                grille := Rectangle {
+                    vertical-stretch: 1;
+                    property <length> ecart: 12px;
+                    property <bool> un-seul: ConsoleState.focused >= 0 && ConsoleState.focused < ConsoleState.panes.length;
+                    property <int> n: self.un-seul ? 1 : ConsoleState.panes.length;
+                    property <int> colonnes: self.n <= 1 ? 1 : self.n <= 4 ? 2 : 3;
+                    property <int> rangees: max(1, ceil(self.n / self.colonnes));
+                    property <length> h: (self.height - (self.rangees - 1) * self.ecart) / self.rangees;
+        
+                    for p[i] in ConsoleState.panes: PanneauLogs {
+                        property <bool> cache: grille.un-seul && ConsoleState.focused != i;
+                        // place dans la grille (un panneau agrandi prend la place 0)
+                        property <int> k: grille.un-seul ? 0 : i;
+                        property <int> rangee: floor(self.k / grille.colonnes);
+                        // la dernière rangée, si elle est incomplète, partage sa largeur entre ses panneaux
+                        property <int> dans-rangee: self.rangee == grille.rangees - 1 ? grille.n - self.rangee * grille.colonnes : grille.colonnes;
+                        property <int> colonne: self.k - self.rangee * grille.colonnes;
+                        property <length> l: (grille.width - (self.dans-rangee - 1) * grille.ecart) / self.dans-rangee;
+                        visible: !self.cache;
+                        p: p;
+                        index: i;
+                        x: self.colonne * (self.l + grille.ecart);
+                        y: self.rangee * (grille.h + grille.ecart);
+                        width: self.cache ? 0px : self.l;
+                        height: self.cache ? 0px : grille.h;
+                    }
+
+                    if ConsoleState.panes.length == 0: Rectangle {
+                        border-radius: 8px;
+                        background: CC.zone;
+                        border-width: 1px;
+                        border-color: CC.bord;
+                        Text {
+                            text: Tr.t("Console_Vide");
                             font-family: Theme.ui-font;
-                            font-size: 12.5px;
+                            font-size: 14px;
                             color: CC.vide;
+                            horizontal-alignment: center;
                             vertical-alignment: center;
                         }
                     }
                 }
             }
-        }
-
-        // ── les parties, en écran partagé ──
-        grille := Rectangle {
-            vertical-stretch: 1;
-            property <length> ecart: 12px;
-            property <bool> un-seul: ConsoleState.focused >= 0 && ConsoleState.focused < ConsoleState.panes.length;
-            property <int> n: self.un-seul ? 1 : ConsoleState.panes.length;
-            property <int> colonnes: self.n <= 1 ? 1 : self.n <= 4 ? 2 : 3;
-            property <int> rangees: max(1, ceil(self.n / self.colonnes));
-            property <length> h: (self.height - (self.rangees - 1) * self.ecart) / self.rangees;
-
-            for p[i] in ConsoleState.panes: PanneauLogs {
-                property <bool> cache: grille.un-seul && ConsoleState.focused != i;
-                // place dans la grille (un panneau agrandi prend la place 0)
-                property <int> k: grille.un-seul ? 0 : i;
-                property <int> rangee: floor(self.k / grille.colonnes);
-                // la dernière rangée, si elle est incomplète, partage sa largeur entre ses panneaux
-                property <int> dans-rangee: self.rangee == grille.rangees - 1 ? grille.n - self.rangee * grille.colonnes : grille.colonnes;
-                property <int> colonne: self.k - self.rangee * grille.colonnes;
-                property <length> l: (grille.width - (self.dans-rangee - 1) * grille.ecart) / self.dans-rangee;
-                visible: !self.cache;
-                p: p;
-                index: i;
-                x: self.colonne * (self.l + grille.ecart);
-                y: self.rangee * (grille.h + grille.ecart);
-                width: self.cache ? 0px : self.l;
-                height: self.cache ? 0px : grille.h;
-            }
-
-            if ConsoleState.panes.length == 0: Rectangle {
-                border-radius: 14px;
-                background: CC.zone;
-                border-width: 1px;
-                border-color: CC.bord;
-                Text {
-                    text: Tr.t("Console_Vide");
-                    font-family: Theme.ui-font;
-                    font-size: 14px;
-                    color: CC.vide;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
-        }
-    }
-
-    // boutons de la fenêtre, à la même place que ceux du launcher
-    HorizontalLayout {
-        x: parent.width - self.preferred-width - 10px;
-        y: 8px;
-        height: 34px;
-        spacing: 4px;
-        ChromeButton {
-            encre: CC.encre;
-            icon: "\u{E921}";
-            clicked => { AppState.minimize(); }
-        }
-        ChromeButton {
-            encre: CC.encre;
-            icon: AppState.maximized ? "\u{E923}" : "\u{E922}";
-            clicked => { AppState.toggle-maximize(); }
-        }
-        ChromeButton {
-            encre: CC.encre;
-            icon: "\u{E8BB}";
-            close: true;
-            clicked => { AppState.close(); }
         }
     }
 }

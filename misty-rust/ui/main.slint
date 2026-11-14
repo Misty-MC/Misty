@@ -543,7 +543,8 @@ export component MainWindow inherits Window {
                 Tuile {
                     // fenêtre étroite : l'icône seule, pour que la rangée tienne
                     width: root.etroit ? root.case : mesure-console.preferred-width + 64px;
-                    background: zone-console.has-hover ? Theme.panel-strong : Theme.panel;
+                    background: ConsoleState.open ? Theme.accent-soft : zone-console.has-hover ? Theme.panel-strong : Theme.panel;
+                    border-color: ConsoleState.open ? Theme.accent.with-alpha(0.5) : Theme.glass-border;
                     mesure-console := Text {
                         visible: false;
                         text: Tr.t("Home_Bouton_Logs");
@@ -556,21 +557,22 @@ export component MainWindow inherits Window {
                         Icon {
                             text: "\u{E756}";
                             font-size: 15px;
-                            color: zone-console.has-hover ? Theme.navy : Theme.text-muted;
+                            color: ConsoleState.open ? Theme.accent : zone-console.has-hover ? Theme.navy : Theme.text-muted;
                         }
                         if !root.etroit: Text {
                             text: Tr.t("Home_Bouton_Logs");
                             font-size: 14px;
                             font-weight: 600;
-                            color: zone-console.has-hover ? Theme.navy : Theme.text-muted;
+                            color: ConsoleState.open ? Theme.accent : zone-console.has-hover ? Theme.navy : Theme.text-muted;
                             vertical-alignment: center;
                         }
                     }
                     zone-console := TouchArea {
                         mouse-cursor: pointer;
+                        // la tuile ouvre la console, et la referme
                         clicked => {
                             ConsoleState.focused = -1;
-                            ConsoleState.open = true;
+                            ConsoleState.open = !ConsoleState.open;
                         }
                     }
                 }
@@ -678,7 +680,13 @@ export component MainWindow inherits Window {
         if SettingsState.storage-open: StorageOverlay { }
 
         // ═══ Console du jeu ═══
-        if ConsoleState.open: ConsoleOverlay { }
+        // sous la rangée du haut, qui reste utilisable (onglets, tuile Logs, boutons de la fenêtre)
+        if ConsoleState.open: ConsoleOverlay {
+            x: root.gouttiere + 2px;
+            y: root.gouttiere * 2 + 2px + root.case;
+            width: parent.width - 2 * (root.gouttiere + 2px);
+            height: parent.height - self.y - root.gouttiere - 2px;
+        }
 
         // ═══ Mise à jour : avancement (bloque la fenêtre jusqu'au redémarrage) ═══
         if AppState.updating: Rectangle {
